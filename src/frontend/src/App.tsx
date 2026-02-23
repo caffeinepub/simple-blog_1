@@ -2,6 +2,7 @@ import { createRouter, RouterProvider, createRoute, createRootRoute, Outlet } fr
 import HomePage from './pages/HomePage';
 import PostDetailPage from './pages/PostDetailPage';
 import CreatePostPage from './pages/CreatePostPage';
+import EditPostPage from './pages/EditPostPage';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -43,6 +44,18 @@ const postDetailRoute = createRoute({
   ),
 });
 
+const editPostRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/post/$id/edit',
+  component: () => (
+    <ProtectedRoute>
+      <Layout>
+        <EditPostPage />
+      </Layout>
+    </ProtectedRoute>
+  ),
+});
+
 const createPostRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/create',
@@ -59,6 +72,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   indexRoute,
   postDetailRoute,
+  editPostRoute,
   createPostRoute,
 ]);
 

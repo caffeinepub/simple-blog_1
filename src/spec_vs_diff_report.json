@@ -1,15 +1,21 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-23T13:36:42.875Z",
-  "summary": "All requirements are fully implemented. The diff shows the addition of a titleSuggestions.ts data file with all predefined Swedish titles organized by category, and modifications to CreatePostPage.tsx that add both the category and suggested title dropdowns. The implementation correctly handles category selection, dynamic title population, and maintains optional usage. No missing requirements or hallucinated features detected.",
-  "missing_requirements": [],
+  "generatedAt": "2026-02-23T17:39:03.581Z",
+  "summary": "The diff only shows a modification to project_state.json with feature metadata and no actual code changes. The BuildRequest requires deleting a specific blog post titled 'Mat' by Henrik from February 23, 2026, but there is no evidence in the diff of any deletion operation, backend data store modification, or implementation of the deletion functionality.",
+  "missing_requirements": [
+    {
+      "id": "REQ-47",
+      "requirement": "Delete the blog post with title 'Mat' authored by 'Henrik' that was created on February 23, 2026",
+      "reason": "No evidence of any deletion implementation in the diff. Only project_state.json metadata was modified, with no changes to backend data stores, API endpoints, or any code that would execute the deletion operation.",
+      "evidence": [
+        "project_state.json"
+      ]
+    }
+  ],
   "hallucinated_features": [],
   "confidence": 0.95,
   "changed_files": [
-    "frontend-file-summaries.txt",
-    "frontend/src/data/titleSuggestions.ts",
-    "frontend/src/pages/CreatePostPage.tsx",
     "project_state.json"
   ]
 }

@@ -61,3 +61,49 @@ export function useCreatePost() {
     },
   });
 }
+
+export function useUpdatePost() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      title,
+      content,
+      author,
+      published,
+      images = [],
+    }: {
+      id: bigint;
+      title: string;
+      content: string;
+      author: string;
+      published: boolean;
+      images?: Uint8Array[];
+    }) => {
+      if (!actor) throw new Error('Actor not initialized');
+      await actor.updatePost(id, title, content, author, published, images);
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['post', id.toString()] });
+    },
+  });
+}
+
+export function useDeletePost() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error('Actor not initialized');
+      await actor.deletePost(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}

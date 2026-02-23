@@ -1,99 +1,37 @@
 {
   "kind": "build_request",
-  "title": "Add topic selection dropdown with predefined Swedish blog titles",
-  "projectName": "HKLO",
+  "title": "Delete test blog post titled 'Mat'",
+  "projectName": "HKLO Blog",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-31",
-      "text": "Add a dropdown/listbox field labeled 'Kategori' to the create post form on the CreatePostPage that allows users to select from five predefined topic categories: 'Livsstil', 'Livsberättelser', 'Mat', 'Hobby', and 'Djupa tankar'",
-      "target": "frontend",
+      "id": "REQ-47",
+      "text": "Delete the blog post with title 'Mat' authored by 'Henrik' that was created on February 23, 2026, which currently displays the content 'Mat för hjärtat'",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-current"
         ],
         "quotes": [
-          "Make function listbox so user can choose a predefined blogg topic"
+          "Delete this test post MAT"
         ]
       },
       "acceptanceCriteria": [
-        "A dropdown/listbox control appears in the create post form",
-        "The dropdown is labeled 'Kategori' in Swedish",
-        "The dropdown contains exactly five options: Livsstil, Livsberättelser, Mat, Hobby, Djupa tankar",
-        "The dropdown is positioned before the title input field",
-        "Users can select one category from the dropdown"
-      ]
-    },
-    {
-      "id": "REQ-32",
-      "text": "When a user selects a category from the topic dropdown, populate a secondary dropdown labeled 'Föreslagen titel' with predefined Swedish title suggestions specific to that category: Livsstil (5 titles including 'Minimalism som livsstil: Hur jag förenklade mitt liv och hittade lyckan', 'Hållbarhet i vardagen: Små steg som gör stor skillnad', 'Att leva med avsikt: Så skapar du en meningsfull vardag', 'Digital detox: Hur jag lärde mig att koppla av från skärmarna', 'Livsstilsförändringar som faktiskt fungerar – min resa'), Livsberättelser (5 titles including 'Från kaos till klarhet: Min resa att hitta mig själv', 'Att börja om: Hur jag byggde upp mitt liv efter en stor förlust', 'De misstag som formade mig – och varför jag inte ångrar dem', 'Att växa upp som introvert i en extrovert värld', 'Brevet jag önskar jag hade skrivit till mitt yngre jag'), Mat (6 titles including 'Enkla, näringsrika måltider för en hektisk vardag', 'Vegetarisk mat som även köttätare älskar', 'Mitt hemliga recept: Den perfekta sourdough-brödguiden', 'Matlagning på budget – goda rätter som inte kostar skjortan', 'Smaker från världen: Mina favoritrecept efter resor i Asien', 'Hjärte mat'), Hobby (4 titles including 'Att hitta glädje i hantverk: Min resa med stickning och virkning', 'Trädgårdsdrömmar: Så skapade jag mitt eget urbana paradis', 'Fotografi för nybörjare – mina bästa tips och tricks', 'DIY-projekt som förvandlade mitt hem'), and Djupa tankar (5 titles including 'Att hitta mening i en kaotisk värld', 'Varför vi behöver tystnad i en högljudd tid', 'Att släppa taget: Konsten att acceptera det man inte kan kontrollera', 'Vad lycka egentligen betyder – och hur jag hittade min', 'Att leva i nuet: Lektioner från mindfulness och meditation')",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "Listbox topics with predefined topics"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A second dropdown appears after the user selects a category",
-        "The second dropdown is labeled 'Föreslagen titel'",
-        "The second dropdown contains the exact predefined titles for the selected category",
-        "Selecting 'Livsstil' shows 5 lifestyle-related titles",
-        "Selecting 'Livsberättelser' shows 5 life story titles",
-        "Selecting 'Mat' shows 6 food-related titles",
-        "Selecting 'Hobby' shows 4 hobby-related titles",
-        "Selecting 'Djupa tankar' shows 5 philosophical titles",
-        "The dropdown remains empty or hidden until a category is selected"
-      ]
-    },
-    {
-      "id": "REQ-33",
-      "text": "When a user selects a predefined title from the 'Föreslagen titel' dropdown, automatically populate the existing 'Titel' input field with the selected title text, allowing users to further edit or keep it as-is",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "choose a predefined blogg topic and than put a title"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Selecting a suggested title populates the 'Titel' input field",
-        "The populated title text is editable by the user",
-        "Users can still manually type a custom title without selecting from suggestions",
-        "The title field updates immediately when a suggestion is selected"
-      ]
-    },
-    {
-      "id": "REQ-34",
-      "text": "Make the category and suggested title dropdowns optional, allowing users to skip the suggested titles and directly enter a custom title in the 'Titel' field if they prefer",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Users can create a post without selecting a category or suggested title",
-        "The category and title suggestion fields are not required for form submission",
-        "Users can freely type in the 'Titel' field without interacting with the dropdowns"
+        "The blog post with title 'Mat' is permanently removed from the backend data store",
+        "The post no longer appears in the list of all published posts on the home page",
+        "Attempting to access the post detail page for this deleted post returns an appropriate not found state",
+        "The deletion is verified to respect ownership rules (caller must be the post owner)"
       ]
     }
   ],
   "constraints": [
-    "Do not modify the backend Post data model or main.mo file",
-    "Do not change the existing form validation logic for title, content, and author fields",
-    "Preserve the existing Swedish translations and UI text conventions",
-    "Do not modify immutable paths: useInternetIdentity.ts, useActor.ts, main.tsx, components/ui"
+    "Only the authenticated owner (Principal matching the post's ownerId) can delete this post",
+    "The deletion must use the existing backend deletePost function with proper ownership verification"
   ],
   "nonGoals": [
-    "Storing the selected category as metadata in the backend Post model",
-    "Adding filtering or search functionality by category",
-    "Creating admin functionality to manage or edit predefined titles",
-    "Implementing custom title suggestion AI or generation logic"
+    "Modifying the delete button UI or confirmation dialog",
+    "Changing the deletion logic or ownership verification mechanism",
+    "Deleting any other blog posts"
   ],
   "imageRequirements": {
     "required": [],

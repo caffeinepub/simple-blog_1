@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 13,
+  "projectStateVersion": 19,
   "summary": "A website with a simple blog",
   "architectural_notes": [
     "Implementing Internet Identity authentication as gatekeeper to entire site",
@@ -248,6 +248,38 @@
         "REQ-34"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-add-a-delete-button-to-the-postdetailpage-that-appears-only-when-the-authenticated-user-is-the-owner-of-the-displayed-blog-post",
+      "title": "Add a delete button to the PostDetailPage that appears only when the authenticated user is the owner of the displayed blog post",
+      "reqIds": [
+        "REQ-38"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-an-edit-button-to-the-postdetailpage-that-appears-only-when-the-authenticated-user-is-the-owner-of-the-displayed-blog-post-and-navigates-to-an-edit-form",
+      "title": "Add an edit button to the PostDetailPage that appears only when the authenticated user is the owner of the displayed blog post and navigates to an edit form",
+      "reqIds": [
+        "REQ-39"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-an-editpostpage-component-with-a-form-pre-populated-with-the-existing-post-data-title-content-author-published-status-category-images-that-allows-the-owner-to-modify-and-save-changes",
+      "title": "Create an EditPostPage component with a form pre-populated with the existing post data (title, content, author, published status, category, images) that allows the owner to modify and save changes",
+      "reqIds": [
+        "REQ-40"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-react-query-hooks-for-deleting-and-updating-posts-that-call-the-backend-deletepost-and-updatepost-functions-with-proper-error-handling-and-cache-invalidation",
+      "title": "Create React Query hooks for deleting and updating posts that call the backend deletePost and updatePost functions with proper error handling and cache invalidation",
+      "reqIds": [
+        "REQ-41"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -288,12 +320,6 @@
     {
       "id": "AR-6",
       "summary": "Add image upload functionality to blog post creation",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-7",
-      "summary": "Allow users to delete their own blog posts and comments",
       "reqIds": [],
       "status": "pending"
     },
@@ -341,6 +367,84 @@
       "id": "AR-15",
       "summary": "Populate topic listbox with predefined Swedish blog post title suggestions for each category",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Add function for blog post owner to edit their own posted blogs",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Extend the backend Post data model to include an ownerId field that stores the Principal of the user who created the post",
+      "reqIds": [
+        "REQ-35"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Implement a backend deletePost function that allows authenticated users to delete only their own blog posts by verifying the caller's Principal matches the post's ownerId",
+      "reqIds": [
+        "REQ-36"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-19",
+      "summary": "Implement a backend updatePost function that allows authenticated users to edit only their own blog posts by verifying the caller's Principal matches the post's ownerId",
+      "reqIds": [
+        "REQ-37"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-20",
+      "summary": "Ensure the PostDetailPage displays an edit button only when the authenticated user's principal matches the post's ownerId, and this button navigates to the edit post page at /edit/$postId",
+      "reqIds": [
+        "REQ-42"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-21",
+      "summary": "Ensure the PostDetailPage displays a delete button only when the authenticated user's principal matches the post's ownerId, and clicking it triggers a confirmation dialog before deleting the post",
+      "reqIds": [
+        "REQ-43"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-22",
+      "summary": "Verify that the EditPostPage allows authenticated post owners to update their own posts with pre-populated form fields for title, content, author, published status, category, and images",
+      "reqIds": [
+        "REQ-44"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-23",
+      "summary": "Ensure the backend updatePost function verifies that the caller's principal matches the post's ownerId before allowing the update",
+      "reqIds": [
+        "REQ-45"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-24",
+      "summary": "Ensure the backend deletePost function verifies that the caller's principal matches the post's ownerId before allowing the deletion",
+      "reqIds": [
+        "REQ-46"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-25",
+      "summary": "Delete the blog post with title 'Mat' authored by 'Henrik' that was created on February 23, 2026, which currently displays the content 'Mat för hjärtat'",
+      "reqIds": [
+        "REQ-47"
+      ],
       "status": "pending"
     }
   ],

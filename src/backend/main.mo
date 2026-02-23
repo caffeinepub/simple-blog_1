@@ -4,11 +4,10 @@ import Order "mo:core/Order";
 import Time "mo:core/Time";
 import Int "mo:core/Int";
 import Map "mo:core/Map";
+import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
-
-
 
 actor {
   include MixinStorage();
@@ -23,6 +22,7 @@ actor {
     createdAt : Time.Time;
     published : Bool;
     images : [Image];
+    ownerId : Principal;
   };
 
   module Post {
@@ -44,6 +44,7 @@ actor {
       createdAt = Time.now();
       published = false;
       images = imageBlobs;
+      ownerId = caller;
     };
     posts.add(id, post);
     nextId += 1;
@@ -65,6 +66,9 @@ actor {
     switch (posts.get(id)) {
       case (null) { Runtime.trap("Post does not exist! ") };
       case (?post) {
+        if (post.ownerId != caller) {
+          Runtime.trap("You do not have permission to update this post.");
+        };
         let updatedPost : Post = {
           post with
           title;
@@ -79,9 +83,16 @@ actor {
   };
 
   public shared ({ caller }) func deletePost(id : Nat) : async () {
-    if (not posts.containsKey(id)) {
-      Runtime.trap("Post does not exist! ");
+    switch (posts.get(id)) {
+      case (null) {
+        Runtime.trap("Post does not exist! ");
+      };
+      case (?post) {
+        if (post.ownerId != caller) {
+          Runtime.trap("You do not have permission to delete this post.");
+        };
+        posts.remove(id);
+      };
     };
-    posts.remove(id);
   };
 };

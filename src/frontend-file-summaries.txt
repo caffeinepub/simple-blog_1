@@ -1,11 +1,11 @@
 {
-  "frontend/src/App.tsx": "Main application component with properly structured TanStack Router setup - single root route with Outlet, public /login route, and protected routes (/, /post/$id, /create) each wrapped individually with ProtectedRoute and Layout components.",
+  "frontend/src/App.tsx": "Main application component with TanStack Router setup including new edit post route at /post/$id/edit wrapped with ProtectedRoute and Layout.",
   "frontend/src/components/Layout.tsx": "Layout wrapper component with HKLO branding header, Swedish navigation (Hem, Skapa inlägg, Logga ut), logout functionality, and footer with caffeine.ai attribution; accepts children prop or renders Outlet for nested routes.",
   "frontend/src/pages/HomePage.tsx": "Home page displaying published blog posts with Swedish text for headings (Senaste berättelserna), loading states, error messages, and empty state.",
-  "frontend/src/pages/PostDetailPage.tsx": "Post detail page showing full blog post content with Swedish labels, now includes ImageGallery component to display post images when available.",
+  "frontend/src/pages/PostDetailPage.tsx": "Post detail page with edit and delete buttons visible only to post owners, includes confirmation dialog for deletion with Swedish text and proper error handling.",
   "frontend/src/pages/CreatePostPage.tsx": "Create post page with Swedish form labels including new optional category and suggested title dropdowns that auto-populate the title field, along with existing fields for author, content, images, and publish toggle.",
   "frontend/src/components/PostCard.tsx": "Reusable post card component with Swedish \"Läs mer\" link text, displays first image as thumbnail when post has images by converting Uint8Array to blob URL with proper type casting and cleanup.",
-  "frontend/src/hooks/useQueries.ts": "React Query hooks for fetching published posts, individual posts, and creating new posts with image support, including automatic cache invalidation.",
+  "frontend/src/hooks/useQueries.ts": "React Query hooks for fetching, creating, updating, and deleting blog posts with automatic cache invalidation for all mutations.",
   "frontend/src/utils/dateFormatter.ts": "Utility function to format dates using Swedish locale (sv-SE) with Swedish month names.",
   "frontend/src/index.css": "Global styles with warm editorial OKLCH color palette for light and dark modes, serif typography for headings, and base styling without problematic @apply directives.",
   "frontend/tailwind.config.js": "Tailwind configuration extended with serif font family, editorial color tokens, typography plugin settings, and custom design system.",
@@ -14,5 +14,7 @@
   "frontend/src/components/ImageGallery.tsx": "Reusable image gallery component that displays an array of Uint8Array images in a responsive grid layout by converting them to blob URLs with proper type casting for efficient display.",
   "frontend/src/pages/LoginPage.tsx": "Login page with Swedish text displaying Internet Identity login button, loading state during initialization, automatic redirect for authenticated users, and link to create new Internet Identity account.",
   "frontend/src/components/ProtectedRoute.tsx": "Route protection wrapper that shows loading spinner during authentication initialization, redirects unauthenticated users to /login, and renders children only for authenticated users.",
-  "frontend/src/data/titleSuggestions.ts": "Data file containing predefined Swedish blog title suggestions organized by five categories (Livsstil, Livsberättelser, Mat, Hobby, Djupa tankar) with TypeScript types for category keys."
+  "frontend/src/data/titleSuggestions.ts": "Data file containing predefined Swedish blog title suggestions organized by five categories (Livsstil, Livsberättelser, Mat, Hobby, Djupa tankar) with TypeScript types for category keys.",
+  "frontend/src/pages/EditPostPage.tsx": "Edit post page with ownership verification, pre-populated form fields, support for managing existing and new images, and Swedish labels throughout.",
+  "frontend/src/main.tsx": "Application entry point with QueryClient, InternetIdentityProvider, ThemeProvider, and Toaster component for toast notifications."
 }

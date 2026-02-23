@@ -15,6 +15,7 @@ export interface Post {
   'id' : bigint,
   'title' : string,
   'content' : string,
+  'ownerId' : Principal,
   'published' : boolean,
   'createdAt' : Time,
   'author' : string,

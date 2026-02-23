@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Add category selection dropdown with predefined Swedish blog titles to help users create posts more easily.
+**Goal:** Delete the test blog post titled 'Mat' from the HKLO Blog.
 
 **Planned changes:**
-- Add a "Kategori" dropdown with five Swedish categories (Livsstil, Livsberättelser, Mat, Hobby, Djupa tankar) positioned before the title input field
-- Add a "Föreslagen titel" dropdown that displays predefined title suggestions based on the selected category
-- Auto-populate the "Titel" field when a user selects a suggested title, with the ability to edit it
-- Make both dropdowns optional so users can skip them and enter custom titles directly
+- Remove the blog post with title 'Mat' authored by 'Henrik' (created February 23, 2026) from the backend data store
+- Ensure the post no longer appears in the list of published posts
+- Verify deletion respects ownership rules (only the post owner can delete)
 
-**User-visible outcome:** Users can optionally select a blog category to see relevant title suggestions, making it easier to start writing posts. They can also continue creating posts with custom titles without using the dropdowns.
+**User-visible outcome:** The test blog post 'Mat' will be permanently removed from the blog and will no longer appear in the post list or be accessible via its detail page.
