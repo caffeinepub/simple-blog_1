@@ -3,6 +3,7 @@ import { useGetPost } from '../hooks/useQueries';
 import { formatDate } from '../utils/dateFormatter';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, User, Calendar } from 'lucide-react';
+import ImageGallery from '../components/ImageGallery';
 
 export default function PostDetailPage() {
   const { id } = useParams({ from: '/post/$id' });
@@ -23,10 +24,10 @@ export default function PostDetailPage() {
     return (
       <div className="container max-w-4xl mx-auto px-6 py-16">
         <div className="text-center py-20">
-          <p className="text-destructive mb-6">Post not found or failed to load.</p>
+          <p className="text-destructive mb-6">Inlägget hittades inte eller kunde inte laddas.</p>
           <Button onClick={() => navigate({ to: '/' })} variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
+            Tillbaka till hem
           </Button>
         </div>
       </div>
@@ -42,7 +43,7 @@ export default function PostDetailPage() {
         className="mb-8 -ml-2 text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to all posts
+        Tillbaka till alla inlägg
       </Button>
 
       <header className="mb-12 pb-8 border-b border-border/40">
@@ -62,6 +63,10 @@ export default function PostDetailPage() {
           </div>
         </div>
       </header>
+
+      {post.images && post.images.length > 0 && (
+        <ImageGallery images={post.images} />
+      )}
 
       <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
         <div className="whitespace-pre-wrap leading-relaxed text-foreground opacity-90">

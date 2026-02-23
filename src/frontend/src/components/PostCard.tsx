@@ -4,6 +4,7 @@ import { formatDate } from '../utils/dateFormatter';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { User, Calendar, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
 
 interface PostCardProps {
   post: Post;
@@ -14,8 +15,44 @@ export default function PostCard({ post }: PostCardProps) {
     ? post.content.substring(0, 200) + '...' 
     : post.content;
 
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (post.images && post.images.length > 0) {
+      try {
+        // Convert Uint8Array to blob URL for display
+        const blob = new Blob([new Uint8Array(post.images[0])], { type: 'image/jpeg' });
+        const url = URL.createObjectURL(blob);
+        setThumbnailUrl(url);
+
+        // Cleanup function
+        return () => {
+          URL.revokeObjectURL(url);
+        };
+      } catch (error) {
+        console.error('Error loading thumbnail:', error);
+      }
+    }
+  }, [post.images]);
+
   return (
     <Card className="group hover:shadow-md transition-all duration-300 border-border/40 overflow-hidden">
+      {thumbnailUrl && (
+        <Link
+          to="/post/$id"
+          params={{ id: post.id.toString() }}
+          className="block"
+        >
+          <div className="relative aspect-[16/9] overflow-hidden bg-muted/30">
+            <img
+              src={thumbnailUrl}
+              alt={post.title}
+              className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
+              loading="lazy"
+            />
+          </div>
+        </Link>
+      )}
       <CardHeader className="space-y-4 pb-4">
         <Link
           to="/post/$id"
@@ -48,7 +85,7 @@ export default function PostCard({ post }: PostCardProps) {
           params={{ id: post.id.toString() }}
         >
           <Button variant="ghost" size="sm" className="group/btn -ml-2">
-            Read more
+            Läs mer
             <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover/btn:translate-x-1" />
           </Button>
         </Link>

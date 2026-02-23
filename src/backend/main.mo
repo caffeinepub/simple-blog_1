@@ -5,8 +5,16 @@ import Time "mo:core/Time";
 import Int "mo:core/Int";
 import Map "mo:core/Map";
 import Runtime "mo:core/Runtime";
+import Storage "blob-storage/Storage";
+import MixinStorage "blob-storage/Mixin";
+
+
 
 actor {
+  include MixinStorage();
+
+  type Image = Storage.ExternalBlob;
+
   type Post = {
     id : Nat;
     title : Text;
@@ -14,6 +22,7 @@ actor {
     author : Text;
     createdAt : Time.Time;
     published : Bool;
+    images : [Image];
   };
 
   module Post {
@@ -25,7 +34,7 @@ actor {
   let posts = Map.empty<Nat, Post>();
   var nextId = 0;
 
-  public shared ({ caller }) func createPost(title : Text, content : Text, author : Text) : async Nat {
+  public shared ({ caller }) func createPost(title : Text, content : Text, author : Text, imageBlobs : [Image]) : async Nat {
     let id = nextId;
     let post : Post = {
       id;
@@ -34,6 +43,7 @@ actor {
       author;
       createdAt = Time.now();
       published = false;
+      images = imageBlobs;
     };
     posts.add(id, post);
     nextId += 1;
@@ -51,7 +61,7 @@ actor {
     posts.values().toArray().filter(func(post) { post.published });
   };
 
-  public shared ({ caller }) func updatePost(id : Nat, title : Text, content : Text, author : Text, published : Bool) : async () {
+  public shared ({ caller }) func updatePost(id : Nat, title : Text, content : Text, author : Text, published : Bool, images : [Image]) : async () {
     switch (posts.get(id)) {
       case (null) { Runtime.trap("Post does not exist! ") };
       case (?post) {
@@ -61,6 +71,7 @@ actor {
           content;
           author;
           published;
+          images;
         };
         posts.add(id, updatedPost);
       };

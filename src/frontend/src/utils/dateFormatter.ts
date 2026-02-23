@@ -10,5 +10,5 @@ export function formatDate(time: Time): string {
     day: 'numeric',
   };
   
-  return date.toLocaleDateString('en-US', options);
+  return date.toLocaleDateString('sv-SE', options);
 }

@@ -1,14 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Build a simple blog website where users can create, view, and manage blog posts with a clean editorial design.
+**Goal:** Add category selection dropdown with predefined Swedish blog titles to help users create posts more easily.
 
 **Planned changes:**
-- Create backend data model for blog posts with id, title, content, author, createdAt, and published fields
-- Implement CRUD operations for blog posts in the backend
-- Build a home page displaying all published posts with previews
-- Create a detail page showing full blog post content
-- Add a form to create new blog posts with title, content, author, and publish toggle
-- Apply modern editorial design with elegant typography and comfortable reading layout
+- Add a "Kategori" dropdown with five Swedish categories (Livsstil, Livsberättelser, Mat, Hobby, Djupa tankar) positioned before the title input field
+- Add a "Föreslagen titel" dropdown that displays predefined title suggestions based on the selected category
+- Auto-populate the "Titel" field when a user selects a suggested title, with the ability to edit it
+- Make both dropdowns optional so users can skip them and enter custom titles directly
 
-**User-visible outcome:** Users can view a list of published blog posts on the home page, click to read full posts, and create new posts through a form. The site features a clean, editorial design optimized for reading.
+**User-visible outcome:** Users can optionally select a blog category to see relevant title suggestions, making it easier to start writing posts. They can also continue creating posts with custom titles without using the dropdowns.

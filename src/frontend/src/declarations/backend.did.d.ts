@@ -10,6 +10,7 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export type Image = Uint8Array;
 export interface Post {
   'id' : bigint,
   'title' : string,
@@ -17,15 +18,42 @@ export interface Post {
   'published' : boolean,
   'createdAt' : Time,
   'author' : string,
+  'images' : Array<Image>,
 }
 export type Time = bigint;
+export interface _CaffeineStorageCreateCertificateResult {
+  'method' : string,
+  'blob_hash' : string,
+}
+export interface _CaffeineStorageRefillInformation {
+  'proposed_top_up_amount' : [] | [bigint],
+}
+export interface _CaffeineStorageRefillResult {
+  'success' : [] | [boolean],
+  'topped_up_amount' : [] | [bigint],
+}
 export interface _SERVICE {
-  'createPost' : ActorMethod<[string, string, string], bigint>,
+  '_caffeineStorageBlobIsLive' : ActorMethod<[Uint8Array], boolean>,
+  '_caffeineStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_caffeineStorageConfirmBlobDeletion' : ActorMethod<
+    [Array<Uint8Array>],
+    undefined
+  >,
+  '_caffeineStorageCreateCertificate' : ActorMethod<
+    [string],
+    _CaffeineStorageCreateCertificateResult
+  >,
+  '_caffeineStorageRefillCashier' : ActorMethod<
+    [[] | [_CaffeineStorageRefillInformation]],
+    _CaffeineStorageRefillResult
+  >,
+  '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
+  'createPost' : ActorMethod<[string, string, string, Array<Image>], bigint>,
   'deletePost' : ActorMethod<[bigint], undefined>,
   'getAllPublishedPosts' : ActorMethod<[], Array<Post>>,
   'getPost' : ActorMethod<[bigint], Post>,
   'updatePost' : ActorMethod<
-    [bigint, string, string, string, boolean],
+    [bigint, string, string, string, boolean, Array<Image>],
     undefined
   >,
 }

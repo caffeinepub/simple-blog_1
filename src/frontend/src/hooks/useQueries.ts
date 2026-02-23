@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { Post } from '../backend';
+import type { Post, Image } from '../backend';
 
 export function useGetAllPublishedPosts() {
   const { actor, isFetching } = useActor();
@@ -38,18 +38,20 @@ export function useCreatePost() {
       content,
       author,
       published,
+      images = [],
     }: {
       title: string;
       content: string;
       author: string;
       published: boolean;
+      images?: Uint8Array[];
     }) => {
       if (!actor) throw new Error('Actor not initialized');
       
-      const postId = await actor.createPost(title, content, author);
+      const postId = await actor.createPost(title, content, author, images);
       
       if (published) {
-        await actor.updatePost(postId, title, content, author, true);
+        await actor.updatePost(postId, title, content, author, true, images);
       }
       
       return postId;

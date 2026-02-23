@@ -8,6 +8,18 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const _CaffeineStorageCreateCertificateResult = IDL.Record({
+  'method' : IDL.Text,
+  'blob_hash' : IDL.Text,
+});
+export const _CaffeineStorageRefillInformation = IDL.Record({
+  'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+});
+export const _CaffeineStorageRefillResult = IDL.Record({
+  'success' : IDL.Opt(IDL.Bool),
+  'topped_up_amount' : IDL.Opt(IDL.Nat),
+});
+export const Image = IDL.Vec(IDL.Nat8);
 export const Time = IDL.Int;
 export const Post = IDL.Record({
   'id' : IDL.Nat,
@@ -16,15 +28,46 @@ export const Post = IDL.Record({
   'published' : IDL.Bool,
   'createdAt' : Time,
   'author' : IDL.Text,
+  'images' : IDL.Vec(Image),
 });
 
 export const idlService = IDL.Service({
-  'createPost' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [IDL.Nat], []),
+  '_caffeineStorageBlobIsLive' : IDL.Func(
+      [IDL.Vec(IDL.Nat8)],
+      [IDL.Bool],
+      ['query'],
+    ),
+  '_caffeineStorageBlobsToDelete' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      ['query'],
+    ),
+  '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [],
+      [],
+    ),
+  '_caffeineStorageCreateCertificate' : IDL.Func(
+      [IDL.Text],
+      [_CaffeineStorageCreateCertificateResult],
+      [],
+    ),
+  '_caffeineStorageRefillCashier' : IDL.Func(
+      [IDL.Opt(_CaffeineStorageRefillInformation)],
+      [_CaffeineStorageRefillResult],
+      [],
+    ),
+  '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
+  'createPost' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
+      [IDL.Nat],
+      [],
+    ),
   'deletePost' : IDL.Func([IDL.Nat], [], []),
   'getAllPublishedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
   'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
   'updatePost' : IDL.Func(
-      [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool],
+      [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool, IDL.Vec(Image)],
       [],
       [],
     ),
@@ -33,6 +76,18 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const _CaffeineStorageCreateCertificateResult = IDL.Record({
+    'method' : IDL.Text,
+    'blob_hash' : IDL.Text,
+  });
+  const _CaffeineStorageRefillInformation = IDL.Record({
+    'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const _CaffeineStorageRefillResult = IDL.Record({
+    'success' : IDL.Opt(IDL.Bool),
+    'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const Image = IDL.Vec(IDL.Nat8);
   const Time = IDL.Int;
   const Post = IDL.Record({
     'id' : IDL.Nat,
@@ -41,15 +96,46 @@ export const idlFactory = ({ IDL }) => {
     'published' : IDL.Bool,
     'createdAt' : Time,
     'author' : IDL.Text,
+    'images' : IDL.Vec(Image),
   });
   
   return IDL.Service({
-    'createPost' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [IDL.Nat], []),
+    '_caffeineStorageBlobIsLive' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [IDL.Bool],
+        ['query'],
+      ),
+    '_caffeineStorageBlobsToDelete' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
+    '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [],
+        [],
+      ),
+    '_caffeineStorageCreateCertificate' : IDL.Func(
+        [IDL.Text],
+        [_CaffeineStorageCreateCertificateResult],
+        [],
+      ),
+    '_caffeineStorageRefillCashier' : IDL.Func(
+        [IDL.Opt(_CaffeineStorageRefillInformation)],
+        [_CaffeineStorageRefillResult],
+        [],
+      ),
+    '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
+    'createPost' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
+        [IDL.Nat],
+        [],
+      ),
     'deletePost' : IDL.Func([IDL.Nat], [], []),
     'getAllPublishedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
     'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
     'updatePost' : IDL.Func(
-        [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool],
+        [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool, IDL.Vec(Image)],
         [],
         [],
       ),

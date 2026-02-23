@@ -1,16 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useCreatePost } from '../hooks/useQueries';
+import { useImageUpload } from '../hooks/useImageUpload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, ArrowLeft, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { categories, titleSuggestions, type Category } from '../data/titleSuggestions';
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
+  const [category, setCategory] = useState<Category | ''>('');
+  const [suggestedTitle, setSuggestedTitle] = useState('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [author, setAuthor] = useState('');
@@ -18,18 +23,19 @@ export default function CreatePostPage() {
   const [errors, setErrors] = useState<{ title?: string; content?: string; author?: string }>({});
 
   const createPostMutation = useCreatePost();
+  const { images, error: imageError, addImages, removeImage, convertToBlobs, clearImages } = useImageUpload();
 
   const validateForm = () => {
     const newErrors: { title?: string; content?: string; author?: string } = {};
     
     if (!title.trim()) {
-      newErrors.title = 'Title is required';
+      newErrors.title = 'Titel krävs';
     }
     if (!content.trim()) {
-      newErrors.content = 'Content is required';
+      newErrors.content = 'Innehåll krävs';
     }
     if (!author.trim()) {
-      newErrors.author = 'Author name is required';
+      newErrors.author = 'Författarnamn krävs';
     }
 
     setErrors(newErrors);
@@ -44,16 +50,37 @@ export default function CreatePostPage() {
     }
 
     try {
+      const imageBlobs = await convertToBlobs();
+      
       await createPostMutation.mutateAsync({
         title: title.trim(),
         content: content.trim(),
         author: author.trim(),
         published,
+        images: imageBlobs,
       });
+      
+      clearImages();
       navigate({ to: '/' });
     } catch (error) {
-      console.error('Failed to create post:', error);
+      console.error('Kunde inte skapa inlägg:', error);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addImages(e.target.files);
+    // Reset input so the same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setCategory(value as Category);
+    setSuggestedTitle('');
+  };
+
+  const handleSuggestedTitleChange = (value: string) => {
+    setSuggestedTitle(value);
+    setTitle(value);
   };
 
   return (
@@ -65,29 +92,67 @@ export default function CreatePostPage() {
         className="mb-8 -ml-2 text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Home
+        Tillbaka till hem
       </Button>
 
       <Card className="border-border/40 shadow-sm">
         <CardHeader className="space-y-1 pb-6">
           <CardTitle className="text-3xl font-serif font-bold tracking-tight">
-            Create New Post
+            Skapa nytt inlägg
           </CardTitle>
           <CardDescription className="text-base">
-            Share your thoughts and stories with the community
+            Dela dina tankar och berättelser med gemenskapen
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
+              <Label htmlFor="category" className="text-sm font-medium">
+                Kategori
+              </Label>
+              <Select value={category} onValueChange={handleCategoryChange}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Välj en kategori (valfritt)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {category && (
+              <div className="space-y-2">
+                <Label htmlFor="suggested-title" className="text-sm font-medium">
+                  Föreslagen titel
+                </Label>
+                <Select value={suggestedTitle} onValueChange={handleSuggestedTitleChange}>
+                  <SelectTrigger id="suggested-title">
+                    <SelectValue placeholder="Välj en föreslagen titel (valfritt)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {titleSuggestions[category].map((titleOption, index) => (
+                      <SelectItem key={index} value={titleOption}>
+                        {titleOption}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2">
               <Label htmlFor="title" className="text-sm font-medium">
-                Title
+                Titel
               </Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter your post title..."
+                placeholder="Ange din inläggstitel..."
                 className={errors.title ? 'border-destructive' : ''}
               />
               {errors.title && (
@@ -97,13 +162,13 @@ export default function CreatePostPage() {
 
             <div className="space-y-2">
               <Label htmlFor="author" className="text-sm font-medium">
-                Author
+                Författare
               </Label>
               <Input
                 id="author"
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
-                placeholder="Your name..."
+                placeholder="Ditt namn..."
                 className={errors.author ? 'border-destructive' : ''}
               />
               {errors.author && (
@@ -113,13 +178,13 @@ export default function CreatePostPage() {
 
             <div className="space-y-2">
               <Label htmlFor="content" className="text-sm font-medium">
-                Content
+                Innehåll
               </Label>
               <Textarea
                 id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Write your story..."
+                placeholder="Skriv din berättelse..."
                 rows={12}
                 className={`resize-none ${errors.content ? 'border-destructive' : ''}`}
               />
@@ -128,13 +193,84 @@ export default function CreatePostPage() {
               )}
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="images" className="text-sm font-medium">
+                Bilder
+              </Label>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Input
+                    id="images"
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                    multiple
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('images')?.click()}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Välj bilder
+                  </Button>
+                </div>
+                
+                {imageError && (
+                  <p className="text-sm text-destructive">{imageError}</p>
+                )}
+
+                {images.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {images.map((image, index) => (
+                      <div
+                        key={index}
+                        className="relative aspect-square rounded-lg border border-border/40 overflow-hidden bg-muted/30 group"
+                      >
+                        <img
+                          src={image.preview}
+                          alt={`Förhandsvisning ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        {image.uploadProgress > 0 && image.uploadProgress < 100 && (
+                          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {images.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed border-border/40 rounded-lg bg-muted/20">
+                    <ImageIcon className="h-10 w-10 text-muted-foreground mb-3" />
+                    <p className="text-sm text-muted-foreground text-center">
+                      Inga bilder valda. Klicka på knappen ovan för att lägga till bilder.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border/40">
               <div className="space-y-0.5">
                 <Label htmlFor="published" className="text-sm font-medium cursor-pointer">
-                  Publish immediately
+                  Publicera omedelbart
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Make this post visible to everyone
+                  Gör detta inlägg synligt för alla
                 </p>
               </div>
               <Switch
@@ -153,10 +289,10 @@ export default function CreatePostPage() {
                 {createPostMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
+                    Skapar...
                   </>
                 ) : (
-                  'Create Post'
+                  'Skapa inlägg'
                 )}
               </Button>
               <Button
@@ -165,7 +301,7 @@ export default function CreatePostPage() {
                 onClick={() => navigate({ to: '/' })}
                 disabled={createPostMutation.isPending}
               >
-                Cancel
+                Avbryt
               </Button>
             </div>
           </form>

@@ -19,7 +19,7 @@ export default function HomePage() {
     return (
       <div className="container max-w-5xl mx-auto px-6 py-16">
         <div className="text-center py-20">
-          <p className="text-destructive">Failed to load posts. Please try again later.</p>
+          <p className="text-destructive">Kunde inte ladda inlägg. Försök igen senare.</p>
         </div>
       </div>
     );
@@ -31,17 +31,17 @@ export default function HomePage() {
     <div className="container max-w-5xl mx-auto px-6 py-16">
       <div className="mb-12 text-center">
         <h2 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4 tracking-tight">
-          Latest Stories
+          Senaste berättelserna
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          Thoughts, ideas, and narratives from our community of writers
+          Tankar, idéer och berättelser från vår gemenskap av skribenter
         </p>
       </div>
 
       {sortedPosts.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-muted-foreground text-lg">
-            No published posts yet. Be the first to share your story!
+            Inga publicerade inlägg ännu. Bli den första att dela din berättelse!
           </p>
         </div>
       ) : (

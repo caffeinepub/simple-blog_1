@@ -1,59 +1,72 @@
-import { Link, Outlet, useNavigate } from '@tanstack/react-router';
-import { PenSquare, BookOpen } from 'lucide-react';
+import { type ReactNode } from 'react';
+import { Link, Outlet } from '@tanstack/react-router';
+import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Button } from '@/components/ui/button';
+import { BookOpen, LogOut, Home, PenSquare } from 'lucide-react';
 
-export default function Layout() {
-  const navigate = useNavigate();
-  const currentYear = new Date().getFullYear();
-  const appIdentifier = encodeURIComponent(
-    typeof window !== 'undefined' ? window.location.hostname : 'simple-blog'
-  );
+interface LayoutProps {
+  children?: ReactNode;
+}
+
+export default function Layout({ children }: LayoutProps) {
+  const { clear } = useInternetIdentity();
+
+  const handleLogout = () => {
+    clear();
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container max-w-5xl mx-auto px-6 py-6">
+      {/* Header */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2 group">
-              <BookOpen className="h-7 w-7 text-primary transition-transform group-hover:scale-110" />
-              <h1 className="text-2xl font-serif font-bold text-foreground tracking-tight">
-                The Journal
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <BookOpen className="h-8 w-8 text-primary" />
+              <h1 className="text-3xl font-serif font-bold text-foreground tracking-tight">
+                HKLO
               </h1>
             </Link>
-            <nav className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate({ to: '/' })}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Home
+
+            {/* Navigation */}
+            <nav className="flex items-center gap-2">
+              <Button variant="ghost" asChild>
+                <Link to="/" className="gap-2">
+                  <Home className="h-4 w-4" />
+                  Hem
+                </Link>
               </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => navigate({ to: '/create' })}
-                className="gap-2"
-              >
-                <PenSquare className="h-4 w-4" />
-                Write
+              <Button variant="ghost" asChild>
+                <Link to="/create" className="gap-2">
+                  <PenSquare className="h-4 w-4" />
+                  Skapa inlägg
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={handleLogout} className="gap-2">
+                <LogOut className="h-4 w-4" />
+                Logga ut
               </Button>
             </nav>
           </div>
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="flex-1">
-        <Outlet />
+        {children || <Outlet />}
       </main>
 
-      <footer className="border-t border-border/40 bg-muted/30 mt-16">
-        <div className="container max-w-5xl mx-auto px-6 py-8">
-          <div className="flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+      {/* Footer */}
+      <footer className="border-t border-border bg-card/30 py-8 mt-12">
+        <div className="container mx-auto px-4">
+          <div className="text-center text-sm text-muted-foreground">
             <p>
-              © {currentYear} The Journal. Built with ❤️ using{' '}
+              © {new Date().getFullYear()} HKLO. Byggd med ❤️ med hjälp av{' '}
               <a
-                href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${appIdentifier}`}
+                href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
+                  typeof window !== 'undefined' ? window.location.hostname : 'hklo'
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-foreground hover:text-primary transition-colors underline underline-offset-4"

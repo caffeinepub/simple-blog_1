@@ -1,8 +1,11 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 3,
+  "projectStateVersion": 13,
   "summary": "A website with a simple blog",
-  "architectural_notes": [],
+  "architectural_notes": [
+    "Implementing Internet Identity authentication as gatekeeper to entire site",
+    "Create post form enhanced with topic category selection and predefined title suggestions"
+  ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
@@ -37,6 +40,214 @@
         "REQ-6"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-change-the-site-title-from-the-journal-to-hklo-in-the-html-document-title-and-all-visible-branding-locations-including-the-header-logo",
+      "title": "Change the site title from 'The Journal' to 'HKLO' in the HTML document title and all visible branding locations including the header logo",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-translate-all-user-facing-text-in-the-navigation-to-swedish-including-home-hem-and-create-post-skapa-inl-gg-buttons",
+      "title": "Translate all user-facing text in the navigation to Swedish including 'Home' (Hem) and 'Create Post' (Skapa inlägg) buttons",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-translate-the-home-page-to-swedish-including-the-loading-state-text-laddar-inl-gg-error-messages-empty-state-text-and-read-more-link-text-l-s-mer",
+      "title": "Translate the home page to Swedish including the loading state text (Laddar inlägg...), error messages, empty state text, and 'Read more' link text (Läs mer)",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-translate-the-post-detail-page-to-swedish-including-the-back-button-text-tillbaka-till-hem-loading-states-and-error-messages",
+      "title": "Translate the post detail page to Swedish including the back button text (Tillbaka till hem), loading states, and error messages",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-translate-the-create-post-form-to-swedish-including-all-field-labels-titel-inneh-ll-f-rfattare-the-publish-toggle-label-publicerad-button-text-skapa-inl-gg-validation-messages-success-messages-and-the-cancel-button-avbryt",
+      "title": "Translate the create post form to Swedish including all field labels (Titel, Innehåll, Författare), the publish toggle label (Publicerad), button text (Skapa inlägg), validation messages, success messages, and the cancel button (Avbryt)",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-translate-the-footer-text-to-swedish-including-the-copyright-text-and-attribution-link-text",
+      "title": "Translate the footer text to Swedish including the copyright text and attribution link text",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-date-formatting-to-use-swedish-locale-and-format-conventions-for-all-displayed-dates-throughout-the-site",
+      "title": "Update date formatting to use Swedish locale and format conventions for all displayed dates throughout the site",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-an-image-upload-field-to-the-blog-post-creation-form-that-allows-users-to-select-and-upload-one-or-multiple-images",
+      "title": "Add an image upload field to the blog post creation form that allows users to select and upload one or multiple images",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-create-post-mutation-to-handle-image-uploads-and-associate-them-with-the-blog-post",
+      "title": "Update the create post mutation to handle image uploads and associate them with the blog post",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-display-uploaded-images-in-the-post-detail-page-alongside-the-post-content",
+      "title": "Display uploaded images in the post detail page alongside the post content",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-display-image-thumbnails-or-previews-in-the-postcard-component-on-the-home-page-for-posts-that-have-images",
+      "title": "Display image thumbnails or previews in the PostCard component on the home page for posts that have images",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-new-login-page-route-e-g-login-that-serves-as-the-entry-point-to-the-application-before-users-can-access-the-home-page-or-create-posts",
+      "title": "Create a new login page route (e.g., /login) that serves as the entry point to the application before users can access the home page or create posts",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-display-a-login-button-on-the-login-page-that-triggers-internet-identity-authentication-using-the-existing-useinternetidentity-hook",
+      "title": "Display a login button on the login page that triggers Internet Identity authentication using the existing useInternetIdentity hook",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-visible-link-on-the-login-page-that-directs-users-to-the-internet-identity-creation-page-https-identity-ic0-app-for-users-who-do-not-have-an-internet-identity",
+      "title": "Add a visible link on the login page that directs users to the Internet Identity creation page (https://identity.ic0.app) for users who do not have an Internet Identity",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-route-protection-that-redirects-unauthenticated-users-to-the-login-page-when-they-attempt-to-access-the-home-page-post-detail-pages-post-id-or-create-post-page-create",
+      "title": "Implement route protection that redirects unauthenticated users to the login page when they attempt to access the home page (/), post detail pages (/post/$id), or create post page (/create)",
+      "reqIds": [
+        "REQ-23"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-after-successful-internet-identity-authentication-automatically-redirect-users-from-the-login-page-to-the-home-page",
+      "title": "After successful Internet Identity authentication, automatically redirect users from the login page to the home page",
+      "reqIds": [
+        "REQ-24"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-display-all-text-on-the-login-page-in-swedish-including-the-login-button-label-create-identity-link-text-and-any-explanatory-messaging",
+      "title": "Display all text on the login page in Swedish, including the login button label, create identity link text, and any explanatory messaging",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-investigate-and-fix-the-white-screen-issue-on-the-login-page-at-login-route-to-ensure-the-page-renders-correctly-with-all-content-visible",
+      "title": "Investigate and fix the white screen issue on the login page at /login route to ensure the page renders correctly with all content visible",
+      "reqIds": [
+        "REQ-26"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-internet-identity-login-button-is-visible-and-functional-on-the-login-page-triggering-the-authentication-flow-when-clicked",
+      "title": "Ensure the Internet Identity login button is visible and functional on the login page, triggering the authentication flow when clicked",
+      "reqIds": [
+        "REQ-27"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-verify-that-the-protectedroute-component-correctly-redirects-unauthenticated-users-to-login-and-allows-authenticated-users-to-access-protected-routes",
+      "title": "Verify that the ProtectedRoute component correctly redirects unauthenticated users to /login and allows authenticated users to access protected routes",
+      "reqIds": [
+        "REQ-28"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-verify-the-useinternetidentity-hook-properly-initializes-and-manages-authentication-state-to-prevent-rendering-issues-on-the-login-page",
+      "title": "Verify the useInternetIdentity hook properly initializes and manages authentication state to prevent rendering issues on the login page",
+      "reqIds": [
+        "REQ-29"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-login-page-styling-and-layout-render-correctly-with-proper-tailwind-css-classes-and-no-css-conflicts-causing-white-screen-appearance",
+      "title": "Ensure the login page styling and layout render correctly with proper Tailwind CSS classes and no CSS conflicts causing white screen appearance",
+      "reqIds": [
+        "REQ-30"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-dropdown-listbox-field-labeled-kategori-to-the-create-post-form-on-the-createpostpage-that-allows-users-to-select-from-five-predefined-topic-categories-livsstil-livsber-ttelser-mat-hobby-and-djupa-tankar",
+      "title": "Add a dropdown/listbox field labeled 'Kategori' to the create post form on the CreatePostPage that allows users to select from five predefined topic categories: 'Livsstil', 'Livsberättelser', 'Mat', 'Hobby', and 'Djupa tankar'",
+      "reqIds": [
+        "REQ-31"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-when-a-user-selects-a-category-from-the-topic-dropdown-populate-a-secondary-dropdown-labeled-f-reslagen-titel-with-predefined-swedish-title-suggestions-specific-to-that-category-livsstil-5-titles-including-minimalism-som-livsstil-hur-jag-f-renklade-mitt-liv-och-hittade-lyckan-h-llbarhet-i-vardagen-sm-steg-som-g-r-stor-skillnad-att-leva-med-avsikt-s-skapar-du-en-meningsfull-vardag-digital-detox-hur-jag-l-rde-mig-att-koppla-av-fr-n-sk-rmarna-livsstilsf-r-ndringar-som-faktiskt-fungerar-min-resa-livsber-ttelser-5-titles-including-fr-n-kaos-till-klarhet-min-resa-att-hitta-mig-sj-lv-att-b-rja-om-hur-jag-byggde-upp-mitt-liv-efter-en-stor-f-rlust-de-misstag-som-formade-mig-och-varf-r-jag-inte-ngrar-dem-att-v-xa-upp-som-introvert-i-en-extrovert-v-rld-brevet-jag-nskar-jag-hade-skrivit-till-mitt-yngre-jag-mat-6-titles-including-enkla-n-ringsrika-m-ltider-f-r-en-hektisk-vardag-vegetarisk-mat-som-ven-k-tt-tare-lskar-mitt-hemliga-recept-den-perfekta-sourdough-br-dguiden-matlagning-p-budget-goda-r-tter-som-inte-kostar-skjortan-smaker-fr-n-v-rlden-mina-favoritrecept-efter-resor-i-asien-hj-rte-mat-hobby-4-titles-including-att-hitta-gl-dje-i-hantverk-min-resa-med-stickning-och-virkning-tr-dg-rdsdr-mmar-s-skapade-jag-mitt-eget-urbana-paradis-fotografi-f-r-nyb-rjare-mina-b-sta-tips-och-tricks-diy-projekt-som-f-rvandlade-mitt-hem-and-djupa-tankar-5-titles-including-att-hitta-mening-i-en-kaotisk-v-rld-varf-r-vi-beh-ver-tystnad-i-en-h-gljudd-tid-att-sl-ppa-taget-konsten-att-acceptera-det-man-inte-kan-kontrollera-vad-lycka-egentligen-betyder-och-hur-jag-hittade-min-att-leva-i-nuet-lektioner-fr-n-mindfulness-och-meditation",
+      "title": "When a user selects a category from the topic dropdown, populate a secondary dropdown labeled 'Föreslagen titel' with predefined Swedish title suggestions specific to that category: Livsstil (5 titles including 'Minimalism som livsstil: Hur jag förenklade mitt liv och hittade lyckan', 'Hållbarhet i vardagen: Små steg som gör stor skillnad', 'Att leva med avsikt: Så skapar du en meningsfull vardag', 'Digital detox: Hur jag lärde mig att koppla av från skärmarna', 'Livsstilsförändringar som faktiskt fungerar – min resa'), Livsberättelser (5 titles including 'Från kaos till klarhet: Min resa att hitta mig själv', 'Att börja om: Hur jag byggde upp mitt liv efter en stor förlust', 'De misstag som formade mig – och varför jag inte ångrar dem', 'Att växa upp som introvert i en extrovert värld', 'Brevet jag önskar jag hade skrivit till mitt yngre jag'), Mat (6 titles including 'Enkla, näringsrika måltider för en hektisk vardag', 'Vegetarisk mat som även köttätare älskar', 'Mitt hemliga recept: Den perfekta sourdough-brödguiden', 'Matlagning på budget – goda rätter som inte kostar skjortan', 'Smaker från världen: Mina favoritrecept efter resor i Asien', 'Hjärte mat'), Hobby (4 titles including 'Att hitta glädje i hantverk: Min resa med stickning och virkning', 'Trädgårdsdrömmar: Så skapade jag mitt eget urbana paradis', 'Fotografi för nybörjare – mina bästa tips och tricks', 'DIY-projekt som förvandlade mitt hem'), and Djupa tankar (5 titles including 'Att hitta mening i en kaotisk värld', 'Varför vi behöver tystnad i en högljudd tid', 'Att släppa taget: Konsten att acceptera det man inte kan kontrollera', 'Vad lycka egentligen betyder – och hur jag hittade min', 'Att leva i nuet: Lektioner från mindfulness och meditation')",
+      "reqIds": [
+        "REQ-32"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-when-a-user-selects-a-predefined-title-from-the-f-reslagen-titel-dropdown-automatically-populate-the-existing-titel-input-field-with-the-selected-title-text-allowing-users-to-further-edit-or-keep-it-as-is",
+      "title": "When a user selects a predefined title from the 'Föreslagen titel' dropdown, automatically populate the existing 'Titel' input field with the selected title text, allowing users to further edit or keep it as-is",
+      "reqIds": [
+        "REQ-33"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-make-the-category-and-suggested-title-dropdowns-optional-allowing-users-to-skip-the-suggested-titles-and-directly-enter-a-custom-title-in-the-titel-field-if-they-prefer",
+      "title": "Make the category and suggested title dropdowns optional, allowing users to skip the suggested titles and directly enter a custom title in the 'Titel' field if they prefer",
+      "reqIds": [
+        "REQ-34"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -60,6 +271,76 @@
       "reqIds": [
         "REQ-2"
       ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Change site title from 'The Journal' to 'HKLO'",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Translate entire site interface and content to Swedish",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Add image upload functionality to blog post creation",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Allow users to delete their own blog posts and comments",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Add share function for blog posts",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Extend the backend Post data model to include an array of image URLs or image data",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Implement backend functionality to store uploaded images as Blob data with the Internet Computer's asset storage",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Add Internet Identity authentication with login page before main site access",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Provide link to create new Internet Identity for users without one",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-14",
+      "summary": "Add a listbox/dropdown in the create post form for selecting predefined blog topic categories (Livsstil, Livsberättelser, Mat, Hobby, Djupa tankar)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-15",
+      "summary": "Populate topic listbox with predefined Swedish blog post title suggestions for each category",
+      "reqIds": [],
       "status": "pending"
     }
   ],
