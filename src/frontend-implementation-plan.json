@@ -1,0 +1,98 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Simple Blog Frontend Implementation",
+  "requirements": [
+    {
+      "id": "REQ-3",
+      "summary": "Display published blog posts on home page with title, author, date, and content preview",
+      "acceptanceCriteria": [
+        "Published posts are displayed in a list or grid",
+        "Each post shows title, author, date, and content preview",
+        "Posts are ordered by creation date (newest first)"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "create",
+          "description": "Create home page component that fetches all published posts using backend.getAllPublishedPosts(), sorts them by createdAt (newest first), and displays them in a list/grid layout showing title, author, formatted date, and content preview (first 150-200 characters). Each post card should link to the detail page. Handle loading and error states appropriately."
+        },
+        {
+          "path": "frontend/src/components/PostCard.tsx",
+          "operation": "create",
+          "description": "Create reusable post card component that accepts a Post object and displays title, author, formatted creation date, and content preview. Include a link/button to navigate to the full post detail page. Apply editorial design styling with clean typography and comfortable spacing."
+        },
+        {
+          "path": "frontend/src/utils/dateFormatter.ts",
+          "operation": "create",
+          "description": "Create utility function to format Time (bigint nanoseconds) into human-readable date strings for display throughout the application."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Set up React Router with routes for home page (path: '/'), post detail page (path: '/post/:id'), and create post page (path: '/create'). Wrap routes with the Layout component to ensure consistent navigation and design across all pages. Use the core-infrastructure component to maintain backend connection configuration."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Display full blog post details including title, author, date, and complete content",
+      "acceptanceCriteria": [
+        "Users can navigate from the list to individual post pages",
+        "Full post content is displayed",
+        "All post metadata is visible"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/PostDetailPage.tsx",
+          "operation": "create",
+          "description": "Create post detail page component that extracts post ID from route parameters, fetches the full post using backend.getPost(id), and displays all post fields (title, author, createdAt, and full content). Handle loading states, error states (post not found), and provide navigation back to the home page. Apply editorial typography optimized for reading long-form content."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Provide form to create new blog posts with title, content, author, and publish toggle",
+      "acceptanceCriteria": [
+        "Form includes all required fields",
+        "Users can toggle published status",
+        "Form submits data to the backend",
+        "Successful submission redirects or shows confirmation"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/CreatePostPage.tsx",
+          "operation": "create",
+          "description": "Create page component with a form containing inputs for title (text), content (textarea), author (text), and published status (toggle/checkbox). Use the shadcn-ui component library for form elements. On submit, call backend.createPost(title, content, author) and if published is true, follow up with backend.updatePost to set published status. Handle form validation, loading state during submission, and navigate to the home page or show success message after successful creation."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Apply clean, modern editorial design with elegant typography and sophisticated color palette",
+      "acceptanceCriteria": [
+        "Design uses a consistent, editorial-focused visual theme",
+        "Typography is optimized for reading blog content",
+        "Color scheme is cohesive and avoids default blue/purple",
+        "Layout provides comfortable spacing for text content"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/index.css",
+          "operation": "modify",
+          "description": "Update global styles to implement an editorial design theme with elegant serif or high-quality sans-serif fonts for headings and body text, sophisticated color palette (consider warm neutrals, deep greens, or refined earth tones instead of default blue/purple), comfortable line-height (1.6-1.8 for body text), generous spacing, and consistent design tokens for the blog reading experience."
+        },
+        {
+          "path": "frontend/tailwind.config.js",
+          "operation": "modify",
+          "description": "Extend Tailwind configuration with custom typography settings, color palette that supports the editorial design (warm/sophisticated colors avoiding default blue/purple), custom font families optimized for blog content, and spacing scale that provides comfortable reading margins and padding."
+        },
+        {
+          "path": "frontend/src/components/Layout.tsx",
+          "operation": "create",
+          "description": "Create layout component that wraps all pages with consistent header/navigation, maximum content width for comfortable reading (e.g., max-w-4xl), centered content, and footer if needed. Include navigation links to home page and create post page. Apply the editorial design system with proper spacing and typography."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "frontend/src/App.tsx": "Main application component that sets up TanStack Router with routes for home, post detail, and create post pages, all wrapped in a Layout component.",
+  "frontend/src/components/Layout.tsx": "Layout wrapper component providing consistent header navigation with logo and write button, main content area with Outlet, and footer with attribution.",
+  "frontend/src/pages/HomePage.tsx": "Home page displaying all published blog posts sorted by creation date (newest first) with loading and error states.",
+  "frontend/src/pages/PostDetailPage.tsx": "Post detail page showing full blog post content with title, author, date, and complete text, with navigation back to home and opacity applied via inline class.",
+  "frontend/src/pages/CreatePostPage.tsx": "Create post page with form for title, author, content, and publish toggle, including validation and submission handling.",
+  "frontend/src/components/PostCard.tsx": "Reusable post card component displaying post preview with title, author, date, content excerpt, and read more link with opacity applied via inline class.",
+  "frontend/src/hooks/useQueries.ts": "React Query hooks for fetching published posts, individual posts, and creating new posts with automatic cache invalidation.",
+  "frontend/src/utils/dateFormatter.ts": "Utility function to convert Time (bigint nanoseconds) to human-readable date strings.",
+  "frontend/src/index.css": "Global styles with warm editorial OKLCH color palette for light and dark modes, serif typography for headings, and base styling without problematic @apply directives.",
+  "frontend/tailwind.config.js": "Tailwind configuration extended with serif font family, editorial color tokens, typography plugin settings, and custom design system."
+}

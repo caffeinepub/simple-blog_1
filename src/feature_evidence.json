@@ -1,0 +1,82 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-create-a-home-page-that-displays-a-list-of-all-published-blog-posts-showing-title-author-creation-date-and-a-preview-of-the-content",
+      "featureTitle": "Create a home page that displays a list of all published blog posts showing title, author, creation date, and a preview of the content",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/PostCard.tsx",
+        "frontend/src/pages/HomePage.tsx",
+        "frontend/src/utils/dateFormatter.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-a-blog-post-detail-page-that-displays-the-full-content-of-a-single-post-including-title-author-creation-date-and-complete-content",
+      "featureTitle": "Create a blog post detail page that displays the full content of a single post including title, author, creation date, and complete content",
+      "files": [
+        "frontend/src/pages/PostDetailPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-a-form-to-add-new-blog-posts-with-inputs-for-title-content-and-author-and-a-publish-toggle",
+      "featureTitle": "Create a form to add new blog posts with inputs for title, content, and author, and a publish toggle",
+      "files": [
+        "frontend/src/pages/CreatePostPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-apply-a-clean-modern-editorial-design-with-elegant-typography-comfortable-reading-spacing-and-a-sophisticated-color-palette-that-creates-a-pleasant-reading-experience",
+      "featureTitle": "Apply a clean, modern editorial design with elegant typography, comfortable reading spacing, and a sophisticated color palette that creates a pleasant reading experience",
+      "files": [
+        "frontend/src/components/Layout.tsx",
+        "frontend/src/index.css",
+        "frontend/tailwind.config.js"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

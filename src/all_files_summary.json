@@ -1,0 +1,21 @@
+{
+  "backend/main.mo": "Motoko actor implementing a blog backend with CRUD operations for posts (create, read, update, delete) stored in a Map, tracking post metadata including title, content, author, creation time, and published status.",
+  "feature_evidence.json": "Feature evidence report documenting four implemented features: home page with published posts list, post detail page, create post form, and editorial design styling, each mapped to specific frontend files and test IDs.",
+  "frontend-file-summaries.txt": "JSON object containing one-line summaries of all frontend source files including pages, components, hooks, utilities, and configuration files.",
+  "frontend/index.css": "Tailwind CSS configuration with custom CSS variables defining OKLCH color palette for light and dark modes, including background, foreground, primary, secondary, muted, accent, and chart colors.",
+  "frontend/index.html": "HTML entry point with basic meta tags, title 'Simple Blog', root div, and script tag loading the React application from main.tsx.",
+  "frontend/src/App.tsx": "TanStack Router configuration defining three routes (home, post detail, create post) with Layout as root component and type-safe router setup.",
+  "frontend/src/components/Layout.tsx": "Layout component providing sticky header with logo and navigation buttons, main content outlet, and footer with copyright and caffeine.ai attribution link.",
+  "frontend/src/components/PostCard.tsx": "Card component displaying blog post preview with title, author, date, truncated content (200 chars), and 'Read more' link with hover effects.",
+  "frontend/src/hooks/useActor.ts": "React Query hook managing ICP actor instance creation based on Internet Identity authentication state, with automatic query invalidation on identity changes.",
+  "frontend/src/hooks/useInternetIdentity.ts": "React context provider and hook for Internet Identity authentication, managing login state, identity persistence, and AuthClient lifecycle with configurable options.",
+  "frontend/src/hooks/useQueries.ts": "React Query hooks for blog operations: fetching all published posts, fetching single post by ID, and creating/updating posts with automatic cache invalidation.",
+  "frontend/src/index.css": "Tailwind CSS configuration with custom CSS variables defining a warm editorial color palette for both light and dark modes, plus typography enhancements for headings using serif fonts.",
+  "frontend/src/main.tsx": "Application entry point that sets up React root with QueryClient for data fetching and InternetIdentityProvider for authentication, then renders the App component.",
+  "frontend/src/pages/CreatePostPage.tsx": "Page component with a form to create new blog posts, including validation for title, content, and author fields, plus a published toggle and navigation back to home.",
+  "frontend/src/pages/HomePage.tsx": "Home page component that fetches and displays all published blog posts in reverse chronological order using PostCard components, with loading and error states.",
+  "frontend/src/pages/PostDetailPage.tsx": "Post detail page that displays a single blog post's full content with title, author, creation date, and formatted content, retrieved by post ID from URL params.",
+  "frontend/src/utils/dateFormatter.ts": "Utility function that converts backend Time type (nanoseconds) to a human-readable date string formatted as 'Month Day, Year'.",
+  "frontend/tailwind.config.js": "Tailwind configuration extending the default theme with custom colors using OKLCH color space, custom font families (sans and serif), border radius variables, and plugins for typography, container queries, and animations.",
+  "project_state.json": "Project state tracking file documenting a simple blog website with four completed features (home page, detail page, create form, editorial design) and three pending backend-related feature requests."
+}

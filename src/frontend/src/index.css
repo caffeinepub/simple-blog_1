@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --radius: 0.5rem;
+        
+        /* Warm editorial palette - Light mode */
+        --background: 0.98 0.005 60;
+        --foreground: 0.2 0.015 60;
+        
+        --card: 1 0 0;
+        --card-foreground: 0.2 0.015 60;
+        
+        --popover: 1 0 0;
+        --popover-foreground: 0.2 0.015 60;
+        
+        --primary: 0.45 0.08 30;
+        --primary-foreground: 0.98 0.005 60;
+        
+        --secondary: 0.92 0.01 60;
+        --secondary-foreground: 0.25 0.015 60;
+        
+        --muted: 0.94 0.008 60;
+        --muted-foreground: 0.5 0.01 60;
+        
+        --accent: 0.88 0.025 45;
+        --accent-foreground: 0.25 0.015 60;
+        
+        --destructive: 0.55 0.22 25;
+        --destructive-foreground: 0.98 0.005 60;
+        
+        --border: 0.88 0.01 60;
+        --input: 0.88 0.01 60;
+        --ring: 0.45 0.08 30;
+        
+        --chart-1: 0.6 0.15 200;
+        --chart-2: 0.65 0.12 150;
+        --chart-3: 0.55 0.18 30;
+        --chart-4: 0.7 0.1 280;
+        --chart-5: 0.5 0.2 350;
+    }
+
+    .dark {
+        /* Warm editorial palette - Dark mode */
+        --background: 0.15 0.015 60;
+        --foreground: 0.95 0.008 60;
+        
+        --card: 0.2 0.015 60;
+        --card-foreground: 0.95 0.008 60;
+        
+        --popover: 0.18 0.015 60;
+        --popover-foreground: 0.95 0.008 60;
+        
+        --primary: 0.75 0.06 45;
+        --primary-foreground: 0.15 0.015 60;
+        
+        --secondary: 0.25 0.015 60;
+        --secondary-foreground: 0.95 0.008 60;
+        
+        --muted: 0.25 0.015 60;
+        --muted-foreground: 0.6 0.01 60;
+        
+        --accent: 0.35 0.025 45;
+        --accent-foreground: 0.95 0.008 60;
+        
+        --destructive: 0.6 0.2 25;
+        --destructive-foreground: 0.15 0.015 60;
+        
+        --border: 0.3 0.015 60;
+        --input: 0.3 0.015 60;
+        --ring: 0.65 0.06 45;
+        
+        --chart-1: 0.65 0.15 220;
+        --chart-2: 0.7 0.12 170;
+        --chart-3: 0.6 0.18 40;
+        --chart-4: 0.75 0.1 290;
+        --chart-5: 0.55 0.2 10;
+    }
+
+    * {
+        @apply border-border;
+    }
+    
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: "rlig" 1, "calt" 1;
+    }
+    
+    /* Editorial typography enhancements */
+    h1, h2, h3, h4, h5, h6 {
+        @apply font-serif;
+        font-feature-settings: "liga" 1, "dlig" 1;
+    }
+}

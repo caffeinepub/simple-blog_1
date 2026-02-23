@@ -1,0 +1,113 @@
+{
+  "kind": "build_request",
+  "title": "Create a simple blog website",
+  "projectName": "Simple Blog",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Create a backend data model for blog posts with fields: id (unique identifier), title (text), content (text), author (text), createdAt (timestamp), and published (boolean status)",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Blog post type is defined in the Motoko backend",
+        "All required fields are present and properly typed",
+        "Each post has a unique identifier"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Implement backend functions to create new blog posts, retrieve all published posts, retrieve a single post by id, update existing posts, and delete posts",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ]
+      },
+      "acceptanceCriteria": [
+        "CRUD operations are available for blog posts",
+        "Posts can be filtered by published status",
+        "Individual posts can be retrieved by their id"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Create a home page that displays a list of all published blog posts showing title, author, creation date, and a preview of the content",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Published posts are displayed in a list or grid",
+        "Each post shows title, author, date, and content preview",
+        "Posts are ordered by creation date (newest first)"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Create a blog post detail page that displays the full content of a single post including title, author, creation date, and complete content",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Users can navigate from the list to individual post pages",
+        "Full post content is displayed",
+        "All post metadata is visible"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Create a form to add new blog posts with inputs for title, content, and author, and a publish toggle",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Form includes all required fields",
+        "Users can toggle published status",
+        "Form submits data to the backend",
+        "Successful submission redirects or shows confirmation"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Apply a clean, modern editorial design with elegant typography, comfortable reading spacing, and a sophisticated color palette that creates a pleasant reading experience",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Design uses a consistent, editorial-focused visual theme",
+        "Typography is optimized for reading blog content",
+        "Color scheme is cohesive and avoids default blue/purple",
+        "Layout provides comfortable spacing for text content"
+      ]
+    }
+  ],
+  "constraints": [],
+  "nonGoals": [
+    "User authentication or role-based access control",
+    "Comments on blog posts",
+    "Categories or tags for posts",
+    "Search functionality",
+    "Rich text editor",
+    "Image uploads within posts"
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

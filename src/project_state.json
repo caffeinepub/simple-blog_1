@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "A website with a simple blog",
+  "architectural_notes": [],
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-create-a-home-page-that-displays-a-list-of-all-published-blog-posts-showing-title-author-creation-date-and-a-preview-of-the-content",
+      "title": "Create a home page that displays a list of all published blog posts showing title, author, creation date, and a preview of the content",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-blog-post-detail-page-that-displays-the-full-content-of-a-single-post-including-title-author-creation-date-and-complete-content",
+      "title": "Create a blog post detail page that displays the full content of a single post including title, author, creation date, and complete content",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-form-to-add-new-blog-posts-with-inputs-for-title-content-and-author-and-a-publish-toggle",
+      "title": "Create a form to add new blog posts with inputs for title, content, and author, and a publish toggle",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-clean-modern-editorial-design-with-elegant-typography-comfortable-reading-spacing-and-a-sophisticated-color-palette-that-creates-a-pleasant-reading-experience",
+      "title": "Apply a clean, modern editorial design with elegant typography, comfortable reading spacing, and a sophisticated color palette that creates a pleasant reading experience",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Create a website with a simple blog",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Create a backend data model for blog posts with fields: id (unique identifier), title (text), content (text), author (text), createdAt (timestamp), and published (boolean status)",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Implement backend functions to create new blog posts, retrieve all published posts, retrieve a single post by id, update existing posts, and delete posts",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Simple Blog",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}
