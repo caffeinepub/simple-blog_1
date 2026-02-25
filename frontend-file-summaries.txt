@@ -1,7 +1,7 @@
 {
   "frontend/src/App.tsx": "Main application router with TanStack Router; adds the new /admin route wrapped in ProtectedRoute and Layout rendering AdminPage.",
-  "frontend/src/components/Layout.tsx": "Layout wrapper with HKLO header, footer, and navigation; now uses a hardcoded ADMIN_PRINCIPAL_ID constant from config/constants.ts to gate the Admin Panel link, comparing the logged-in user's principal directly on the frontend without any backend admin check.",
-  "frontend/src/pages/HomePage.tsx": "Home page displaying published blog posts; now includes a debug info box at the top (visible only when logged in) that shows the authenticated user's principal ID with a copy-to-clipboard button, to help identify the admin principal for configuration.",
+  "frontend/src/components/Layout.tsx": "Layout wrapper with HKLO header, footer, and navigation; gates the Admin Panel link by comparing the logged-in principal directly to `ADMIN_PRINCIPAL_ID` (the redundant empty-string guard has been removed to fix the TypeScript literal-type comparison error).",
+  "frontend/src/pages/HomePage.tsx": "Home page displaying published blog posts sorted by date; the temporary debug principal ID display has been removed, leaving only the post grid with loading and error states.",
   "frontend/src/pages/PostDetailPage.tsx": "Post detail page with edit and delete buttons visible only to post owners, includes confirmation dialog for deletion with Swedish text and proper error handling.",
   "frontend/src/pages/CreatePostPage.tsx": "Create post page with Swedish form labels, category/title suggestions, image upload with compression, and inline error alert displayed when post submission fails.",
   "frontend/src/components/PostCard.tsx": "Reusable post card component with Swedish \"Läs mer\" link text, displays first image as thumbnail when post has images by converting Uint8Array to blob URL with proper type casting and cleanup.",
@@ -22,5 +22,5 @@
   "frontend/src/components/admin/PostEditModal.tsx": "Modal dialog for admins to edit any post's title, author, status, content, and images (add/remove existing and new); uses useAdminUpdatePost mutation with toast feedback.",
   "frontend/src/components/admin/ManageAdminsSection.tsx": "Admin section for listing current admins and adding/removing admin principals by Internet Identity principal text; owner row shows remove button but backend enforces owner cannot be removed.",
   "frontend/src/components/admin/ManageAuthorsSection.tsx": "Admin section listing all unique authors with a \"Remove Author\" button that shows a confirmation dialog warning all posts will be deleted, then calls useRemoveAuthor mutation with toast feedback.",
-  "frontend/src/config/constants.ts": "New constants file exporting ADMIN_PRINCIPAL_ID as an empty string with a TODO comment instructing the developer to replace it with their actual Internet Identity principal ID."
+  "frontend/src/config/constants.ts": "Exports the hardcoded `ADMIN_PRINCIPAL_ID` constant set to the real admin principal `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae`, used in Layout.tsx to gate the Admin Panel navigation link."
 }

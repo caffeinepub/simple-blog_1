@@ -1,56 +1,34 @@
 {
   "kind": "build_request",
-  "title": "Fix Admin Panel link visibility using hardcoded principal ID",
-  "projectName": "HKLO Blogg",
-  "priority": "high",
+  "title": "Hardcode admin principal ID",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add a temporary debug display on the home page (or any visible area when logged in) that shows the authenticated user's current principal ID as a string, so the admin principal can be identified and hardcoded. This display should only be visible when the user is logged in.",
+      "text": "Replace the placeholder value in `frontend/src/config/constants.ts` with the actual admin principal ID `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae` for the `ADMIN_PRINCIPAL_ID` constant.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-last"
+          "msg-4"
         ],
         "quotes": [
-          "l want it to be it based on a specific principal ID and in this case my Internet Identity"
+          "ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae"
         ]
       },
       "acceptanceCriteria": [
-        "When logged in, the user's principal ID string is visibly displayed somewhere on the page (e.g., a small badge or info box)",
-        "The display does not appear when the user is logged out"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Replace the existing isAdmin backend role check used for showing the Admin Panel nav link with a frontend-only hardcoded principal ID check. Define a constant ADMIN_PRINCIPAL_ID in the frontend codebase (e.g., in a config or constants file). In Layout.tsx, show the Admin Panel link only when the authenticated user's principal ID matches this hardcoded constant exactly. Use a placeholder value (e.g., an empty string or clearly marked TODO comment) until the actual principal ID is provided.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-last"
-        ],
-        "quotes": [
-          "l want it to be it based on a specific principal ID and in this case my Internet Identity",
-          "No never appeared earlier"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A constant ADMIN_PRINCIPAL_ID is defined in a frontend config or constants file",
-        "The Admin Panel nav link in Layout.tsx is only rendered when the logged-in user's principal ID exactly matches ADMIN_PRINCIPAL_ID",
-        "The Admin Panel link is not visible when logged out",
-        "The Admin Panel link is not visible to any other logged-in user whose principal ID does not match ADMIN_PRINCIPAL_ID"
+        "`ADMIN_PRINCIPAL_ID` in `frontend/src/config/constants.ts` is set to `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae`",
+        "The Admin Panel nav link in `Layout.tsx` is visible only when logged in as the principal `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae`",
+        "The debug principal ID display on the home page is removed now that the real ID has been captured"
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts or frontend/src/hooks/useActor.ts",
-    "Do not modify files under frontend/src/components/ui",
-    "The ADMIN_PRINCIPAL_ID check must be done on the frontend using the authenticated principal from Internet Identity"
+    "Do not change any backend logic or admin check mechanisms",
+    "Do not modify immutable frontend paths (useInternetIdentity.ts, useActor.ts, main.tsx, components/ui)"
   ],
   "nonGoals": [
-    "Changing the backend role/admin system or canister admin management functions",
-    "Supporting multiple admin principal IDs at this stage",
-    "Removing or altering the existing backend admin role logic"
+    "Adding new admin features",
+    "Changing the admin check architecture from frontend-only to backend-validated"
   ],
   "imageRequirements": {
     "required": [],

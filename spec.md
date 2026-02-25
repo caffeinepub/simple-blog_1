@@ -1,12 +1,10 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the Admin Panel nav link visibility by replacing the backend role check with a frontend-only hardcoded principal ID check, and add a temporary debug display to identify the admin's principal ID.
+**Goal:** Hardcode the real admin principal ID into the frontend constants file and clean up debug output.
 
 **Planned changes:**
-- Add a temporary debug display on the home page (visible only when logged in) that shows the authenticated user's current principal ID as a string
-- Define a constant `ADMIN_PRINCIPAL_ID` in a frontend config or constants file
-- Update `Layout.tsx` to show the Admin Panel nav link only when the logged-in user's principal ID exactly matches `ADMIN_PRINCIPAL_ID` (using a placeholder value until the real principal ID is provided)
-- Remove the dependency on the existing `isAdmin` backend role check for the nav link visibility
+- Replace the placeholder value of `ADMIN_PRINCIPAL_ID` in `frontend/src/config/constants.ts` with `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae`
+- Remove the debug principal ID display from the home page
 
-**User-visible outcome:** When logged in, the user can see their principal ID on the page. The Admin Panel nav link only appears for the user whose principal ID matches the hardcoded constant, and is hidden for all other users and when logged out.
+**User-visible outcome:** The Admin Panel nav link is only visible when logged in as the designated admin principal, and the debug principal display no longer appears on the home page.

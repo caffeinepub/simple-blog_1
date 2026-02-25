@@ -1,37 +1,26 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T10:38:23.640Z",
+  "generatedAt": "2026-02-25T10:48:17.989Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add a temporary debug display on the home page (or any visible area when logged in) that shows the authenticated user's current principal ID as a string, so the admin principal can be identified and hardcoded. This display should only be visible when the user is logged in.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/HomePage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/HomePage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Replace the existing isAdmin backend role check used for showing the Admin Panel nav link with a frontend-only hardcoded principal ID check. Define a constant ADMIN_PRINCIPAL_ID in the frontend codebase (e.g., in a config or constants file). In Layout.tsx, show the Admin Panel link only when the authenticated user's principal ID matches this hardcoded constant exactly. Use a placeholder value (e.g., an empty string or clearly marked TODO comment) until the actual principal ID is provided.",
+        "summary": "Replace the placeholder value in `frontend/src/config/constants.ts` with the actual admin principal ID `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae` for the `ADMIN_PRINCIPAL_ID` constant.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/config/constants.ts",
-          "frontend/src/components/Layout.tsx"
+          "frontend/src/pages/HomePage.tsx"
         ],
         "matchedFiles": [
           "frontend/src/config/constants.ts",
-          "frontend/src/components/Layout.tsx"
+          "frontend/src/pages/HomePage.tsx"
         ]
       }
     ]

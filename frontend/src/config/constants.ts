@@ -1,4 +1,1 @@
-// TODO: Replace the empty string below with your actual Internet Identity principal ID.
-// You can find your principal ID by logging in and looking at the debug box displayed on the home page.
-// Example: "xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxx"
-export const ADMIN_PRINCIPAL_ID = "";
+export const ADMIN_PRINCIPAL_ID = "ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae";

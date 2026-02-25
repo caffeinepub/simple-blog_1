@@ -2,9 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-a-temporary-debug-display-on-the-home-page-or-any-visible-area-when-logged-in-that-shows-the-authenticated-user-s-current-principal-id-as-a-string-so-the-admin-principal-can-be-identified-and-hardcoded-this-display-should-only-be-visible-when-the-user-is-logged-in",
-      "featureTitle": "Add a temporary debug display on the home page (or any visible area when logged in) that shows the authenticated user's current principal ID as a string, so the admin principal can be identified and hardcoded. This display should only be visible when the user is logged in.",
+      "featureId": "feature-replace-the-placeholder-value-in-frontend-src-config-constants-ts-with-the-actual-admin-principal-id-ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae-for-the-admin-principal-id-constant",
+      "featureTitle": "Replace the placeholder value in `frontend/src/config/constants.ts` with the actual admin principal ID `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae` for the `ADMIN_PRINCIPAL_ID` constant.",
       "files": [
+        "frontend/src/config/constants.ts",
         "frontend/src/pages/HomePage.tsx"
       ],
       "components": [
@@ -18,27 +19,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-replace-the-existing-isadmin-backend-role-check-used-for-showing-the-admin-panel-nav-link-with-a-frontend-only-hardcoded-principal-id-check-define-a-constant-admin-principal-id-in-the-frontend-codebase-e-g-in-a-config-or-constants-file-in-layout-tsx-show-the-admin-panel-link-only-when-the-authenticated-user-s-principal-id-matches-this-hardcoded-constant-exactly-use-a-placeholder-value-e-g-an-empty-string-or-clearly-marked-todo-comment-until-the-actual-principal-id-is-provided",
-      "featureTitle": "Replace the existing isAdmin backend role check used for showing the Admin Panel nav link with a frontend-only hardcoded principal ID check. Define a constant ADMIN_PRINCIPAL_ID in the frontend codebase (e.g., in a config or constants file). In Layout.tsx, show the Admin Panel link only when the authenticated user's principal ID matches this hardcoded constant exactly. Use a placeholder value (e.g., an empty string or clearly marked TODO comment) until the actual principal ID is provided.",
-      "files": [
-        "frontend/src/components/Layout.tsx",
-        "frontend/src/config/constants.ts"
-      ],
-      "components": [
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "blob-storage@4.0.0",
-        "authorization@4.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
       ],
       "confidence": "high"
     }

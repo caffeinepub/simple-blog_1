@@ -14,7 +14,6 @@ export default function Layout({ children }: LayoutProps) {
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
   const isAdmin =
     isAuthenticated &&
-    ADMIN_PRINCIPAL_ID !== '' &&
     identity.getPrincipal().toString() === ADMIN_PRINCIPAL_ID;
 
   const handleLogout = () => {

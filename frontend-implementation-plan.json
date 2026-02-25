@@ -1,42 +1,26 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix Admin Panel link visibility using hardcoded principal ID",
+  "title": "Hardcode admin principal ID",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add temporary debug display showing authenticated user's principal ID on the home page when logged in",
+      "summary": "Replace placeholder admin principal ID with actual value and clean up debug display",
       "acceptanceCriteria": [
-        "When logged in, the user's principal ID string is visibly displayed somewhere on the page (e.g., a small badge or info box)",
-        "The display does not appear when the user is logged out"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/HomePage.tsx",
-          "operation": "modify",
-          "description": "Add a debug display component at the top of the home page that shows the authenticated user's principal ID when logged in. Use useInternetIdentity hook to access the identity and check authentication status. Display the principal as a string using identity.getPrincipal().toString(). Only render this debug element when identity is not null. Style it as a small, unobtrusive info badge or box."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Replace backend isAdmin check with frontend hardcoded principal ID check for Admin Panel nav link visibility",
-      "acceptanceCriteria": [
-        "A constant ADMIN_PRINCIPAL_ID is defined in a frontend config or constants file",
-        "The Admin Panel nav link in Layout.tsx is only rendered when the logged-in user's principal ID exactly matches ADMIN_PRINCIPAL_ID",
-        "The Admin Panel link is not visible when logged out",
-        "The Admin Panel link is not visible to any other logged-in user whose principal ID does not match ADMIN_PRINCIPAL_ID"
+        "`ADMIN_PRINCIPAL_ID` in `frontend/src/config/constants.ts` is set to `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae`",
+        "The Admin Panel nav link in `Layout.tsx` is visible only when logged in as the principal `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae`",
+        "The debug principal ID display on the home page is removed now that the real ID has been captured"
       ],
       "file_operations": [
         {
           "path": "frontend/src/config/constants.ts",
-          "operation": "create",
-          "description": "Create a new constants file that exports ADMIN_PRINCIPAL_ID as a string constant. Initialize it with an empty string and include a TODO comment instructing the developer to replace it with the actual admin principal ID after identifying it from the debug display added in REQ-1."
+          "operation": "modify",
+          "description": "Replace the placeholder value with the actual admin principal ID `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae` for the `ADMIN_PRINCIPAL_ID` constant. This constant is used in Layout.tsx to gate the Admin Panel navigation link."
         },
         {
-          "path": "frontend/src/components/Layout.tsx",
+          "path": "frontend/src/pages/HomePage.tsx",
           "operation": "modify",
-          "description": "Replace the existing backend isAdmin check with a frontend hardcoded principal ID comparison. Import ADMIN_PRINCIPAL_ID from frontend/src/config/constants.ts and useInternetIdentity hook. Remove the useIsCallerAdmin hook usage. Check if the user is authenticated using identity from useInternetIdentity, then compare identity.getPrincipal().toString() === ADMIN_PRINCIPAL_ID. Only render the Admin Panel nav link when this exact match is true. Ensure the link is not visible when logged out or when the principal does not match."
+          "description": "Remove the debug principal ID display section (the authenticated user's Principal ID with copy button) that was temporarily added for admin configuration purposes. The home page should now only display the grid of published blog posts."
         }
       ]
     }
