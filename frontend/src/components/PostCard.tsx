@@ -2,54 +2,71 @@ import { Link } from '@tanstack/react-router';
 import { type Post } from '../backend';
 import { formatDate } from '../utils/dateFormatter';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { User, Calendar, ArrowRight } from 'lucide-react';
+import { User, Calendar, ArrowRight, ImageOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface PostCardProps {
   post: Post;
 }
 
 export default function PostCard({ post }: PostCardProps) {
-  const preview = post.content.length > 200 
-    ? post.content.substring(0, 200) + '...' 
-    : post.content;
+  const preview =
+    post.content.length > 200 ? post.content.substring(0, 200) + '...' : post.content;
 
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
+  // Keep a ref so cleanup always revokes the latest URL
+  const urlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (post.images && post.images.length > 0) {
+      const firstImage = post.images[0];
+      // Guard against empty/malformed blobs
+      if (!firstImage || firstImage.length === 0) {
+        setImageError(true);
+        return;
+      }
       try {
-        // Convert Uint8Array to blob URL for display
-        const blob = new Blob([new Uint8Array(post.images[0])], { type: 'image/jpeg' });
+        const blob = new Blob([new Uint8Array(firstImage)], { type: 'image/jpeg' });
         const url = URL.createObjectURL(blob);
+        urlRef.current = url;
         setThumbnailUrl(url);
-
-        // Cleanup function
-        return () => {
-          URL.revokeObjectURL(url);
-        };
-      } catch (error) {
-        console.error('Error loading thumbnail:', error);
+        setImageError(false);
+      } catch {
+        setImageError(true);
       }
     }
+
+    return () => {
+      if (urlRef.current) {
+        URL.revokeObjectURL(urlRef.current);
+        urlRef.current = null;
+      }
+    };
   }, [post.images]);
+
+  const hasThumbnail = post.images && post.images.length > 0;
 
   return (
     <Card className="group hover:shadow-md transition-all duration-300 border-border/40 overflow-hidden">
-      {thumbnailUrl && (
-        <Link
-          to="/post/$id"
-          params={{ id: post.id.toString() }}
-          className="block"
-        >
+      {hasThumbnail && (
+        <Link to="/post/$id" params={{ id: post.id.toString() }} className="block">
           <div className="relative aspect-[16/9] overflow-hidden bg-muted/30">
-            <img
-              src={thumbnailUrl}
-              alt={post.title}
-              className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
-              loading="lazy"
-            />
+            {thumbnailUrl && !imageError ? (
+              <img
+                src={thumbnailUrl}
+                alt={post.title}
+                className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
+                loading="lazy"
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+                <ImageOff className="h-8 w-8 mb-1" />
+                <span className="text-xs">Bild ej tillgänglig</span>
+              </div>
+            )}
           </div>
         </Link>
       )}
@@ -77,13 +94,8 @@ export default function PostCard({ post }: PostCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-foreground opacity-80 leading-relaxed line-clamp-3">
-          {preview}
-        </p>
-        <Link
-          to="/post/$id"
-          params={{ id: post.id.toString() }}
-        >
+        <p className="text-foreground opacity-80 leading-relaxed line-clamp-3">{preview}</p>
+        <Link to="/post/$id" params={{ id: post.id.toString() }}>
           <Button variant="ghost" size="sm" className="group/btn -ml-2">
             Läs mer
             <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover/btn:translate-x-1" />

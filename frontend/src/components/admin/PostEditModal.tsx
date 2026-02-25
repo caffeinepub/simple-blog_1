@@ -34,15 +34,48 @@ interface PostEditModalProps {
 
 export default function PostEditModal({ post, open, onClose }: PostEditModalProps) {
   const updatePostMutation = useAdminUpdatePost();
-  const { images: newImages, error: imageError, addImages, removeImage, convertToBlobs, clearImages } = useImageUpload();
+  const {
+    images: newImages,
+    error: imageError,
+    isProcessing,
+    addImages,
+    removeImage,
+    convertToBlobs,
+    clearImages,
+  } = useImageUpload();
 
   const [title, setTitle] = useState(post.title);
   const [content, setContent] = useState(post.content);
   const [author, setAuthor] = useState(post.author);
   const [status, setStatus] = useState<PostStatus>(post.status);
-  const [existingImages, setExistingImages] = useState<Uint8Array[]>([...(post.images as Uint8Array[])]);
+  const [existingImages, setExistingImages] = useState<Uint8Array[]>([
+    ...(post.images as Uint8Array[]),
+  ]);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ title?: string; content?: string; author?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{
+    title?: string;
+    content?: string;
+    author?: string;
+  }>({});
+
+  // Build blob URLs for existing images
+  useEffect(() => {
+    const urls = existingImages.map((img) => {
+      if (!img || img.length === 0) return '';
+      try {
+        const blob = new Blob([new Uint8Array(img)], { type: 'image/jpeg' });
+        return URL.createObjectURL(blob);
+      } catch {
+        return '';
+      }
+    });
+    setExistingImageUrls(urls);
+
+    return () => {
+      urls.forEach((u) => { if (u) URL.revokeObjectURL(u); });
+    };
+  }, [existingImages]);
 
   // Reset form when post changes
   useEffect(() => {
@@ -86,7 +119,7 @@ export default function PostEditModal({ post, open, onClose }: PostEditModalProp
       toast.success('Inlägget har uppdaterats');
       clearImages();
       onClose();
-    } catch (err) {
+    } catch {
       setSubmitError('Kunde inte uppdatera inlägget. Försök igen.');
     }
   };
@@ -121,7 +154,9 @@ export default function PostEditModal({ post, open, onClose }: PostEditModalProp
               placeholder="Inläggets titel..."
               className={fieldErrors.title ? 'border-destructive' : ''}
             />
-            {fieldErrors.title && <p className="text-sm text-destructive">{fieldErrors.title}</p>}
+            {fieldErrors.title && (
+              <p className="text-sm text-destructive">{fieldErrors.title}</p>
+            )}
           </div>
 
           {/* Author */}
@@ -134,7 +169,9 @@ export default function PostEditModal({ post, open, onClose }: PostEditModalProp
               placeholder="Författarens namn..."
               className={fieldErrors.author ? 'border-destructive' : ''}
             />
-            {fieldErrors.author && <p className="text-sm text-destructive">{fieldErrors.author}</p>}
+            {fieldErrors.author && (
+              <p className="text-sm text-destructive">{fieldErrors.author}</p>
+            )}
           </div>
 
           {/* Status */}
@@ -163,7 +200,9 @@ export default function PostEditModal({ post, open, onClose }: PostEditModalProp
               rows={8}
               className={`resize-none ${fieldErrors.content ? 'border-destructive' : ''}`}
             />
-            {fieldErrors.content && <p className="text-sm text-destructive">{fieldErrors.content}</p>}
+            {fieldErrors.content && (
+              <p className="text-sm text-destructive">{fieldErrors.content}</p>
+            )}
           </div>
 
           {/* Images */}
@@ -177,56 +216,83 @@ export default function PostEditModal({ post, open, onClose }: PostEditModalProp
                 multiple
                 onChange={handleFileChange}
                 className="hidden"
+                disabled={isProcessing}
               />
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => document.getElementById('edit-images')?.click()}
                 className="w-full"
+                disabled={isProcessing}
               >
-                <Upload className="h-4 w-4 mr-2" />
-                Lägg till bilder
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Bearbetar bilder...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Lägg till bilder
+                  </>
+                )}
               </Button>
+              <p className="text-xs text-muted-foreground">
+                Stöder JPEG, PNG, WebP och GIF · Max 10 MB per bild
+              </p>
 
-              {imageError && <p className="text-sm text-destructive">{imageError}</p>}
+              {imageError && (
+                <Alert variant="destructive" className="py-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="whitespace-pre-line text-sm">
+                    {imageError}
+                  </AlertDescription>
+                </Alert>
+              )}
 
+              {/* Existing images */}
               {existingImages.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-2">Befintliga bilder</p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Befintliga bilder ({existingImages.length})
+                  </p>
                   <div className="grid grid-cols-3 gap-2">
-                    {existingImages.map((image, index) => {
-                      const blob = new Blob([new Uint8Array(image)], { type: 'image/jpeg' });
-                      const imageUrl = URL.createObjectURL(blob);
-                      return (
-                        <div
-                          key={`existing-${index}`}
-                          className="relative aspect-square rounded-md border border-border/40 overflow-hidden bg-muted/30 group"
-                        >
+                    {existingImages.map((_, index) => (
+                      <div
+                        key={`existing-${index}`}
+                        className="relative aspect-square rounded-md border border-border/40 overflow-hidden bg-muted/30 group"
+                      >
+                        {existingImageUrls[index] ? (
                           <img
-                            src={imageUrl}
+                            src={existingImageUrls[index]}
                             alt={`Bild ${index + 1}`}
                             className="w-full h-full object-cover"
-                            onLoad={() => URL.revokeObjectURL(imageUrl)}
                           />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => removeExistingImage(index)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      );
-                    })}
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                            <ImageIcon className="h-6 w-6" />
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeExistingImage(index)}
+                          className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity focus:opacity-100"
+                          aria-label={`Ta bort bild ${index + 1}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
+              {/* New images */}
               {newImages.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-2">Nya bilder</p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Nya bilder ({newImages.length})
+                  </p>
                   <div className="grid grid-cols-3 gap-2">
                     {newImages.map((image, index) => (
                       <div
@@ -238,22 +304,32 @@ export default function PostEditModal({ post, open, onClose }: PostEditModalProp
                           alt={`Ny bild ${index + 1}`}
                           className="w-full h-full object-cover"
                         />
-                        <Button
+                        <button
                           type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => removeImage(index)}
+                          className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity focus:opacity-100"
+                          aria-label={`Ta bort ny bild ${index + 1}`}
                         >
                           <X className="h-3 w-3" />
-                        </Button>
+                        </button>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {existingImages.length === 0 && newImages.length === 0 && (
+              {/* Processing state */}
+              {isProcessing && (
+                <div className="flex items-center gap-2 py-3 px-4 border border-border/40 rounded-lg bg-muted/20">
+                  <Loader2 className="h-5 w-5 text-primary animate-spin flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">
+                    Bearbetar och komprimerar bilder...
+                  </p>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {existingImages.length === 0 && newImages.length === 0 && !isProcessing && (
                 <div className="flex flex-col items-center justify-center py-6 border-2 border-dashed border-border/40 rounded-lg bg-muted/20">
                   <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
                   <p className="text-xs text-muted-foreground">Inga bilder</p>
@@ -270,10 +346,15 @@ export default function PostEditModal({ post, open, onClose }: PostEditModalProp
           )}
 
           <DialogFooter className="gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={updatePostMutation.isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={updatePostMutation.isPending || isProcessing}
+            >
               Avbryt
             </Button>
-            <Button type="submit" disabled={updatePostMutation.isPending}>
+            <Button type="submit" disabled={updatePostMutation.isPending || isProcessing}>
               {updatePostMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

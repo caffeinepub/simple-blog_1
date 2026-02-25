@@ -13,8 +13,6 @@ import MixinStorage "blob-storage/Mixin";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-
-
 actor {
   include MixinStorage();
 
@@ -155,6 +153,13 @@ actor {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can create posts");
     };
+
+    if (images.size() > 0) {
+      for (image in images.values()) {
+        assert (image.size() > 0);
+      };
+    };
+
     let id = nextPostId;
     let post : Post = {
       id;
@@ -208,6 +213,13 @@ actor {
         if (post.ownerId != caller and not AccessControl.isAdmin(accessControlState, caller)) {
           Runtime.trap("Unauthorized: You do not have permission to update this post");
         };
+
+        if (images.size() > 0) {
+          for (image in images.values()) {
+            assert (image.size() > 0);
+          };
+        };
+
         let updatedPost : Post = {
           post with
           title;

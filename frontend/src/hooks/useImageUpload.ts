@@ -7,18 +7,34 @@ interface ImageFile {
   compressedBytes?: Uint8Array;
 }
 
+const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+const ACCEPTED_TYPES_LABEL = 'JPEG, PNG, WebP eller GIF';
+const MAX_FILE_SIZE_MB = 10;
+const MAX_SIDE = 1600;
+const JPEG_QUALITY = 0.85;
+
 /**
  * Compress and resize an image file using the Canvas API.
  * Returns a Uint8Array of the compressed JPEG, and a blob URL for preview.
  */
 async function compressImage(file: File): Promise<{ bytes: Uint8Array; previewUrl: string }> {
   return new Promise((resolve, reject) => {
+    if (file.size === 0) {
+      reject(new Error('Filen är tom eller skadad.'));
+      return;
+    }
+
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
 
     img.onload = () => {
-      const MAX_SIDE = 1024;
       let { width, height } = img;
+
+      if (width === 0 || height === 0) {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Bilden har ogiltiga dimensioner.'));
+        return;
+      }
 
       if (width > MAX_SIDE || height > MAX_SIDE) {
         if (width >= height) {
@@ -36,7 +52,7 @@ async function compressImage(file: File): Promise<{ bytes: Uint8Array; previewUr
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         URL.revokeObjectURL(objectUrl);
-        reject(new Error('Could not get canvas context'));
+        reject(new Error('Kunde inte skapa canvas-kontext. Försök med en annan bild.'));
         return;
       }
 
@@ -45,23 +61,35 @@ async function compressImage(file: File): Promise<{ bytes: Uint8Array; previewUr
 
       canvas.toBlob(
         (blob) => {
-          if (!blob) {
-            reject(new Error('Canvas toBlob failed'));
+          if (!blob || blob.size === 0) {
+            reject(new Error('Bildkomprimering misslyckades. Försök med en annan bild.'));
             return;
           }
           const previewUrl = URL.createObjectURL(blob);
-          blob.arrayBuffer().then((buf) => {
-            resolve({ bytes: new Uint8Array(buf), previewUrl });
-          });
+          blob
+            .arrayBuffer()
+            .then((buf) => {
+              const bytes = new Uint8Array(buf);
+              if (bytes.length === 0) {
+                URL.revokeObjectURL(previewUrl);
+                reject(new Error('Konvertering av bild misslyckades. Försök igen.'));
+                return;
+              }
+              resolve({ bytes, previewUrl });
+            })
+            .catch(() => {
+              URL.revokeObjectURL(previewUrl);
+              reject(new Error('Kunde inte läsa bilddata. Försök med en annan bild.'));
+            });
         },
         'image/jpeg',
-        0.75,
+        JPEG_QUALITY,
       );
     };
 
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error('Failed to load image'));
+      reject(new Error('Kunde inte läsa in bilden. Kontrollera att filen inte är skadad.'));
     };
 
     img.src = objectUrl;
@@ -71,30 +99,36 @@ async function compressImage(file: File): Promise<{ bytes: Uint8Array; previewUr
 export function useImageUpload() {
   const [images, setImages] = useState<ImageFile[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const validateImageFile = (file: File): boolean => {
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      setError('Only image formats (PNG, JPG, JPEG, GIF, WEBP) are allowed');
-      return false;
+  const validateImageFile = (file: File): string | null => {
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      return `Filtypen "${file.type || 'okänd'}" stöds inte. Använd ${ACCEPTED_TYPES_LABEL}.`;
     }
-
-    // 10MB limit
-    if (file.size > 10 * 1024 * 1024) {
-      setError('Image is too large. Maximum size is 10MB');
-      return false;
+    if (file.size === 0) {
+      return 'Filen är tom. Välj en giltig bildfil.';
     }
-
-    return true;
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      return `Bilden är för stor (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximal storlek är ${MAX_FILE_SIZE_MB} MB.`;
+    }
+    return null;
   };
 
   const addImages = useCallback(async (files: FileList | null) => {
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
     setError(null);
+    setIsProcessing(true);
 
-    for (const file of Array.from(files)) {
-      if (!validateImageFile(file)) continue;
+    const fileArray = Array.from(files);
+    const errors: string[] = [];
+
+    for (const file of fileArray) {
+      const validationError = validateImageFile(file);
+      if (validationError) {
+        errors.push(`${file.name}: ${validationError}`);
+        continue;
+      }
 
       try {
         const { bytes, previewUrl } = await compressImage(file);
@@ -107,17 +141,26 @@ export function useImageUpload() {
             compressedBytes: bytes,
           },
         ]);
-      } catch {
-        setError('Failed to process image. Please try another file.');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Okänt fel vid bildbearbetning.';
+        errors.push(`${file.name}: ${message}`);
       }
     }
+
+    if (errors.length > 0) {
+      setError(errors.join('\n'));
+    }
+
+    setIsProcessing(false);
   }, []);
 
   const removeImage = useCallback((index: number) => {
     setImages((prev) => {
       const newImages = [...prev];
-      URL.revokeObjectURL(newImages[index].preview);
-      newImages.splice(index, 1);
+      if (newImages[index]) {
+        URL.revokeObjectURL(newImages[index].preview);
+        newImages.splice(index, 1);
+      }
       return newImages;
     });
   }, []);
@@ -131,7 +174,7 @@ export function useImageUpload() {
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
       const bytes = image.compressedBytes;
-      if (!bytes) continue;
+      if (!bytes || bytes.length === 0) continue;
 
       results.push(bytes);
 
@@ -148,14 +191,18 @@ export function useImageUpload() {
   }, [images]);
 
   const clearImages = useCallback(() => {
-    images.forEach((img) => URL.revokeObjectURL(img.preview));
-    setImages([]);
+    setImages((prev) => {
+      prev.forEach((img) => URL.revokeObjectURL(img.preview));
+      return [];
+    });
     setError(null);
-  }, [images]);
+    setIsProcessing(false);
+  }, []);
 
   return {
     images,
     error,
+    isProcessing,
     addImages,
     removeImage,
     convertToBlobs,

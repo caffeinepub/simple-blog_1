@@ -1,38 +1,85 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T10:48:17.989Z",
+  "generatedAt": "2026-02-25T12:32:30.554Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 5,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Replace the placeholder value in `frontend/src/config/constants.ts` with the actual admin principal ID `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae` for the `ADMIN_PRINCIPAL_ID` constant.",
-        "status": "implemented",
+        "summary": "In frontend/src/config/constants.ts, replace any placeholder or incorrect value for ADMIN_PRINCIPAL_ID with the exact string 'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae'. Ensure that frontend/src/components/Layout.tsx uses this constant to conditionally show the Admin Panel navigation link whenever the authenticated user's principal matches this value.",
+        "status": "missing",
         "plannedFiles": [
           "frontend/src/config/constants.ts",
-          "frontend/src/pages/HomePage.tsx"
+          "frontend/src/components/Layout.tsx"
+        ],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Review and improve the image/file upload hook in frontend/src/hooks/useImageUpload.ts. Improve the supported file type validation to accept common formats (JPEG, PNG, WebP, GIF). Increase or clearly enforce a practical max file size limit with a user-facing error message when exceeded. Improve canvas-based compression to better preserve image quality — consider increasing the max dimension from 1024px to 1600px and the JPEG quality from 0.75 to 0.85. Ensure the Uint8Array conversion is reliable and handles edge cases (empty files, corrupt input) gracefully with error feedback.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useImageUpload.ts"
         ],
         "matchedFiles": [
-          "frontend/src/config/constants.ts",
-          "frontend/src/pages/HomePage.tsx"
+          "frontend/src/hooks/useImageUpload.ts"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Review image upload UI and feedback across CreatePostPage (frontend/src/pages/CreatePostPage.tsx), EditPostPage (frontend/src/pages/EditPostPage.tsx), and PostEditModal (frontend/src/components/admin/PostEditModal.tsx). Ensure upload progress or loading state is visible while images are being processed. Show clear success and error states after each upload attempt. Display a thumbnail preview of each selected image before submission. Allow individual uploaded images to be removed before the form is submitted.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/CreatePostPage.tsx",
+          "frontend/src/pages/EditPostPage.tsx",
+          "frontend/src/components/admin/PostEditModal.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/CreatePostPage.tsx",
+          "frontend/src/pages/EditPostPage.tsx",
+          "frontend/src/components/admin/PostEditModal.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Review the backend image storage in backend/main.mo. Verify that blob/image data stored per post is correctly associated and retrievable. Ensure that storing multiple images per post works without data loss or truncation. If images are stored as a flat array of Uint8Array blobs, confirm that the retrieval and ordering is stable. Add or strengthen any input validation (e.g., reject empty blobs) to prevent corrupt image data from being persisted.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Review the ImageGallery component (frontend/src/components/ImageGallery.tsx) and PostCard component (frontend/src/components/PostCard.tsx) to ensure that Uint8Array images are reliably converted to blob URLs and displayed. Ensure blob URLs are properly revoked on component unmount to prevent memory leaks. Handle the case where an image blob is empty or malformed by showing a placeholder instead of a broken image element.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/ImageGallery.tsx",
+          "frontend/src/components/PostCard.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/ImageGallery.tsx",
+          "frontend/src/components/PostCard.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/Layout.tsx",
-    "frontend/src/config/constants.ts",
-    "frontend/src/pages/HomePage.tsx",
+    "frontend/src/components/ImageGallery.tsx",
+    "frontend/src/components/PostCard.tsx",
+    "frontend/src/components/admin/PostEditModal.tsx",
+    "frontend/src/hooks/useImageUpload.ts",
+    "frontend/src/pages/CreatePostPage.tsx",
+    "frontend/src/pages/EditPostPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

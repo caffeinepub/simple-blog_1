@@ -1,34 +1,118 @@
 {
   "kind": "build_request",
-  "title": "Hardcode admin principal ID",
-  "priority": "normal",
+  "title": "Fix admin panel visibility and improve file/photo upload in blog posts",
+  "projectName": "HKLO Blog",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Replace the placeholder value in `frontend/src/config/constants.ts` with the actual admin principal ID `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae` for the `ADMIN_PRINCIPAL_ID` constant.",
+      "text": "In frontend/src/config/constants.ts, replace any placeholder or incorrect value for ADMIN_PRINCIPAL_ID with the exact string 'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae'. Ensure that frontend/src/components/Layout.tsx uses this constant to conditionally show the Admin Panel navigation link whenever the authenticated user's principal matches this value.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-8"
         ],
         "quotes": [
-          "ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae"
+          "My principal ID ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae",
+          "a link to the adminpanel should be visible when l login hardcoded to my principal ID"
         ]
       },
       "acceptanceCriteria": [
-        "`ADMIN_PRINCIPAL_ID` in `frontend/src/config/constants.ts` is set to `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae`",
-        "The Admin Panel nav link in `Layout.tsx` is visible only when logged in as the principal `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae`",
-        "The debug principal ID display on the home page is removed now that the real ID has been captured"
+        "ADMIN_PRINCIPAL_ID in constants.ts equals 'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae'",
+        "When logged in with that principal, the Admin Panel link is visible in the navigation header",
+        "When logged in with any other principal, the Admin Panel link is not visible"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Review and improve the image/file upload hook in frontend/src/hooks/useImageUpload.ts. Improve the supported file type validation to accept common formats (JPEG, PNG, WebP, GIF). Increase or clearly enforce a practical max file size limit with a user-facing error message when exceeded. Improve canvas-based compression to better preserve image quality — consider increasing the max dimension from 1024px to 1600px and the JPEG quality from 0.75 to 0.85. Ensure the Uint8Array conversion is reliable and handles edge cases (empty files, corrupt input) gracefully with error feedback.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-8"
+        ],
+        "quotes": [
+          "Do a general review and see if something can be improved when uploading files and photos"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Accepted file types are clearly validated (JPEG, PNG, WebP, GIF); unsupported types show a descriptive error message",
+        "Files exceeding the size limit trigger a clear user-facing error message",
+        "Compressed images maintain reasonable visual quality (max 1600px, JPEG quality 0.85)",
+        "Empty or corrupt file inputs are handled without crashing; an error message is shown to the user",
+        "Uint8Array conversion reliably produces valid data for backend submission"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Review image upload UI and feedback across CreatePostPage (frontend/src/pages/CreatePostPage.tsx), EditPostPage (frontend/src/pages/EditPostPage.tsx), and PostEditModal (frontend/src/components/admin/PostEditModal.tsx). Ensure upload progress or loading state is visible while images are being processed. Show clear success and error states after each upload attempt. Display a thumbnail preview of each selected image before submission. Allow individual uploaded images to be removed before the form is submitted.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-8"
+        ],
+        "quotes": [
+          "Do a general review and see if something can be improved when uploading files and photos"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A loading/processing indicator is shown while an image is being compressed and converted",
+        "A thumbnail preview of each selected image is displayed before form submission",
+        "Each preview image has a remove button to deselect it before submitting",
+        "Upload errors (invalid type, size too large, processing failure) are shown inline near the upload control",
+        "Behavior is consistent across CreatePostPage, EditPostPage, and PostEditModal"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Review the backend image storage in backend/main.mo. Verify that blob/image data stored per post is correctly associated and retrievable. Ensure that storing multiple images per post works without data loss or truncation. If images are stored as a flat array of Uint8Array blobs, confirm that the retrieval and ordering is stable. Add or strengthen any input validation (e.g., reject empty blobs) to prevent corrupt image data from being persisted.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-8"
+        ],
+        "quotes": [
+          "Do a general review and see if something can be improved when uploading files and photos"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Multiple images can be stored and retrieved for a single post without data loss",
+        "Retrieved images are returned in a stable, consistent order",
+        "Empty or zero-length blobs are rejected with an appropriate error response",
+        "Existing image data for posts is not affected by the changes"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Review the ImageGallery component (frontend/src/components/ImageGallery.tsx) and PostCard component (frontend/src/components/PostCard.tsx) to ensure that Uint8Array images are reliably converted to blob URLs and displayed. Ensure blob URLs are properly revoked on component unmount to prevent memory leaks. Handle the case where an image blob is empty or malformed by showing a placeholder instead of a broken image element.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-8"
+        ],
+        "quotes": [
+          "Do a general review and see if something can be improved when uploading files and photos"
+        ]
+      },
+      "acceptanceCriteria": [
+        "All uploaded images display correctly in the image gallery on the post detail page",
+        "Thumbnail images display correctly in post cards on the home page",
+        "Blob URLs are revoked when the component unmounts (no memory leaks)",
+        "Empty or malformed image blobs render a visible placeholder instead of a broken image"
       ]
     }
   ],
   "constraints": [
-    "Do not change any backend logic or admin check mechanisms",
-    "Do not modify immutable frontend paths (useInternetIdentity.ts, useActor.ts, main.tsx, components/ui)"
+    "Do not change the authentication mechanism — Internet Identity must remain the only login method",
+    "Do not modify files listed in frontend.immutablePaths (useInternetIdentity.ts, useActor.ts, main.tsx, frontend/src/components/ui)",
+    "Admin principal ID must remain hardcoded as 'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae'"
   ],
   "nonGoals": [
-    "Adding new admin features",
-    "Changing the admin check architecture from frontend-only to backend-validated"
+    "Adding video or document file upload support",
+    "Implementing a CDN or external image hosting service",
+    "Adding image editing or cropping tools",
+    "Changing the overall blog post data model or schema beyond image handling",
+    "Fixing the production deployment error (root cause is outside the codebase)"
   ],
   "imageRequirements": {
     "required": [],

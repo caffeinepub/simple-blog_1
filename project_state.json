@@ -1,24 +1,72 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "A blog/CMS project deployed on the Internet Computer with admin panel access and blog post image upload functionality. User's principal ID (ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae) is hardcoded as admin.",
   "architectural_notes": [
-    "Admin principal ID: ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae (hardcoded)"
+    "Deployed on the Internet Computer (ICP); admin access controlled by hardcoded principal ID"
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Production deployment failing with 'Deployment error' — root cause unknown"
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-replace-the-placeholder-value-in-frontend-src-config-constants-ts-with-the-actual-admin-principal-id-ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae-for-the-admin-principal-id-constant",
-      "title": "Replace the placeholder value in `frontend/src/config/constants.ts` with the actual admin principal ID `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae` for the `ADMIN_PRINCIPAL_ID` constant.",
+      "id": "feature-review-and-improve-the-image-file-upload-hook-in-frontend-src-hooks-useimageupload-ts-improve-the-supported-file-type-validation-to-accept-common-formats-jpeg-png-webp-gif-increase-or-clearly-enforce-a-practical-max-file-size-limit-with-a-user-facing-error-message-when-exceeded-improve-canvas-based-compression-to-better-preserve-image-quality-consider-increasing-the-max-dimension-from-1024px-to-1600px-and-the-jpeg-quality-from-0-75-to-0-85-ensure-the-uint8array-conversion-is-reliable-and-handles-edge-cases-empty-files-corrupt-input-gracefully-with-error-feedback",
+      "title": "Review and improve the image/file upload hook in frontend/src/hooks/useImageUpload.ts. Improve the supported file type validation to accept common formats (JPEG, PNG, WebP, GIF). Increase or clearly enforce a practical max file size limit with a user-facing error message when exceeded. Improve canvas-based compression to better preserve image quality — consider increasing the max dimension from 1024px to 1600px and the JPEG quality from 0.75 to 0.85. Ensure the Uint8Array conversion is reliable and handles edge cases (empty files, corrupt input) gracefully with error feedback.",
       "reqIds": [
-        "REQ-1"
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-review-image-upload-ui-and-feedback-across-createpostpage-frontend-src-pages-createpostpage-tsx-editpostpage-frontend-src-pages-editpostpage-tsx-and-posteditmodal-frontend-src-components-admin-posteditmodal-tsx-ensure-upload-progress-or-loading-state-is-visible-while-images-are-being-processed-show-clear-success-and-error-states-after-each-upload-attempt-display-a-thumbnail-preview-of-each-selected-image-before-submission-allow-individual-uploaded-images-to-be-removed-before-the-form-is-submitted",
+      "title": "Review image upload UI and feedback across CreatePostPage (frontend/src/pages/CreatePostPage.tsx), EditPostPage (frontend/src/pages/EditPostPage.tsx), and PostEditModal (frontend/src/components/admin/PostEditModal.tsx). Ensure upload progress or loading state is visible while images are being processed. Show clear success and error states after each upload attempt. Display a thumbnail preview of each selected image before submission. Allow individual uploaded images to be removed before the form is submitted.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-review-the-imagegallery-component-frontend-src-components-imagegallery-tsx-and-postcard-component-frontend-src-components-postcard-tsx-to-ensure-that-uint8array-images-are-reliably-converted-to-blob-urls-and-displayed-ensure-blob-urls-are-properly-revoked-on-component-unmount-to-prevent-memory-leaks-handle-the-case-where-an-image-blob-is-empty-or-malformed-by-showing-a-placeholder-instead-of-a-broken-image-element",
+      "title": "Review the ImageGallery component (frontend/src/components/ImageGallery.tsx) and PostCard component (frontend/src/components/PostCard.tsx) to ensure that Uint8Array images are reliably converted to blob URLs and displayed. Ensure blob URLs are properly revoked on component unmount to prevent memory leaks. Handle the case where an image blob is empty or malformed by showing a placeholder instead of a broken image element.",
+      "reqIds": [
+        "REQ-5"
       ],
       "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Hardcode admin principal ID",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Hardcode principal ID ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae as admin so Admin Panel link appears in navigation when logged in",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Review and improve file/photo upload functionality in blog posts (file size handling, supported formats, upload reliability, image storage and display)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "In frontend/src/config/constants.ts, replace any placeholder or incorrect value for ADMIN_PRINCIPAL_ID with the exact string 'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae'. Ensure that frontend/src/components/Layout.tsx uses this constant to conditionally show the Admin Panel navigation link whenever the authenticated user's principal matches this value.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Review the backend image storage in backend/main.mo. Verify that blob/image data stored per post is correctly associated and retrievable. Ensure that storing multiple images per post works without data loss or truncation. If images are stored as a flat array of Uint8Array blobs, confirm that the retrieval and ordering is stable. Add or strengthen any input validation (e.g., reject empty blobs) to prevent corrupt image data from being persisted.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "HKLO Blog",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

@@ -1,26 +1,94 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Hardcode admin principal ID",
+  "title": "Fix admin panel visibility and improve file/photo upload in blog posts",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Replace placeholder admin principal ID with actual value and clean up debug display",
+      "summary": "Update ADMIN_PRINCIPAL_ID constant and ensure Layout.tsx conditionally shows Admin Panel link for the authenticated admin user",
       "acceptanceCriteria": [
-        "`ADMIN_PRINCIPAL_ID` in `frontend/src/config/constants.ts` is set to `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae`",
-        "The Admin Panel nav link in `Layout.tsx` is visible only when logged in as the principal `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae`",
-        "The debug principal ID display on the home page is removed now that the real ID has been captured"
+        "ADMIN_PRINCIPAL_ID in constants.ts equals 'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae'",
+        "When logged in with that principal, the Admin Panel link is visible in the navigation header",
+        "When logged in with any other principal, the Admin Panel link is not visible"
       ],
       "file_operations": [
         {
           "path": "frontend/src/config/constants.ts",
           "operation": "modify",
-          "description": "Replace the placeholder value with the actual admin principal ID `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae` for the `ADMIN_PRINCIPAL_ID` constant. This constant is used in Layout.tsx to gate the Admin Panel navigation link."
+          "description": "Replace any existing ADMIN_PRINCIPAL_ID value with the exact string 'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae' to ensure the correct admin principal is recognized throughout the application."
         },
         {
-          "path": "frontend/src/pages/HomePage.tsx",
+          "path": "frontend/src/components/Layout.tsx",
           "operation": "modify",
-          "description": "Remove the debug principal ID display section (the authenticated user's Principal ID with copy button) that was temporarily added for admin configuration purposes. The home page should now only display the grid of published blog posts."
+          "description": "Ensure the Admin Panel navigation link is conditionally rendered by comparing the authenticated user's principal (from useInternetIdentity) to ADMIN_PRINCIPAL_ID. The link should be visible only when the principals match exactly."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Improve image upload hook with better file type validation, increased size limits, higher quality compression, and robust error handling",
+      "acceptanceCriteria": [
+        "Accepted file types are clearly validated (JPEG, PNG, WebP, GIF); unsupported types show a descriptive error message",
+        "Files exceeding the size limit trigger a clear user-facing error message",
+        "Compressed images maintain reasonable visual quality (max 1600px, JPEG quality 0.85)",
+        "Empty or corrupt file inputs are handled without crashing; an error message is shown to the user",
+        "Uint8Array conversion reliably produces valid data for backend submission"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useImageUpload.ts",
+          "operation": "modify",
+          "description": "Expand supported file type validation to explicitly accept image/jpeg, image/png, image/webp, and image/gif with clear error messages for unsupported types. Increase or clarify the max file size limit and provide a user-facing error when exceeded. Update canvas-based compression to use a max dimension of 1600px (up from 1024px) and a JPEG quality of 0.85 (up from 0.75) to better preserve image quality. Add robust error handling for empty files, corrupt input, and failed canvas operations, ensuring Uint8Array conversion is reliable and gracefully handles edge cases with descriptive error feedback."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Review and improve image upload UI and feedback across CreatePostPage, EditPostPage, and PostEditModal with progress indicators, success/error states, thumbnail previews, and individual image removal",
+      "acceptanceCriteria": [
+        "A loading/processing indicator is shown while an image is being compressed and converted",
+        "A thumbnail preview of each selected image is displayed before form submission",
+        "Each preview image has a remove button to deselect it before submitting",
+        "Upload errors (invalid type, size too large, processing failure) are shown inline near the upload control",
+        "Behavior is consistent across CreatePostPage, EditPostPage, and PostEditModal"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/CreatePostPage.tsx",
+          "operation": "modify",
+          "description": "Add a visible loading/processing indicator while images are being compressed and converted. Display thumbnail previews of each selected image before form submission. Add a remove button to each thumbnail allowing users to deselect individual images. Show inline error messages (invalid type, size too large, processing failure) near the upload control. Ensure the UI reflects the improved useImageUpload hook's error states and feedback."
+        },
+        {
+          "path": "frontend/src/pages/EditPostPage.tsx",
+          "operation": "modify",
+          "description": "Add a visible loading/processing indicator while images are being compressed and converted. Display thumbnail previews of each selected image before form submission. Add a remove button to each thumbnail allowing users to deselect individual images. Show inline error messages (invalid type, size too large, processing failure) near the upload control. Ensure the UI reflects the improved useImageUpload hook's error states and feedback."
+        },
+        {
+          "path": "frontend/src/components/admin/PostEditModal.tsx",
+          "operation": "modify",
+          "description": "Add a visible loading/processing indicator while images are being compressed and converted. Display thumbnail previews of each selected image before form submission. Add a remove button to each thumbnail allowing users to deselect individual images. Show inline error messages (invalid type, size too large, processing failure) near the upload control. Ensure the UI reflects the improved useImageUpload hook's error states and feedback."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Review ImageGallery and PostCard components to ensure reliable Uint8Array-to-blob conversion, proper blob URL cleanup, and graceful handling of malformed images",
+      "acceptanceCriteria": [
+        "All uploaded images display correctly in the image gallery on the post detail page",
+        "Thumbnail images display correctly in post cards on the home page",
+        "Blob URLs are revoked when the component unmounts (no memory leaks)",
+        "Empty or malformed image blobs render a visible placeholder instead of a broken image"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/ImageGallery.tsx",
+          "operation": "modify",
+          "description": "Review the Uint8Array-to-blob URL conversion logic to ensure it handles empty or malformed image blobs gracefully by showing a placeholder image instead of a broken image element. Verify that blob URLs are properly revoked in the cleanup function on component unmount to prevent memory leaks. Ensure the component reliably displays all uploaded images without errors."
+        },
+        {
+          "path": "frontend/src/components/PostCard.tsx",
+          "operation": "modify",
+          "description": "Review the Uint8Array-to-blob URL conversion logic for the thumbnail image to ensure it handles empty or malformed image blobs gracefully by showing a placeholder image instead of a broken image element. Verify that blob URLs are properly revoked in the cleanup function on component unmount to prevent memory leaks. Ensure the thumbnail displays correctly in the post card on the home page."
         }
       ]
     }

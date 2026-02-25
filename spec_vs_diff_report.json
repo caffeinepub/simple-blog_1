@@ -1,16 +1,55 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T10:48:17.986Z",
-  "summary": "All three acceptance criteria for REQ-1 are implemented: the admin principal ID is hardcoded in constants.ts, Layout.tsx gates the Admin nav link on that principal, and HomePage.tsx no longer displays any debug principal ID.",
-  "missing_requirements": [],
-  "hallucinated_features": [],
-  "confidence": 0.98,
+  "generatedAt": "2026-02-25T12:32:30.551Z",
+  "summary": "The diff implements most requirements across all five REQs. REQ-1 (admin principal), REQ-2 (upload hook improvements), REQ-3 (upload UI feedback), REQ-4 (backend validation), and REQ-5 (ImageGallery/PostCard) all show evidence of implementation. One notable gap is that frontend/src/config/constants.ts itself is not shown as a modified file in the diff, though Layout.tsx behavior is described in the file summaries. The backend changes are truncated so REQ-4 backend validation can only be partially confirmed.",
+  "missing_requirements": [
+    {
+      "id": "REQ-1",
+      "requirement": "In frontend/src/config/constants.ts, replace placeholder ADMIN_PRINCIPAL_ID with 'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae'",
+      "reason": "frontend/src/config/constants.ts does not appear in the list of modified files. The file summary mentions Layout.tsx uses ADMIN_PRINCIPAL_ID but the actual constants.ts modification is not evidenced in the diff.",
+      "evidence": [
+        "frontend/src/config/constants.ts"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Empty or zero-length blobs are rejected with an appropriate error response in backend/main.mo",
+      "reason": "The backend/main.mo diff is truncated and does not show explicit empty-blob validation logic. The post storage and retrieval changes cannot be fully confirmed from the truncated diff.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Category selection and predefined Swedish title suggestions in CreatePostPage and EditPostPage",
+      "reason": "The build request makes no mention of category selection or title suggestions. CreatePostPage and EditPostPage both import and use categories/titleSuggestions from a data file, which was not requested.",
+      "evidence": [
+        "frontend/src/pages/CreatePostPage.tsx",
+        "frontend/src/pages/EditPostPage.tsx",
+        "frontend/src/data/titleSuggestions.ts"
+      ]
+    },
+    {
+      "description": "useIsCallerAdmin query hook fix including principal in query key, try/catch, retry:false, and staleTime:0",
+      "reason": "The build request does not mention fixing useIsCallerAdmin or any React Query hook behavior. This is an additional fix not requested.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend-file-summaries.txt"
+      ]
+    }
+  ],
+  "confidence": 0.72,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/Layout.tsx",
-    "frontend/src/config/constants.ts",
-    "frontend/src/pages/HomePage.tsx",
+    "frontend/src/components/ImageGallery.tsx",
+    "frontend/src/components/PostCard.tsx",
+    "frontend/src/components/admin/PostEditModal.tsx",
+    "frontend/src/hooks/useImageUpload.ts",
+    "frontend/src/pages/CreatePostPage.tsx",
+    "frontend/src/pages/EditPostPage.tsx",
     "project_state.json"
   ]
 }

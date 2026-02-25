@@ -25,21 +25,21 @@ export default function CreatePostPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const createPostMutation = useCreatePost();
-  const { images, error: imageError, addImages, removeImage, convertToBlobs, clearImages } = useImageUpload();
+  const {
+    images,
+    error: imageError,
+    isProcessing,
+    addImages,
+    removeImage,
+    convertToBlobs,
+    clearImages,
+  } = useImageUpload();
 
   const validateForm = () => {
     const newErrors: { title?: string; content?: string; author?: string } = {};
-
-    if (!title.trim()) {
-      newErrors.title = 'Titel krävs';
-    }
-    if (!content.trim()) {
-      newErrors.content = 'Innehåll krävs';
-    }
-    if (!author.trim()) {
-      newErrors.author = 'Författarnamn krävs';
-    }
-
+    if (!title.trim()) newErrors.title = 'Titel krävs';
+    if (!content.trim()) newErrors.content = 'Innehåll krävs';
+    if (!author.trim()) newErrors.author = 'Författarnamn krävs';
     setFieldErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -47,14 +47,10 @@ export default function CreatePostPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       const imageBlobs = await convertToBlobs();
-
       await createPostMutation.mutateAsync({
         title: title.trim(),
         content: content.trim(),
@@ -62,18 +58,16 @@ export default function CreatePostPage() {
         published,
         images: imageBlobs,
       });
-
       clearImages();
       navigate({ to: '/' });
     } catch (err) {
       console.error('Failed to create post:', err);
-      setSubmitError('Failed to create post. Please try a smaller image or try again.');
+      setSubmitError('Kunde inte skapa inlägget. Försök med en mindre bild eller försök igen.');
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     addImages(e.target.files);
-    // Reset input so the same file can be selected again
     e.target.value = '';
   };
 
@@ -110,6 +104,7 @@ export default function CreatePostPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Category */}
             <div className="space-y-2">
               <Label htmlFor="category" className="text-sm font-medium">
                 Kategori
@@ -128,6 +123,7 @@ export default function CreatePostPage() {
               </Select>
             </div>
 
+            {/* Suggested title */}
             {category && (
               <div className="space-y-2">
                 <Label htmlFor="suggested-title" className="text-sm font-medium">
@@ -148,6 +144,7 @@ export default function CreatePostPage() {
               </div>
             )}
 
+            {/* Title */}
             <div className="space-y-2">
               <Label htmlFor="title" className="text-sm font-medium">
                 Titel
@@ -164,6 +161,7 @@ export default function CreatePostPage() {
               )}
             </div>
 
+            {/* Author */}
             <div className="space-y-2">
               <Label htmlFor="author" className="text-sm font-medium">
                 Författare
@@ -180,6 +178,7 @@ export default function CreatePostPage() {
               )}
             </div>
 
+            {/* Content */}
             <div className="space-y-2">
               <Label htmlFor="content" className="text-sm font-medium">
                 Innehåll
@@ -197,36 +196,52 @@ export default function CreatePostPage() {
               )}
             </div>
 
+            {/* Images */}
             <div className="space-y-2">
-              <Label htmlFor="images" className="text-sm font-medium">
-                Bilder
-              </Label>
+              <Label className="text-sm font-medium">Bilder</Label>
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Input
-                    id="images"
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                    multiple
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('images')?.click()}
-                    className="w-full"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Välj bilder
-                  </Button>
-                </div>
+                <Input
+                  id="images"
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                  disabled={isProcessing}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('images')?.click()}
+                  className="w-full"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Bearbetar bilder...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Välj bilder
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Stöder JPEG, PNG, WebP och GIF · Max {10} MB per bild · Bilder komprimeras automatiskt
+                </p>
 
                 {imageError && (
-                  <p className="text-sm text-destructive">{imageError}</p>
+                  <Alert variant="destructive" className="py-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="whitespace-pre-line text-sm">
+                      {imageError}
+                    </AlertDescription>
+                  </Alert>
                 )}
 
-                {images.length > 0 && (
+                {images.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {images.map((image, index) => (
                       <div
@@ -238,36 +253,45 @@ export default function CreatePostPage() {
                           alt={`Förhandsvisning ${index + 1}`}
                           className="w-full h-full object-cover"
                         />
-                        <Button
+                        {/* Remove button — always visible on touch, hover on desktop */}
+                        <button
                           type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => removeImage(index)}
+                          className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity focus:opacity-100"
+                          aria-label={`Ta bort bild ${index + 1}`}
                         >
                           <X className="h-4 w-4" />
-                        </Button>
-                        {image.uploadProgress > 0 && image.uploadProgress < 100 && (
-                          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                          </div>
-                        )}
+                        </button>
+                        {/* File name tooltip */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-background/70 px-1.5 py-0.5 text-xs text-foreground truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                          {image.file.name}
+                        </div>
                       </div>
                     ))}
                   </div>
+                ) : (
+                  !isProcessing && (
+                    <div className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed border-border/40 rounded-lg bg-muted/20">
+                      <ImageIcon className="h-10 w-10 text-muted-foreground mb-3" />
+                      <p className="text-sm text-muted-foreground text-center">
+                        Inga bilder valda. Klicka på knappen ovan för att lägga till bilder.
+                      </p>
+                    </div>
+                  )
                 )}
 
-                {images.length === 0 && (
+                {isProcessing && images.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed border-border/40 rounded-lg bg-muted/20">
-                    <ImageIcon className="h-10 w-10 text-muted-foreground mb-3" />
+                    <Loader2 className="h-10 w-10 text-primary animate-spin mb-3" />
                     <p className="text-sm text-muted-foreground text-center">
-                      Inga bilder valda. Klicka på knappen ovan för att lägga till bilder.
+                      Bearbetar och komprimerar bilder...
                     </p>
                   </div>
                 )}
               </div>
             </div>
 
+            {/* Publish toggle */}
             <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border/40">
               <div className="space-y-0.5">
                 <Label htmlFor="published" className="text-sm font-medium cursor-pointer">
@@ -277,11 +301,7 @@ export default function CreatePostPage() {
                   Gör detta inlägg synligt för alla
                 </p>
               </div>
-              <Switch
-                id="published"
-                checked={published}
-                onCheckedChange={setPublished}
-              />
+              <Switch id="published" checked={published} onCheckedChange={setPublished} />
             </div>
 
             {submitError && (
@@ -294,7 +314,7 @@ export default function CreatePostPage() {
             <div className="flex gap-3 pt-4">
               <Button
                 type="submit"
-                disabled={createPostMutation.isPending}
+                disabled={createPostMutation.isPending || isProcessing}
                 className="flex-1"
               >
                 {createPostMutation.isPending ? (
@@ -310,7 +330,7 @@ export default function CreatePostPage() {
                 type="button"
                 variant="outline"
                 onClick={() => navigate({ to: '/' })}
-                disabled={createPostMutation.isPending}
+                disabled={createPostMutation.isPending || isProcessing}
               >
                 Avbryt
               </Button>
