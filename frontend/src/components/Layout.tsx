@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 import { Link, Outlet } from '@tanstack/react-router';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Button } from '@/components/ui/button';
-import { BookOpen, LogOut, Home, PenSquare, ShieldCheck } from 'lucide-react';
+import { BookOpen, LogOut, Home, PenSquare, ShieldCheck, LogIn } from 'lucide-react';
 import { ADMIN_PRINCIPAL_ID } from '../config/constants';
 
 interface LayoutProps {
@@ -36,30 +36,41 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Navigation */}
             <nav className="flex items-center gap-2">
-              <Button variant="ghost" asChild>
-                <Link to="/" className="gap-2">
-                  <Home className="h-4 w-4" />
-                  Hem
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild>
-                <Link to="/create" className="gap-2">
-                  <PenSquare className="h-4 w-4" />
-                  Skapa inlägg
-                </Link>
-              </Button>
-              {isAdmin && (
-                <Button variant="ghost" asChild>
-                  <Link to="/admin" className="gap-2">
-                    <ShieldCheck className="h-4 w-4" />
-                    Admin
+              {isAuthenticated ? (
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link to="/" className="gap-2">
+                      <Home className="h-4 w-4" />
+                      Hem
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" asChild>
+                    <Link to="/create" className="gap-2">
+                      <PenSquare className="h-4 w-4" />
+                      Skapa inlägg
+                    </Link>
+                  </Button>
+                  {isAdmin && (
+                    <Button variant="ghost" asChild>
+                      <Link to="/admin" className="gap-2">
+                        <ShieldCheck className="h-4 w-4" />
+                        Admin
+                      </Link>
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={handleLogout} className="gap-2">
+                    <LogOut className="h-4 w-4" />
+                    Logga ut
+                  </Button>
+                </>
+              ) : (
+                <Button variant="default" asChild>
+                  <Link to="/login" className="gap-2">
+                    <LogIn className="h-4 w-4" />
+                    Logga in
                   </Link>
                 </Button>
               )}
-              <Button variant="outline" onClick={handleLogout} className="gap-2">
-                <LogOut className="h-4 w-4" />
-                Logga ut
-              </Button>
             </nav>
           </div>
         </div>

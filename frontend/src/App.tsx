@@ -33,15 +33,14 @@ const indexRoute = createRoute({
   ),
 });
 
+// Post detail is publicly accessible (shows preview/teaser to unauthenticated users)
 const postDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/post/$id',
   component: () => (
-    <ProtectedRoute>
-      <Layout>
-        <PostDetailPage />
-      </Layout>
-    </ProtectedRoute>
+    <Layout>
+      <PostDetailPage />
+    </Layout>
   ),
 });
 

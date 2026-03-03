@@ -1,55 +1,43 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T12:32:30.551Z",
-  "summary": "The diff implements most requirements across all five REQs. REQ-1 (admin principal), REQ-2 (upload hook improvements), REQ-3 (upload UI feedback), REQ-4 (backend validation), and REQ-5 (ImageGallery/PostCard) all show evidence of implementation. One notable gap is that frontend/src/config/constants.ts itself is not shown as a modified file in the diff, though Layout.tsx behavior is described in the file summaries. The backend changes are truncated so REQ-4 backend validation can only be partially confirmed.",
+  "generatedAt": "2026-03-03T05:58:32.851Z",
+  "summary": "The diff implements most of the requested features: shareable copy-link buttons on PostCard and PostDetailPage (REQ-2), a preview/teaser login gate for unauthenticated users on PostDetailPage (REQ-3), the post detail route made publicly accessible (REQ-4 frontend side), and the 'Create Post' nav link visible to all authenticated users (REQ-1 frontend). However, there is no evidence of backend changes to remove admin/owner restrictions on post creation (REQ-1 backend AC) or to allow anonymous callers to call getPost without authentication (REQ-4 backend AC). The diff is entirely frontend-only.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "In frontend/src/config/constants.ts, replace placeholder ADMIN_PRINCIPAL_ID with 'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae'",
-      "reason": "frontend/src/config/constants.ts does not appear in the list of modified files. The file summary mentions Layout.tsx uses ADMIN_PRINCIPAL_ID but the actual constants.ts modification is not evidenced in the diff.",
+      "requirement": "Backend allows any authenticated principal to call the create post function (remove admin/owner-only restriction on the backend)",
+      "reason": "The diff contains only frontend changes. No backend Motoko/Rust/Candid files were modified to remove the admin/owner check on post creation.",
       "evidence": [
-        "frontend/src/config/constants.ts"
+        "project_state.json"
       ]
     },
     {
       "id": "REQ-4",
-      "requirement": "Empty or zero-length blobs are rejected with an appropriate error response in backend/main.mo",
-      "reason": "The backend/main.mo diff is truncated and does not show explicit empty-blob validation logic. The post storage and retrieval changes cannot be fully confirmed from the truncated diff.",
+      "requirement": "Unauthenticated (anonymous) callers can retrieve a published post by ID from the backend; Draft and hidden posts remain inaccessible to unauthenticated users",
+      "reason": "No backend files were modified in the diff. The backend getPost function's access control allowing anonymous callers for published posts while blocking drafts/hidden posts is not shown to have been changed.",
       "evidence": [
-        "backend/main.mo"
-      ]
-    }
-  ],
-  "hallucinated_features": [
-    {
-      "description": "Category selection and predefined Swedish title suggestions in CreatePostPage and EditPostPage",
-      "reason": "The build request makes no mention of category selection or title suggestions. CreatePostPage and EditPostPage both import and use categories/titleSuggestions from a data file, which was not requested.",
-      "evidence": [
-        "frontend/src/pages/CreatePostPage.tsx",
-        "frontend/src/pages/EditPostPage.tsx",
-        "frontend/src/data/titleSuggestions.ts"
+        "project_state.json"
       ]
     },
     {
-      "description": "useIsCallerAdmin query hook fix including principal in query key, try/catch, retry:false, and staleTime:0",
-      "reason": "The build request does not mention fixing useIsCallerAdmin or any React Query hook behavior. This is an additional fix not requested.",
+      "id": "REQ-3",
+      "requirement": "The login gate includes a 'Create Internet Identity' link",
+      "reason": "The PostDetailPage.tsx diff is truncated and the login gate UI section is not fully visible. While a login button is implemented, it cannot be confirmed from the truncated diff whether a 'Create Internet Identity' link is present in the gate UI.",
       "evidence": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend-file-summaries.txt"
+        "frontend/src/pages/PostDetailPage.tsx"
       ]
     }
   ],
+  "hallucinated_features": [],
   "confidence": 0.72,
   "changed_files": [
-    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/ImageGallery.tsx",
+    "frontend/src/App.tsx",
+    "frontend/src/components/Layout.tsx",
     "frontend/src/components/PostCard.tsx",
-    "frontend/src/components/admin/PostEditModal.tsx",
-    "frontend/src/hooks/useImageUpload.ts",
-    "frontend/src/pages/CreatePostPage.tsx",
-    "frontend/src/pages/EditPostPage.tsx",
+    "frontend/src/pages/PostDetailPage.tsx",
+    "frontend/src/utils/contentTruncator.ts",
     "project_state.json"
   ]
 }

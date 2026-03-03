@@ -1,13 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the Admin Panel link visibility for the hardcoded admin principal and improve image/file upload reliability, quality, and UI feedback across the HKLO Blog.
+**Goal:** Enable multi-author post creation, shareable post links, and a preview/login gate for unauthenticated visitors on the HKLO Blog.
 
 **Planned changes:**
-- Set `ADMIN_PRINCIPAL_ID` in `constants.ts` to `'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae'` and update `Layout.tsx` to show the Admin Panel nav link only when the authenticated user matches this principal
-- Improve `useImageUpload.ts`: validate accepted file types (JPEG, PNG, WebP, GIF), enforce a max file size with a user-facing error, increase max dimension to 1600px and JPEG quality to 0.85, and handle empty/corrupt inputs gracefully
-- Update `CreatePostPage`, `EditPostPage`, and `PostEditModal` to show upload loading state, thumbnail previews with remove buttons, and inline error messages
-- Review `backend/main.mo` to ensure multiple images per post are stored and retrieved without data loss, in stable order, and that empty blobs are rejected
-- Fix `ImageGallery` and `PostCard` to reliably convert Uint8Array to blob URLs, revoke blob URLs on unmount, and show a placeholder for empty or malformed image blobs
+- Remove admin/owner restriction on post creation so all authenticated users can create posts and see the "Create Post" navigation link
+- Add a "Copy shareable link" button to each post card and post detail page that copies the direct post URL to the clipboard, with a brief confirmation toast
+- Allow unauthenticated visitors to fetch published post data from the backend (anonymous actor access for getPost)
+- When an unauthenticated visitor opens a shared post link, show a teaser (title, author, date, first image if any, and ~150 words of content with a gradient fade) followed by a login gate with an "Log in with Internet Identity" button and a "Create Internet Identity" link
+- After login from the gate, automatically redirect the user back to the same post showing full content
 
-**User-visible outcome:** The admin user sees the Admin Panel link upon login, image uploads are more reliable with clear feedback (previews, errors, loading states), and images display correctly throughout the blog without memory leaks.
+**User-visible outcome:** Any logged-in user can write posts, every post has a shareable link that can be copied, and visitors who open a shared link see a teaser preview with a login prompt before accessing the full content.

@@ -1,85 +1,77 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T12:32:30.554Z",
+  "generatedAt": "2026-03-03T05:58:32.856Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
+    "total": 4,
     "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "In frontend/src/config/constants.ts, replace any placeholder or incorrect value for ADMIN_PRINCIPAL_ID with the exact string 'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae'. Ensure that frontend/src/components/Layout.tsx uses this constant to conditionally show the Admin Panel navigation link whenever the authenticated user's principal matches this value.",
-        "status": "missing",
+        "summary": "Allow any authenticated user to create blog posts (multi-author platform). Remove any restriction that limits post creation to admins/owners only. The 'Create Post' page and navigation link must be accessible to all logged-in users.",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/config/constants.ts",
-          "frontend/src/components/Layout.tsx"
+          "frontend/src/components/Layout.tsx",
+          "frontend/src/pages/CreatePostPage.tsx"
         ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/components/Layout.tsx"
+        ]
       },
       {
         "id": "REQ-2",
-        "summary": "Review and improve the image/file upload hook in frontend/src/hooks/useImageUpload.ts. Improve the supported file type validation to accept common formats (JPEG, PNG, WebP, GIF). Increase or clearly enforce a practical max file size limit with a user-facing error message when exceeded. Improve canvas-based compression to better preserve image quality — consider increasing the max dimension from 1024px to 1600px and the JPEG quality from 0.75 to 0.85. Ensure the Uint8Array conversion is reliable and handles edge cases (empty files, corrupt input) gracefully with error feedback.",
+        "summary": "Add a 'Copy shareable link' button to each blog post detail page and post card. The shareable link must be a direct URL to that specific post (e.g., /#/post/{postId}).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useImageUpload.ts"
+          "frontend/src/components/PostCard.tsx",
+          "frontend/src/pages/PostDetailPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useImageUpload.ts"
+          "frontend/src/components/PostCard.tsx",
+          "frontend/src/pages/PostDetailPage.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Review image upload UI and feedback across CreatePostPage (frontend/src/pages/CreatePostPage.tsx), EditPostPage (frontend/src/pages/EditPostPage.tsx), and PostEditModal (frontend/src/components/admin/PostEditModal.tsx). Ensure upload progress or loading state is visible while images are being processed. Show clear success and error states after each upload attempt. Display a thumbnail preview of each selected image before submission. Allow individual uploaded images to be removed before the form is submitted.",
+        "summary": "When an unauthenticated visitor opens a shared post link, show a preview/teaser of the post (title, author, date, and the first ~150 words or 3 sentences of content, plus the first image if available) followed by a login gate prompt. The full post content must be hidden behind the gate. The login gate must provide a button to log in via Internet Identity and a link to create a new Internet Identity.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/CreatePostPage.tsx",
-          "frontend/src/pages/EditPostPage.tsx",
-          "frontend/src/components/admin/PostEditModal.tsx"
+          "frontend/src/pages/PostDetailPage.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/hooks/useInternetIdentity.ts",
+          "frontend/src/utils/contentTruncator.ts"
         ],
         "matchedFiles": [
-          "frontend/src/pages/CreatePostPage.tsx",
-          "frontend/src/pages/EditPostPage.tsx",
-          "frontend/src/components/admin/PostEditModal.tsx"
+          "frontend/src/pages/PostDetailPage.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/utils/contentTruncator.ts"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Review the backend image storage in backend/main.mo. Verify that blob/image data stored per post is correctly associated and retrievable. Ensure that storing multiple images per post works without data loss or truncation. If images are stored as a flat array of Uint8Array blobs, confirm that the retrieval and ordering is stable. Add or strengthen any input validation (e.g., reject empty blobs) to prevent corrupt image data from being persisted.",
+        "summary": "The PostDetailPage must support anonymous actor access so unauthenticated visitors can fetch the post data needed to render the preview/teaser. The backend getPost (or equivalent) function must be callable without authentication.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Review the ImageGallery component (frontend/src/components/ImageGallery.tsx) and PostCard component (frontend/src/components/PostCard.tsx) to ensure that Uint8Array images are reliably converted to blob URLs and displayed. Ensure blob URLs are properly revoked on component unmount to prevent memory leaks. Handle the case where an image blob is empty or malformed by showing a placeholder instead of a broken image element.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/ImageGallery.tsx",
-          "frontend/src/components/PostCard.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/ImageGallery.tsx",
-          "frontend/src/components/PostCard.tsx"
-        ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
     "build-request.json",
+    "build-template/README.md",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/ImageGallery.tsx",
+    "frontend/src/App.tsx",
+    "frontend/src/components/Layout.tsx",
     "frontend/src/components/PostCard.tsx",
-    "frontend/src/components/admin/PostEditModal.tsx",
-    "frontend/src/hooks/useImageUpload.ts",
-    "frontend/src/pages/CreatePostPage.tsx",
-    "frontend/src/pages/EditPostPage.tsx",
+    "frontend/src/pages/PostDetailPage.tsx",
+    "frontend/src/utils/contentTruncator.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

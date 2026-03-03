@@ -2,9 +2,10 @@ import { Link } from '@tanstack/react-router';
 import { type Post } from '../backend';
 import { formatDate } from '../utils/dateFormatter';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { User, Calendar, ArrowRight, ImageOff } from 'lucide-react';
+import { User, Calendar, ArrowRight, ImageOff, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 
 interface PostCardProps {
   post: Post;
@@ -47,6 +48,18 @@ export default function PostCard({ post }: PostCardProps) {
   }, [post.images]);
 
   const hasThumbnail = post.images && post.images.length > 0;
+
+  const handleCopyLink = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/#/post/${post.id.toString()}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Länk kopierad till urklipp!');
+    } catch {
+      toast.error('Kunde inte kopiera länken.');
+    }
+  };
 
   return (
     <Card className="group hover:shadow-md transition-all duration-300 border-border/40 overflow-hidden">
@@ -91,6 +104,17 @@ export default function PostCard({ post }: PostCardProps) {
               {formatDate(post.createdAt)}
             </time>
           </div>
+          {/* Share button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopyLink}
+            className="gap-1.5 text-muted-foreground hover:text-foreground ml-auto -mr-2 h-7 px-2"
+            title="Kopiera länk"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            <span className="text-xs">Dela</span>
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

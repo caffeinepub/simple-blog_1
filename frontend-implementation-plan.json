@@ -1,94 +1,80 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix admin panel visibility and improve file/photo upload in blog posts",
+  "title": "Shareable post links with preview/teaser gate and multi-author support",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Update ADMIN_PRINCIPAL_ID constant and ensure Layout.tsx conditionally shows Admin Panel link for the authenticated admin user",
+      "summary": "Remove admin-only restrictions on post creation and make the Create Post page accessible to all authenticated users",
       "acceptanceCriteria": [
-        "ADMIN_PRINCIPAL_ID in constants.ts equals 'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae'",
-        "When logged in with that principal, the Admin Panel link is visible in the navigation header",
-        "When logged in with any other principal, the Admin Panel link is not visible"
+        "Any logged-in user can navigate to the Create Post page and submit a new post",
+        "The Create Post navigation link is visible to all authenticated users, not just admins",
+        "Backend allows any authenticated principal to call the create post function"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/config/constants.ts",
-          "operation": "modify",
-          "description": "Replace any existing ADMIN_PRINCIPAL_ID value with the exact string 'ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae' to ensure the correct admin principal is recognized throughout the application."
-        },
-        {
           "path": "frontend/src/components/Layout.tsx",
           "operation": "modify",
-          "description": "Ensure the Admin Panel navigation link is conditionally rendered by comparing the authenticated user's principal (from useInternetIdentity) to ADMIN_PRINCIPAL_ID. The link should be visible only when the principals match exactly."
+          "description": "Update the navigation to show the 'Create Post' link to all authenticated users instead of admin-only. Remove any conditional logic that hides the Create Post link based on admin status. Ensure the link is visible whenever isAuthenticated is true."
+        },
+        {
+          "path": "frontend/src/pages/CreatePostPage.tsx",
+          "operation": "modify",
+          "description": "Remove any admin-only guards or checks on the CreatePostPage component. Ensure the page is accessible to any authenticated user. The page should only verify that the user is logged in (via ProtectedRoute wrapper in App.tsx), not that they are an admin."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Improve image upload hook with better file type validation, increased size limits, higher quality compression, and robust error handling",
+      "summary": "Add a 'Copy shareable link' button to each blog post detail page and post card to enable easy sharing",
       "acceptanceCriteria": [
-        "Accepted file types are clearly validated (JPEG, PNG, WebP, GIF); unsupported types show a descriptive error message",
-        "Files exceeding the size limit trigger a clear user-facing error message",
-        "Compressed images maintain reasonable visual quality (max 1600px, JPEG quality 0.85)",
-        "Empty or corrupt file inputs are handled without crashing; an error message is shown to the user",
-        "Uint8Array conversion reliably produces valid data for backend submission"
+        "A 'Copy link' or share icon button appears on each PostCard and PostDetailPage",
+        "Clicking the button copies the direct post URL to the clipboard",
+        "A brief success toast or indicator confirms the link was copied"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useImageUpload.ts",
+          "path": "frontend/src/components/PostCard.tsx",
           "operation": "modify",
-          "description": "Expand supported file type validation to explicitly accept image/jpeg, image/png, image/webp, and image/gif with clear error messages for unsupported types. Increase or clarify the max file size limit and provide a user-facing error when exceeded. Update canvas-based compression to use a max dimension of 1600px (up from 1024px) and a JPEG quality of 0.85 (up from 0.75) to better preserve image quality. Add robust error handling for empty files, corrupt input, and failed canvas operations, ensuring Uint8Array conversion is reliable and gracefully handles edge cases with descriptive error feedback."
+          "description": "Add a 'Copy link' button (using Share2 or Link icon from lucide-react) to the PostCard component. The button should construct the shareable URL using the pattern window.location.origin + '/#/post/' + post.id. Implement a click handler that uses navigator.clipboard.writeText() to copy the URL and show a brief toast notification (using sonner) confirming 'Link copied to clipboard'. Position the button prominently near the read more link."
+        },
+        {
+          "path": "frontend/src/pages/PostDetailPage.tsx",
+          "operation": "modify",
+          "description": "Add a 'Copy shareable link' button to the PostDetailPage header area (near the edit/delete buttons). Use the Share2 or Link icon from lucide-react. The button should construct the shareable URL using window.location.origin + '/#/post/' + postId and copy it to clipboard on click using navigator.clipboard.writeText(). Show a success toast notification using sonner confirming the link was copied."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Review and improve image upload UI and feedback across CreatePostPage, EditPostPage, and PostEditModal with progress indicators, success/error states, thumbnail previews, and individual image removal",
+      "summary": "Implement a preview/teaser gate for unauthenticated visitors on shared post links, showing limited content and prompting login",
       "acceptanceCriteria": [
-        "A loading/processing indicator is shown while an image is being compressed and converted",
-        "A thumbnail preview of each selected image is displayed before form submission",
-        "Each preview image has a remove button to deselect it before submitting",
-        "Upload errors (invalid type, size too large, processing failure) are shown inline near the upload control",
-        "Behavior is consistent across CreatePostPage, EditPostPage, and PostEditModal"
+        "Unauthenticated users opening a post URL see the post title, author, date, first image (if any), and a truncated content preview (~150 words)",
+        "A visually distinct login gate overlay or section appears after the preview, with a gradient fade on the truncated text",
+        "The login gate includes a 'Log in with Internet Identity' button and a 'Create Internet Identity' link",
+        "After successful login, the user is automatically returned to the same post and sees the full content",
+        "Authenticated users see the full post content without any gate"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/CreatePostPage.tsx",
+          "path": "frontend/src/pages/PostDetailPage.tsx",
           "operation": "modify",
-          "description": "Add a visible loading/processing indicator while images are being compressed and converted. Display thumbnail previews of each selected image before form submission. Add a remove button to each thumbnail allowing users to deselect individual images. Show inline error messages (invalid type, size too large, processing failure) near the upload control. Ensure the UI reflects the improved useImageUpload hook's error states and feedback."
+          "description": "Modify PostDetailPage to support unauthenticated access and display a preview/teaser gate. Use useInternetIdentity to check authentication status. For unauthenticated visitors: (1) Use an anonymous actor to fetch the post data (the useActor hook already supports this). (2) Display the post title, author, date, and first image if available. (3) Truncate the content to approximately 150 words or 3 sentences using a utility function. (4) Apply a gradient fade overlay (using Tailwind classes like 'bg-gradient-to-b from-transparent to-white') over the truncated content. (5) Render a login gate section below the preview with a prominent 'Log in with Internet Identity' button (calling the login function from useInternetIdentity) and a link to https://identity.ic0.app with text 'Create Internet Identity'. (6) Store the current post URL in sessionStorage before login so the user can be redirected back after authentication. For authenticated users: display the full post content without any truncation or gate. Remove the ProtectedRoute wrapper for this page in App.tsx to allow anonymous access."
         },
         {
-          "path": "frontend/src/pages/EditPostPage.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Add a visible loading/processing indicator while images are being compressed and converted. Display thumbnail previews of each selected image before form submission. Add a remove button to each thumbnail allowing users to deselect individual images. Show inline error messages (invalid type, size too large, processing failure) near the upload control. Ensure the UI reflects the improved useImageUpload hook's error states and feedback."
+          "description": "Remove the ProtectedRoute wrapper from the post detail route (path '/post/:postId') to allow unauthenticated visitors to access the PostDetailPage. The page itself will handle authentication checks internally and display the appropriate preview/teaser gate or full content."
         },
         {
-          "path": "frontend/src/components/admin/PostEditModal.tsx",
+          "path": "frontend/src/hooks/useInternetIdentity.ts",
           "operation": "modify",
-          "description": "Add a visible loading/processing indicator while images are being compressed and converted. Display thumbnail previews of each selected image before form submission. Add a remove button to each thumbnail allowing users to deselect individual images. Show inline error messages (invalid type, size too large, processing failure) near the upload control. Ensure the UI reflects the improved useImageUpload hook's error states and feedback."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Review ImageGallery and PostCard components to ensure reliable Uint8Array-to-blob conversion, proper blob URL cleanup, and graceful handling of malformed images",
-      "acceptanceCriteria": [
-        "All uploaded images display correctly in the image gallery on the post detail page",
-        "Thumbnail images display correctly in post cards on the home page",
-        "Blob URLs are revoked when the component unmounts (no memory leaks)",
-        "Empty or malformed image blobs render a visible placeholder instead of a broken image"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/ImageGallery.tsx",
-          "operation": "modify",
-          "description": "Review the Uint8Array-to-blob URL conversion logic to ensure it handles empty or malformed image blobs gracefully by showing a placeholder image instead of a broken image element. Verify that blob URLs are properly revoked in the cleanup function on component unmount to prevent memory leaks. Ensure the component reliably displays all uploaded images without errors."
+          "description": "Add logic to check sessionStorage for a stored redirect URL after successful login. If a redirect URL exists (stored by PostDetailPage before login), navigate to that URL and clear the sessionStorage entry. This ensures users are returned to the shared post they were viewing after logging in from the preview gate."
         },
         {
-          "path": "frontend/src/components/PostCard.tsx",
-          "operation": "modify",
-          "description": "Review the Uint8Array-to-blob URL conversion logic for the thumbnail image to ensure it handles empty or malformed image blobs gracefully by showing a placeholder image instead of a broken image element. Verify that blob URLs are properly revoked in the cleanup function on component unmount to prevent memory leaks. Ensure the thumbnail displays correctly in the post card on the home page."
+          "path": "frontend/src/utils/contentTruncator.ts",
+          "operation": "create",
+          "description": "Create a utility function truncateContent(content: string, maxWords: number = 150): string that truncates blog post content to approximately the specified number of words or 3 sentences, whichever comes first. The function should preserve sentence boundaries when possible and add an ellipsis (...) at the end of truncated content. Export this function for use in PostDetailPage."
         }
       ]
     }
