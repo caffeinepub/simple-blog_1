@@ -5,6 +5,7 @@ import CreatePostPage from './pages/CreatePostPage';
 import EditPostPage from './pages/EditPostPage';
 import AdminPage from './pages/AdminPage';
 import LoginPage from './pages/LoginPage';
+import MyDraftsPage from './pages/MyDraftsPage';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -80,6 +81,18 @@ const adminRoute = createRoute({
   ),
 });
 
+const draftsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/drafts',
+  component: () => (
+    <ProtectedRoute>
+      <Layout>
+        <MyDraftsPage />
+      </Layout>
+    </ProtectedRoute>
+  ),
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   indexRoute,
@@ -87,6 +100,7 @@ const routeTree = rootRoute.addChildren([
   editPostRoute,
   createPostRoute,
   adminRoute,
+  draftsRoute,
 ]);
 
 const router = createRouter({ 

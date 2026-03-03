@@ -89,6 +89,11 @@ export class ExternalBlob {
         return this;
     }
 }
+export interface ReactionCount {
+    likes: bigint;
+    dislikes: bigint;
+}
+export type Time = bigint;
 export type CreatePostResult = {
     __kind__: "ok";
     ok: bigint;
@@ -96,7 +101,6 @@ export type CreatePostResult = {
     __kind__: "imageTooLarge";
     imageTooLarge: null;
 };
-export type Time = bigint;
 export interface _CaffeineStorageRefillInformation {
     proposed_top_up_amount?: bigint;
 }
@@ -107,7 +111,9 @@ export interface Post {
     content: string;
     ownerId: Principal;
     createdAt: Time;
+    likedBy: Array<Principal>;
     author: string;
+    dislikedBy: Array<Principal>;
     images: Array<Image>;
 }
 export type Image = Uint8Array;
@@ -163,6 +169,10 @@ export interface backendInterface {
      */
     deletePost(id: bigint): Promise<void>;
     /**
+     * / Dislike a post (authenticated users only). Toggles dislike; removes like if present.
+     */
+    dislikePost(postId: bigint): Promise<void>;
+    /**
      * / Get all admins (owner only)
      */
     getAdmins(): Promise<Array<Principal>>;
@@ -181,9 +191,17 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     /**
+     * / Get all drafts belonging to the caller (authenticated users only)
+     */
+    getMyDrafts(): Promise<Array<Post>>;
+    /**
      * / Get a single post by ID (public, but only published posts for non-admins)
      */
     getPost(id: bigint): Promise<Post>;
+    /**
+     * / Get like/dislike counts for a post (public, no auth required)
+     */
+    getPostReactions(postId: bigint): Promise<ReactionCount>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     /**
      * / Check if a principal is an admin (any authenticated user can check their own status)
@@ -191,7 +209,11 @@ export interface backendInterface {
     isAdmin(principal: Principal): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     /**
-     * / Called by admin to "publish" a user (demote guest to user role)
+     * / Like a post (authenticated users only). Toggles like; removes dislike if present.
+     */
+    likePost(postId: bigint): Promise<void>;
+    /**
+     * / Called by admin to promote a principal to user role
      */
     promoteUser(user: Principal): Promise<void>;
     /**
@@ -204,9 +226,17 @@ export interface backendInterface {
     removeAuthor(principal: Principal): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     /**
+     * / Save a new draft (authenticated users only)
+     */
+    saveDraft(title: string, content: string, author: string, images: Array<Image>): Promise<bigint>;
+    /**
      * / Set a new owner (owner only)
      */
     setOwner(newOwner: Principal): Promise<void>;
+    /**
+     * / Update an existing draft (authenticated users only, owner of draft only)
+     */
+    updateDraft(id: bigint, title: string, content: string, author: string, images: Array<Image>): Promise<void>;
     /**
      * / Update a post (owner of post or admin)
      */
@@ -369,6 +399,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async dislikePost(arg0: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.dislikePost(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.dislikePost(arg0);
+            return result;
+        }
+    }
     async getAdmins(): Promise<Array<Principal>> {
         if (this.processError) {
             try {
@@ -453,6 +497,20 @@ export class Backend implements backendInterface {
             return from_candid_UserRole_n18(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getMyDrafts(): Promise<Array<Post>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getMyDrafts();
+                return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getMyDrafts();
+            return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getPost(arg0: bigint): Promise<Post> {
         if (this.processError) {
             try {
@@ -465,6 +523,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getPost(arg0);
             return from_candid_Post_n13(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getPostReactions(arg0: bigint): Promise<ReactionCount> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPostReactions(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPostReactions(arg0);
+            return result;
         }
     }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
@@ -506,6 +578,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.isCallerAdmin();
+            return result;
+        }
+    }
+    async likePost(arg0: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.likePost(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.likePost(arg0);
             return result;
         }
     }
@@ -565,6 +651,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async saveDraft(arg0: string, arg1: string, arg2: string, arg3: Array<Image>): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveDraft(arg0, arg1, arg2, arg3);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveDraft(arg0, arg1, arg2, arg3);
+            return result;
+        }
+    }
     async setOwner(arg0: Principal): Promise<void> {
         if (this.processError) {
             try {
@@ -576,6 +676,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.setOwner(arg0);
+            return result;
+        }
+    }
+    async updateDraft(arg0: bigint, arg1: string, arg2: string, arg3: string, arg4: Array<Image>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateDraft(arg0, arg1, arg2, arg3, arg4);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateDraft(arg0, arg1, arg2, arg3, arg4);
             return result;
         }
     }
@@ -628,7 +742,9 @@ function from_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uin
     content: string;
     ownerId: Principal;
     createdAt: _Time;
+    likedBy: Array<Principal>;
     author: string;
+    dislikedBy: Array<Principal>;
     images: Array<_Image>;
 }): {
     id: bigint;
@@ -637,7 +753,9 @@ function from_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uin
     content: string;
     ownerId: Principal;
     createdAt: Time;
+    likedBy: Array<Principal>;
     author: string;
+    dislikedBy: Array<Principal>;
     images: Array<Image>;
 } {
     return {
@@ -647,7 +765,9 @@ function from_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uin
         content: value.content,
         ownerId: value.ownerId,
         createdAt: value.createdAt,
+        likedBy: value.likedBy,
         author: value.author,
+        dislikedBy: value.dislikedBy,
         images: value.images
     };
 }

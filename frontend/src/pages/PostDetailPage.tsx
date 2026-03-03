@@ -17,6 +17,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Loader2, User, Calendar, Pencil, Trash2, Share2, LogIn, ExternalLink } from 'lucide-react';
 import ImageGallery from '../components/ImageGallery';
+import ShareModal from '../components/ShareModal';
+import ReactionButtons from '../components/ReactionButtons';
+import { useShare } from '../hooks/useShare';
 import { toast } from 'sonner';
 import { useState, useEffect, useRef } from 'react';
 
@@ -29,9 +32,14 @@ export default function PostDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const thumbnailUrlRef = useRef<string | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+
+  const { share, isSupported } = useShare();
 
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
   const isOwner = isAuthenticated && post && identity.getPrincipal().toString() === post.ownerId.toString();
+
+  const postUrl = `${window.location.origin}/post/${id}`;
 
   // Build thumbnail for the preview gate
   useEffect(() => {
@@ -74,28 +82,17 @@ export default function PostDetailPage() {
     navigate({ to: `/post/${id}/edit` });
   };
 
-  const handleCopyLink = async () => {
-    const url = `${window.location.origin}/post/${id}`;
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(url);
-        toast.success('Länk kopierad!');
-      } else {
-        // Fallback for browsers without Clipboard API
-        window.prompt('Kopiera länken:', url);
-      }
-    } catch {
-      // Fallback if clipboard write fails
-      try {
-        window.prompt('Kopiera länken:', url);
-      } catch {
-        toast.error('Kunde inte kopiera länken.');
-      }
+  const handleShare = async () => {
+    if (!post) return;
+    if (isSupported) {
+      const used = await share(post.title, postUrl);
+      if (!used) setShareModalOpen(true);
+    } else {
+      setShareModalOpen(true);
     }
   };
 
   const handleLogin = async () => {
-    // Store the current post URL so we can return after login
     sessionStorage.setItem('postLoginRedirect', window.location.href);
     try {
       await login();
@@ -143,20 +140,207 @@ export default function PostDetailPage() {
     const previewText = truncateContent(post.content, 120);
 
     return (
-      <article className="container max-w-4xl mx-auto px-6 py-16">
-        {/* Back button */}
-        <Button
-          onClick={() => navigate({ to: '/login' })}
-          variant="ghost"
-          size="sm"
-          className="-ml-2 mb-8 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Logga in
-        </Button>
+      <>
+        <article className="container max-w-4xl mx-auto px-6 py-16">
+          {/* Back button */}
+          <Button
+            onClick={() => navigate({ to: '/login' })}
+            variant="ghost"
+            size="sm"
+            className="-ml-2 mb-8 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Logga in
+          </Button>
 
-        {/* Post header */}
-        <header className="mb-10 pb-8 border-b border-border/40">
+          {/* Post header */}
+          <header className="mb-10 pb-8 border-b border-border/40">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-foreground mb-6 leading-tight tracking-tight">
+              {post.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span className="font-medium">{post.author}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <time dateTime={new Date(Number(post.createdAt) / 1000000).toISOString()}>
+                  {formatDate(post.createdAt)}
+                </time>
+              </div>
+              {/* Share button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleShare}
+                className="gap-2 text-muted-foreground hover:text-foreground ml-auto"
+              >
+                <Share2 className="h-4 w-4" />
+                Dela
+              </Button>
+            </div>
+          </header>
+
+          {/* Thumbnail image */}
+          {thumbnailUrl && (
+            <div className="mb-8 rounded-xl overflow-hidden aspect-[16/9] bg-muted/30">
+              <img
+                src={thumbnailUrl}
+                alt={post.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+
+          {/* Truncated content with gradient fade */}
+          <div className="relative mb-0">
+            <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
+              <div className="whitespace-pre-wrap leading-relaxed text-foreground opacity-90">
+                {previewText}
+              </div>
+            </div>
+            {/* Gradient fade overlay */}
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-background pointer-events-none" />
+          </div>
+
+          {/* Login gate */}
+          <div className="mt-0 pt-8 border-t border-border/30">
+            <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-8 text-center shadow-sm">
+              <div className="mb-4 inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10">
+                <LogIn className="h-7 w-7 text-primary" />
+              </div>
+              <h2 className="text-2xl font-serif font-bold text-foreground mb-2">
+                Fortsätt läsa
+              </h2>
+              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                Logga in för att läsa hela inlägget och ta del av alla berättelser i HKLO-gemenskapen.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  onClick={handleLogin}
+                  disabled={isLoggingIn}
+                  size="lg"
+                  className="gap-2 h-12 text-base"
+                >
+                  {isLoggingIn ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Loggar in...
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="h-5 w-5" />
+                      Logga in med Internet Identity
+                    </>
+                  )}
+                </Button>
+                <a
+                  href="https://identity.ic0.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-base font-medium"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Skapa Internet Identity
+                </a>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <ShareModal
+          isOpen={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          title={post.title}
+          url={postUrl}
+        />
+      </>
+    );
+  }
+
+  // ── Authenticated full view ───────────────────────────────────────────────
+  return (
+    <>
+      <article className="container max-w-4xl mx-auto px-6 py-16">
+        <div className="flex items-center justify-between mb-8">
+          <Button
+            onClick={() => navigate({ to: '/' })}
+            variant="ghost"
+            size="sm"
+            className="-ml-2 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Tillbaka till alla inlägg
+          </Button>
+
+          <div className="flex gap-2">
+            {/* Share button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+              className="gap-2"
+            >
+              <Share2 className="h-4 w-4" />
+              Dela
+            </Button>
+
+            {isOwner && (
+              <>
+                <Button
+                  onClick={handleEdit}
+                  variant="outline"
+                  size="sm"
+                  disabled={isDeleting}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Redigera
+                </Button>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Ta bort
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Är du säker?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Är du säker på att du vill ta bort detta inlägg? Denna åtgärd kan inte ångras.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isDeleting}>Avbryt</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Tar bort...
+                          </>
+                        ) : (
+                          'Ta bort'
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
+          </div>
+        </div>
+
+        <header className="mb-12 pb-8 border-b border-border/40">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-foreground mb-6 leading-tight tracking-tight">
             {post.title}
           </h1>
@@ -171,195 +355,31 @@ export default function PostDetailPage() {
                 {formatDate(post.createdAt)}
               </time>
             </div>
-            {/* Share button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCopyLink}
-              className="gap-2 text-muted-foreground hover:text-foreground ml-auto"
-            >
-              <Share2 className="h-4 w-4" />
-              Dela
-            </Button>
           </div>
         </header>
 
-        {/* Thumbnail image */}
-        {thumbnailUrl && (
-          <div className="mb-8 rounded-xl overflow-hidden aspect-[16/9] bg-muted/30">
-            <img
-              src={thumbnailUrl}
-              alt={post.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
+        {post.images && post.images.length > 0 && (
+          <ImageGallery images={post.images} />
         )}
 
-        {/* Truncated content with gradient fade */}
-        <div className="relative mb-0">
-          <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
-            <div className="whitespace-pre-wrap leading-relaxed text-foreground opacity-90">
-              {previewText}
-            </div>
+        <div className="prose prose-lg prose-slate dark:prose-invert max-w-none mb-10">
+          <div className="whitespace-pre-wrap leading-relaxed text-foreground opacity-90">
+            {post.content}
           </div>
-          {/* Gradient fade overlay */}
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-background pointer-events-none" />
         </div>
 
-        {/* Login gate */}
-        <div className="mt-0 pt-8 border-t border-border/30">
-          <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-8 text-center shadow-sm">
-            <div className="mb-4 inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10">
-              <LogIn className="h-7 w-7 text-primary" />
-            </div>
-            <h2 className="text-2xl font-serif font-bold text-foreground mb-2">
-              Fortsätt läsa
-            </h2>
-            <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-              Logga in för att läsa hela inlägget och ta del av alla berättelser i HKLO-gemenskapen.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button
-                onClick={handleLogin}
-                disabled={isLoggingIn}
-                size="lg"
-                className="gap-2 h-12 text-base"
-              >
-                {isLoggingIn ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Loggar in...
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="h-5 w-5" />
-                    Logga in med Internet Identity
-                  </>
-                )}
-              </Button>
-              <a
-                href="https://identity.ic0.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-base font-medium"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Skapa Internet Identity
-              </a>
-            </div>
-          </div>
+        {/* Reaction buttons */}
+        <div className="pt-6 border-t border-border/30">
+          <ReactionButtons post={post} />
         </div>
       </article>
-    );
-  }
 
-  // ── Authenticated full view ───────────────────────────────────────────────
-  return (
-    <article className="container max-w-4xl mx-auto px-6 py-16">
-      <div className="flex items-center justify-between mb-8">
-        <Button
-          onClick={() => navigate({ to: '/' })}
-          variant="ghost"
-          size="sm"
-          className="-ml-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Tillbaka till alla inlägg
-        </Button>
-
-        <div className="flex gap-2">
-          {/* Share button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopyLink}
-            className="gap-2"
-          >
-            <Share2 className="h-4 w-4" />
-            Dela
-          </Button>
-
-          {isOwner && (
-            <>
-              <Button
-                onClick={handleEdit}
-                variant="outline"
-                size="sm"
-                disabled={isDeleting}
-              >
-                <Pencil className="h-4 w-4 mr-2" />
-                Redigera
-              </Button>
-
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={isDeleting}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Ta bort
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Är du säker?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Är du säker på att du vill ta bort detta inlägg? Denna åtgärd kan inte ångras.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeleting}>Avbryt</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      {isDeleting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Tar bort...
-                        </>
-                      ) : (
-                        'Ta bort'
-                      )}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </>
-          )}
-        </div>
-      </div>
-
-      <header className="mb-12 pb-8 border-b border-border/40">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-foreground mb-6 leading-tight tracking-tight">
-          {post.title}
-        </h1>
-        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            <span className="font-medium">{post.author}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <time dateTime={new Date(Number(post.createdAt) / 1000000).toISOString()}>
-              {formatDate(post.createdAt)}
-            </time>
-          </div>
-        </div>
-      </header>
-
-      {post.images && post.images.length > 0 && (
-        <ImageGallery images={post.images} />
-      )}
-
-      <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
-        <div className="whitespace-pre-wrap leading-relaxed text-foreground opacity-90">
-          {post.content}
-        </div>
-      </div>
-    </article>
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        title={post.title}
+        url={postUrl}
+      />
+    </>
   );
 }

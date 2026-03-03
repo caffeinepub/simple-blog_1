@@ -42,7 +42,9 @@ export const Post = IDL.Record({
   'content' : IDL.Text,
   'ownerId' : IDL.Principal,
   'createdAt' : Time,
+  'likedBy' : IDL.Vec(IDL.Principal),
   'author' : IDL.Text,
+  'dislikedBy' : IDL.Vec(IDL.Principal),
   'images' : IDL.Vec(Image),
 });
 export const AuthorInfo = IDL.Record({
@@ -50,6 +52,10 @@ export const AuthorInfo = IDL.Record({
   'displayName' : IDL.Text,
 });
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
+export const ReactionCount = IDL.Record({
+  'likes' : IDL.Nat,
+  'dislikes' : IDL.Nat,
+});
 export const UpdatePostResult = IDL.Variant({
   'ok' : IDL.Null,
   'postNotFound' : IDL.Null,
@@ -92,13 +98,16 @@ export const idlService = IDL.Service({
       [],
     ),
   'deletePost' : IDL.Func([IDL.Nat], [], []),
+  'dislikePost' : IDL.Func([IDL.Nat], [], []),
   'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
   'getAllPostsAdmin' : IDL.Func([], [IDL.Vec(Post)], ['query']),
   'getAllPublishedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
   'getAuthors' : IDL.Func([], [IDL.Vec(AuthorInfo)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getMyDrafts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
   'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
+  'getPostReactions' : IDL.Func([IDL.Nat], [ReactionCount], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -106,11 +115,22 @@ export const idlService = IDL.Service({
     ),
   'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'likePost' : IDL.Func([IDL.Nat], [], []),
   'promoteUser' : IDL.Func([IDL.Principal], [], []),
   'removeAdmin' : IDL.Func([IDL.Principal], [], []),
   'removeAuthor' : IDL.Func([IDL.Principal], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'saveDraft' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
+      [IDL.Nat],
+      [],
+    ),
   'setOwner' : IDL.Func([IDL.Principal], [], []),
+  'updateDraft' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
+      [],
+      [],
+    ),
   'updatePost' : IDL.Func(
       [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, PostStatus, IDL.Vec(Image)],
       [UpdatePostResult],
@@ -155,7 +175,9 @@ export const idlFactory = ({ IDL }) => {
     'content' : IDL.Text,
     'ownerId' : IDL.Principal,
     'createdAt' : Time,
+    'likedBy' : IDL.Vec(IDL.Principal),
     'author' : IDL.Text,
+    'dislikedBy' : IDL.Vec(IDL.Principal),
     'images' : IDL.Vec(Image),
   });
   const AuthorInfo = IDL.Record({
@@ -163,6 +185,7 @@ export const idlFactory = ({ IDL }) => {
     'displayName' : IDL.Text,
   });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
+  const ReactionCount = IDL.Record({ 'likes' : IDL.Nat, 'dislikes' : IDL.Nat });
   const UpdatePostResult = IDL.Variant({
     'ok' : IDL.Null,
     'postNotFound' : IDL.Null,
@@ -205,13 +228,16 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'deletePost' : IDL.Func([IDL.Nat], [], []),
+    'dislikePost' : IDL.Func([IDL.Nat], [], []),
     'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'getAllPostsAdmin' : IDL.Func([], [IDL.Vec(Post)], ['query']),
     'getAllPublishedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
     'getAuthors' : IDL.Func([], [IDL.Vec(AuthorInfo)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getMyDrafts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
     'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
+    'getPostReactions' : IDL.Func([IDL.Nat], [ReactionCount], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
@@ -219,11 +245,22 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'likePost' : IDL.Func([IDL.Nat], [], []),
     'promoteUser' : IDL.Func([IDL.Principal], [], []),
     'removeAdmin' : IDL.Func([IDL.Principal], [], []),
     'removeAuthor' : IDL.Func([IDL.Principal], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'saveDraft' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
+        [IDL.Nat],
+        [],
+      ),
     'setOwner' : IDL.Func([IDL.Principal], [], []),
+    'updateDraft' : IDL.Func(
+        [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
+        [],
+        [],
+      ),
     'updatePost' : IDL.Func(
         [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, PostStatus, IDL.Vec(Image)],
         [UpdatePostResult],

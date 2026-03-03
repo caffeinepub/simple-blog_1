@@ -7,6 +7,11 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface ReactionCount {
+    likes: bigint;
+    dislikes: bigint;
+}
+export type Time = bigint;
 export type CreatePostResult = {
     __kind__: "ok";
     ok: bigint;
@@ -14,7 +19,6 @@ export type CreatePostResult = {
     __kind__: "imageTooLarge";
     imageTooLarge: null;
 };
-export type Time = bigint;
 export interface Post {
     id: bigint;
     status: PostStatus;
@@ -22,7 +26,9 @@ export interface Post {
     content: string;
     ownerId: Principal;
     createdAt: Time;
+    likedBy: Array<Principal>;
     author: string;
+    dislikedBy: Array<Principal>;
     images: Array<Image>;
 }
 export type Image = Uint8Array;
@@ -63,6 +69,10 @@ export interface backendInterface {
      */
     deletePost(id: bigint): Promise<void>;
     /**
+     * / Dislike a post (authenticated users only). Toggles dislike; removes like if present.
+     */
+    dislikePost(postId: bigint): Promise<void>;
+    /**
      * / Get all admins (owner only)
      */
     getAdmins(): Promise<Array<Principal>>;
@@ -81,9 +91,17 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     /**
+     * / Get all drafts belonging to the caller (authenticated users only)
+     */
+    getMyDrafts(): Promise<Array<Post>>;
+    /**
      * / Get a single post by ID (public, but only published posts for non-admins)
      */
     getPost(id: bigint): Promise<Post>;
+    /**
+     * / Get like/dislike counts for a post (public, no auth required)
+     */
+    getPostReactions(postId: bigint): Promise<ReactionCount>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     /**
      * / Check if a principal is an admin (any authenticated user can check their own status)
@@ -91,7 +109,11 @@ export interface backendInterface {
     isAdmin(principal: Principal): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     /**
-     * / Called by admin to "publish" a user (demote guest to user role)
+     * / Like a post (authenticated users only). Toggles like; removes dislike if present.
+     */
+    likePost(postId: bigint): Promise<void>;
+    /**
+     * / Called by admin to promote a principal to user role
      */
     promoteUser(user: Principal): Promise<void>;
     /**
@@ -104,9 +126,17 @@ export interface backendInterface {
     removeAuthor(principal: Principal): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     /**
+     * / Save a new draft (authenticated users only)
+     */
+    saveDraft(title: string, content: string, author: string, images: Array<Image>): Promise<bigint>;
+    /**
      * / Set a new owner (owner only)
      */
     setOwner(newOwner: Principal): Promise<void>;
+    /**
+     * / Update an existing draft (authenticated users only, owner of draft only)
+     */
+    updateDraft(id: bigint, title: string, content: string, author: string, images: Array<Image>): Promise<void>;
     /**
      * / Update a post (owner of post or admin)
      */

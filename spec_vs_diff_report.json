@@ -1,29 +1,47 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-03-03T07:50:03.075Z",
-  "summary": "All three requirements are substantially implemented. REQ-1 (frontend compression) and REQ-3 (share function) are fully addressed. REQ-2 (backend limit increase) shows the new result types in the truncated backend diff, but the actual 900 KB numeric constant enforcement in the Motoko code is not visible in the truncated diff, creating minor uncertainty.",
+  "generatedAt": "2026-03-03T09:09:07.867Z",
+  "summary": "The diff implements most of the requested draft functionality including backend draft status, frontend autosave, My Drafts page, Save as Draft button, UnpublishDialog, and React Query hooks. A few specific acceptance criteria appear partially or not addressed based on available evidence.",
   "missing_requirements": [
     {
       "id": "REQ-2",
-      "requirement": "Raise the per-image blob size limit to at least 900 KB in the Motoko backend and return #imageTooLarge when exceeded.",
-      "reason": "The diff shows the new CreatePostResult and UpdatePostResult types with #imageTooLarge variants in backend/main.mo, confirming the typed error return. However, the file is truncated and the actual numeric constant enforcing the 900 KB limit in createPost/updatePost logic is not visible. It is unclear whether the hard limit was actually raised to at least 900 KB.",
+      "requirement": "A dedicated updateDraft mutation for updating existing drafts (separate from updatePost), and a deleteDraft or reuse of deletePost for permanent draft deletion with owner-only enforcement.",
+      "reason": "The backend diff (main.mo) shows a separate 'drafts' map but the truncated diff does not clearly show a dedicated 'saveDraft' and 'updateDraft' Motoko function with owner-only checks distinct from the existing createPost/updatePost. The frontend uses useDeleteDraft which maps to actor.deletePost per the hooks file, but the backend-level owner-only enforcement for draft-specific operations is not confirmed in the truncated backend diff.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "requirement": "The unpublish dialog should also appear when the 'Publicera omedelbart' toggle is turned off in CreatePostPage (not only EditPostPage).",
+      "reason": "The CreatePostPage diff and summary focus on autosave and Save as Draft functionality. The UnpublishDialog import is not present in CreatePostPage.tsx based on the diff content shown. The EditPostPage clearly uses UnpublishDialog, but CreatePostPage does not appear to handle the toggle-off dialog scenario for already-published posts.",
+      "evidence": [
+        "frontend/src/pages/CreatePostPage.tsx",
+        "frontend/src/pages/EditPostPage.tsx"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "A separate 'drafts' Map in the backend (let drafts = Map.empty<Nat, Post>()) in addition to the main posts map, suggesting drafts are stored in a completely separate collection rather than using a status field on the unified posts map.",
+      "reason": "The build request only asks for a 'draft' status on the existing post model with persistent per-user storage. A separate drafts map was not requested and may cause inconsistencies with getDraftsByUser and general post retrieval logic.",
       "evidence": [
         "backend/main.mo"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.78,
+  "confidence": 0.62,
   "changed_files": [
     "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/PostCard.tsx",
-    "frontend/src/hooks/useImageUpload.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/components/Layout.tsx",
+    "frontend/src/components/UnpublishDialog.tsx",
     "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/CreatePostPage.tsx",
     "frontend/src/pages/EditPostPage.tsx",
-    "frontend/src/pages/PostDetailPage.tsx",
+    "frontend/src/pages/MyDraftsPage.tsx",
     "project_state.json"
   ]
 }

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import { useInternetIdentity } from './useInternetIdentity';
-import type { Post, Image, AuthorInfo } from '../backend';
+import type { Post, Image, AuthorInfo, ReactionCount } from '../backend';
 import { PostStatus } from '../backend';
 import { Principal } from '@dfinity/principal';
 
@@ -121,6 +121,142 @@ export function useDeletePost() {
       await actor.deletePost(id);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+// ─── Reaction Hooks ──────────────────────────────────────────────────────────
+
+export function useGetPostReactions(postId: bigint) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<ReactionCount>({
+    queryKey: ['reactions', postId.toString()],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.getPostReactions(postId);
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 30_000,
+  });
+}
+
+export function useLikePost() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (postId: bigint) => {
+      if (!actor) throw new Error('Actor not initialized');
+      await actor.likePost(postId);
+    },
+    onSuccess: (_data, postId) => {
+      queryClient.invalidateQueries({ queryKey: ['reactions', postId.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['post', postId.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['posts', 'published'] });
+    },
+  });
+}
+
+export function useDislikePost() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (postId: bigint) => {
+      if (!actor) throw new Error('Actor not initialized');
+      await actor.dislikePost(postId);
+    },
+    onSuccess: (_data, postId) => {
+      queryClient.invalidateQueries({ queryKey: ['reactions', postId.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['post', postId.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['posts', 'published'] });
+    },
+  });
+}
+
+// ─── Draft Hooks ─────────────────────────────────────────────────────────────
+
+export function useGetMyDrafts() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+
+  return useQuery<Post[]>({
+    queryKey: ['myDrafts'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getMyDrafts();
+    },
+    enabled: !!actor && !isFetching && isAuthenticated,
+  });
+}
+
+export function useSaveDraft() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      title,
+      content,
+      author,
+      images = [],
+    }: {
+      title: string;
+      content: string;
+      author: string;
+      images?: Uint8Array[];
+    }) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.saveDraft(title, content, author, images);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myDrafts'] });
+    },
+  });
+}
+
+export function useUpdateDraft() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      title,
+      content,
+      author,
+      images = [],
+    }: {
+      id: bigint;
+      title: string;
+      content: string;
+      author: string;
+      images?: Uint8Array[];
+    }) => {
+      if (!actor) throw new Error('Actor not initialized');
+      await actor.updateDraft(id, title, content, author, images);
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myDrafts'] });
+    },
+  });
+}
+
+export function useDeleteDraft() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error('Actor not initialized');
+      await actor.deletePost(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myDrafts'] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
   });

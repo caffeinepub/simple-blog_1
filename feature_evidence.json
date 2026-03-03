@@ -2,10 +2,72 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-image-upload-failure-on-the-create-post-page-the-error-kunde-inte-skapa-inl-gget-f-rs-k-med-en-mindre-bild-eller-f-rs-k-igen-occurs-because-images-are-too-large-for-the-motoko-canister-implement-aggressive-canvas-based-compression-on-the-frontend-in-useimageupload-ts-resize-images-to-a-maximum-of-1200px-on-the-longest-side-compress-to-jpeg-at-quality-0-6-and-enforce-a-hard-limit-of-800-kb-per-image-after-compression-before-submitting-to-the-backend-display-a-clear-error-message-if-a-single-image-still-exceeds-the-limit-after-compression",
-      "featureTitle": "Fix the image upload failure on the Create Post page. The error 'Kunde inte skapa inlägget. Försök med en mindre bild eller försök igen.' occurs because images are too large for the Motoko canister. Implement aggressive canvas-based compression on the frontend in useImageUpload.ts: resize images to a maximum of 1200px on the longest side, compress to JPEG at quality 0.6, and enforce a hard limit of 800 KB per image after compression before submitting to the backend. Display a clear error message if a single image still exceeds the limit after compression.",
+      "featureId": "feature-in-the-create-post-page-createpostpage-tsx-implement-autosave-every-30-seconds-while-the-user-is-actively-editing-when-any-field-title-author-content-category-has-non-empty-content-the-form-should-automatically-save-update-a-draft-in-the-backend-show-a-subtle-draft-saved-indicator-near-the-form-after-each-successful-autosave",
+      "featureTitle": "In the Create Post page (CreatePostPage.tsx), implement autosave every 30 seconds while the user is actively editing. When any field (title, author, content, category) has non-empty content, the form should automatically save/update a draft in the backend. Show a subtle 'Draft saved' indicator near the form after each successful autosave.",
       "files": [
-        "frontend/src/hooks/useImageUpload.ts",
+        "frontend/src/pages/CreatePostPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-save-as-draft-button-to-the-create-post-page-form-createpostpage-tsx-positioned-near-the-existing-skapa-inl-gg-submit-button-clicking-it-immediately-saves-the-current-form-state-as-a-draft-in-the-backend-and-navigates-the-user-to-the-my-drafts-section",
+      "featureTitle": "Add a 'Save as Draft' button to the Create Post page form (CreatePostPage.tsx), positioned near the existing 'Skapa inlägg' submit button. Clicking it immediately saves the current form state as a draft in the backend and navigates the user to the 'My Drafts' section.",
+      "files": [
+        "frontend/src/pages/CreatePostPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-a-separate-my-drafts-page-or-clearly-delineated-section-accessible-from-the-main-navigation-for-authenticated-users-it-should-list-all-of-the-current-user-s-draft-posts-showing-title-last-saved-timestamp-and-a-brief-content-preview-each-draft-card-must-have-three-actions-edit-loads-draft-into-the-edit-form-publish-publishes-it-immediately-and-delete-removes-the-draft-with-a-confirmation-prompt",
+      "featureTitle": "Create a separate 'My Drafts' page or clearly delineated section accessible from the main navigation (for authenticated users). It should list all of the current user's draft posts, showing title, last saved timestamp, and a brief content preview. Each draft card must have three actions: 'Edit' (loads draft into the edit form), 'Publish' (publishes it immediately), and 'Delete' (removes the draft with a confirmation prompt).",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/Layout.tsx",
+        "frontend/src/pages/MyDraftsPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-when-a-user-disables-the-publicera-omedelbart-publish-immediately-toggle-on-an-already-published-post-visible-in-createpostpage-and-editpostpage-show-a-confirmation-dialog-with-three-options-delete-permanently-deletes-the-post-entirely-save-as-draft-converts-the-post-to-draft-status-and-cancel-dismisses-the-dialog-and-keeps-the-toggle-enabled-post-published-the-toggle-should-not-change-state-until-the-user-makes-a-selection",
+      "featureTitle": "When a user disables the 'Publicera omedelbart' (Publish immediately) toggle on an already-published post (visible in CreatePostPage and EditPostPage), show a confirmation dialog with three options: 'Delete permanently' (deletes the post entirely), 'Save as Draft' (converts the post to draft status), and 'Cancel' (dismisses the dialog and keeps the toggle enabled/post published). The toggle should not change state until the user makes a selection.",
+      "files": [
+        "frontend/src/components/UnpublishDialog.tsx",
         "frontend/src/pages/CreatePostPage.tsx",
         "frontend/src/pages/EditPostPage.tsx"
       ],
@@ -19,16 +81,15 @@
         "authorization@4.0.0"
       ],
       "testIds": [
-        "REQ-1"
+        "REQ-6"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-fix-the-share-function-on-post-cards-and-the-post-detail-page-the-share-button-in-postcard-tsx-and-postdetailpage-tsx-should-copy-the-canonical-post-url-e-g-https-hkloblogg-nav-caffeine-xyz-post-id-to-the-clipboard-using-the-clipboard-api-and-display-a-brief-swedish-confirmation-toast-tooltip-l-nk-kopierad-after-a-successful-copy-handle-browsers-where-the-clipboard-api-is-unavailable-by-falling-back-to-a-prompt-with-the-url",
-      "featureTitle": "Fix the share function on post cards and the post detail page. The share button in PostCard.tsx and PostDetailPage.tsx should copy the canonical post URL (e.g. https://hkloblogg-nav.caffeine.xyz/post/<id>) to the clipboard using the Clipboard API, and display a brief Swedish confirmation toast/tooltip ('Länk kopierad!') after a successful copy. Handle browsers where the Clipboard API is unavailable by falling back to a prompt with the URL.",
+      "featureId": "feature-add-react-query-hooks-in-usequeries-ts-for-the-new-draft-related-backend-calls-savedraft-updatedraft-getdraftsbyuser-and-deletedraft-or-reuse-deletepost-ensure-query-cache-for-drafts-is-properly-invalidated-after-any-mutation",
+      "featureTitle": "Add React Query hooks in useQueries.ts for the new draft-related backend calls: saveDraft, updateDraft, getDraftsByUser, and deleteDraft (or reuse deletePost). Ensure query cache for drafts is properly invalidated after any mutation.",
       "files": [
-        "frontend/src/components/PostCard.tsx",
-        "frontend/src/pages/PostDetailPage.tsx"
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -40,7 +101,7 @@
         "authorization@4.0.0"
       ],
       "testIds": [
-        "REQ-3"
+        "REQ-7"
       ],
       "confidence": "high"
     }

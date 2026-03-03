@@ -1,54 +1,118 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix image upload error and share function on HKLO blog",
+  "title": "Add autosave drafts, My Drafts section, and unpublish dialog",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Fix image upload failure by implementing aggressive canvas-based compression in useImageUpload.ts to resize images to max 1200px, compress to JPEG at quality 0.6, and enforce 800 KB limit before submission",
+      "id": "REQ-3",
+      "summary": "Implement autosave every 30 seconds in Create Post page with draft saved indicator",
       "acceptanceCriteria": [
-        "Uploading a large photo (e.g. a standard smartphone photo) compresses it below 800 KB before submission",
-        "Post creation succeeds with a compressed image without showing the error message",
-        "If an image cannot be compressed below 800 KB, a user-facing error in Swedish is shown before submission",
-        "Image preview is shown after compression, not the original file"
+        "Autosave triggers every 30 seconds if any form field has been modified",
+        "Autosave calls saveDraft on first save and updateDraft on subsequent saves for the same session",
+        "A small non-intrusive 'Draft saved' message appears briefly after each successful autosave",
+        "Autosave does not trigger if all fields are empty",
+        "Autosave timer is cleared when the user submits or cancels the form"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useImageUpload.ts",
-          "operation": "modify",
-          "description": "Replace the current image handling logic with aggressive canvas-based compression. Implement a multi-step compression function that: (1) loads the image into a canvas element, (2) calculates dimensions to resize the longest side to max 1200px while preserving aspect ratio, (3) draws the resized image on canvas, (4) exports to JPEG at quality 0.6 using canvas.toBlob, (5) checks if the resulting blob exceeds 800 KB and if so, sets a Swedish error message ('Bilden är fortfarande för stor efter komprimering. Max 800 KB tillåts.') in the hook's error state, (6) converts the compressed blob to Uint8Array for preview and backend submission. Update the preview URL generation to use the compressed blob instead of the original file. Expose the error state so CreatePostPage and EditPostPage can display it."
-        },
-        {
           "path": "frontend/src/pages/CreatePostPage.tsx",
           "operation": "modify",
-          "description": "Display the image compression error from useImageUpload hook when present. Add a user-facing error message in Swedish below the image upload section that shows when an image exceeds the 800 KB limit after compression. Ensure the 'Skapa inlägg' button is disabled when there is an image size error. Clear the error when the user removes the problematic image."
-        },
-        {
-          "path": "frontend/src/pages/EditPostPage.tsx",
-          "operation": "modify",
-          "description": "Display the image compression error from useImageUpload hook when present. Add a user-facing error message in Swedish below the image upload section that shows when an image exceeds the 800 KB limit after compression. Ensure the 'Spara ändringar' button is disabled when there is an image size error. Clear the error when the user removes the problematic image."
+          "description": "Add autosave functionality with useEffect timer that calls saveDraft mutation every 30 seconds when form has non-empty content. Track the current draft ID in component state to use updateDraft for subsequent saves. Add a subtle 'Draft saved' indicator near the form that appears briefly after successful autosave. Clear the interval timer on form submit, cancel, or component unmount. Verify the authorization component's usage instructions before implementing to ensure proper authentication checks."
         }
       ]
     },
     {
-      "id": "REQ-3",
-      "summary": "Fix share function to copy canonical post URL to clipboard and display Swedish confirmation toast",
+      "id": "REQ-4",
+      "summary": "Add 'Save as Draft' button to Create Post form that saves and navigates to My Drafts",
       "acceptanceCriteria": [
-        "Clicking the share button on a PostCard copies the correct post URL to the clipboard",
-        "Clicking the share button on the PostDetailPage copies the correct post URL to the clipboard",
-        "A Swedish confirmation message 'Länk kopierad!' appears briefly after copying",
-        "The function does not throw an uncaught error in any supported browser"
+        "A 'Save as Draft' button is visible in the Create Post form",
+        "Clicking it saves the current form data as a draft and redirects to My Drafts",
+        "The button shows a loading state while the save is in progress",
+        "A toast notification confirms successful draft save"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/PostCard.tsx",
+          "path": "frontend/src/pages/CreatePostPage.tsx",
           "operation": "modify",
-          "description": "Implement the share button click handler to copy the canonical post URL (https://hkloblogg-nav.caffeine.xyz/post/{post.id}) to the clipboard using navigator.clipboard.writeText(). On successful copy, display a brief toast/tooltip with the Swedish text 'Länk kopierad!' that auto-dismisses after 2 seconds. If the Clipboard API is unavailable or the copy fails, fall back to showing a browser prompt with the URL using window.prompt(). Wrap the clipboard operation in a try-catch block to handle errors gracefully without throwing uncaught exceptions."
+          "description": "Add a 'Spara som utkast' button positioned next to the existing 'Skapa inlägg' submit button. Wire it to call the saveDraft mutation from useQueries, show loading state during save, display a toast notification on success, and navigate to '/drafts' using React Router. Include error handling with toast notifications for failed saves."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Create My Drafts page with list of user drafts and Edit/Publish/Delete actions",
+      "acceptanceCriteria": [
+        "Authenticated users can navigate to 'My Drafts' from the header navigation",
+        "The page lists all drafts belonging to the current user",
+        "Each draft shows title, last saved date, and a truncated content preview",
+        "Edit action loads the draft into the Edit Post page with all fields pre-populated",
+        "Publish action promotes the draft to published status and removes it from the drafts list",
+        "Delete action shows a confirmation dialog before permanently removing the draft",
+        "An empty state message is shown when there are no drafts",
+        "The drafts list is not visible to unauthenticated users"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/MyDraftsPage.tsx",
+          "operation": "create",
+          "description": "Create a new page component that fetches the current user's drafts using useGetMyDrafts hook. Display drafts in a card grid showing title, formatted last saved timestamp (createdAt field), and truncated content preview using the contentTruncator utility. Each draft card includes three action buttons: 'Redigera' (navigate to /edit/:id), 'Publicera' (call updatePost mutation with status='published', show confirmation toast, invalidate drafts query), and 'Ta bort' (show confirmation dialog using shadcn/ui AlertDialog, call deletePost mutation). Include loading, error, and empty state handling. Wrap the page content with ProtectedRoute logic or redirect unauthenticated users. Verify the authorization component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/PostDetailPage.tsx",
+          "path": "frontend/src/components/Layout.tsx",
           "operation": "modify",
-          "description": "Implement the share button click handler to copy the canonical post URL (https://hkloblogg-nav.caffeine.xyz/post/{post.id}) to the clipboard using navigator.clipboard.writeText(). On successful copy, display a brief toast/tooltip with the Swedish text 'Länk kopierad!' that auto-dismisses after 2 seconds. If the Clipboard API is unavailable or the copy fails, fall back to showing a browser prompt with the URL using window.prompt(). Wrap the clipboard operation in a try-catch block to handle errors gracefully without throwing uncaught exceptions."
+          "description": "Add a navigation link to 'Mina utkast' in the header navigation, positioned between 'Skapa inlägg' and the admin link. Show this link only when the user is authenticated (using useInternetIdentity hook). Link to '/drafts' route."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Register the new '/drafts' route in the TanStack Router configuration, wrapping it with ProtectedRoute to require authentication. Import and render the MyDraftsPage component."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Add unpublish confirmation dialog when toggling off 'Publicera omedelbart' on published posts",
+      "acceptanceCriteria": [
+        "Turning off the 'Publicera omedelbart' toggle on an existing published post immediately shows a dialog",
+        "The dialog presents three clearly labeled buttons: 'Delete permanently', 'Save as Draft', and 'Cancel'",
+        "'Delete permanently' deletes the post and redirects the user away from the edit page",
+        "'Save as Draft' converts the post status to draft and optionally redirects to My Drafts",
+        "'Cancel' dismisses the dialog and restores the toggle to its enabled (published) state",
+        "The toggle does not visually change to off until the user confirms 'Save as Draft' or 'Delete permanently'"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/UnpublishDialog.tsx",
+          "operation": "create",
+          "description": "Create a reusable dialog component using shadcn/ui AlertDialog that presents three action buttons: 'Ta bort permanent', 'Spara som utkast', and 'Avbryt'. Accept props for postId, onDelete callback, onSaveDraft callback, and onCancel callback. Style buttons appropriately (destructive for delete, primary for save draft, secondary for cancel). Include clear Swedish text explaining the consequences of each action."
+        },
+        {
+          "path": "frontend/src/pages/CreatePostPage.tsx",
+          "operation": "modify",
+          "description": "Add logic to detect when the 'Publicera omedelbart' toggle is turned off on an existing published post. Track the previous toggle state in component state or ref. When the toggle changes from true to false and the post is already published, prevent the toggle state change and show the UnpublishDialog. Wire the dialog callbacks: onDelete calls deletePost mutation and navigates to home, onSaveDraft calls updatePost with status='draft' and navigates to My Drafts, onCancel restores the toggle to true and closes the dialog. The toggle state should only change after user confirms an action."
+        },
+        {
+          "path": "frontend/src/pages/EditPostPage.tsx",
+          "operation": "modify",
+          "description": "Add the same unpublish dialog logic as CreatePostPage. When editing an existing published post and the user attempts to toggle 'Publicera omedelbart' off, show the UnpublishDialog with the same three action callbacks. Ensure the toggle state does not change until the user confirms an action. After 'Save as Draft' or 'Delete permanently', navigate appropriately (My Drafts or home page)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "Add React Query hooks for draft-related backend calls with proper cache invalidation",
+      "acceptanceCriteria": [
+        "useSaveDraft mutation hook is available and calls the backend saveDraft method",
+        "useUpdateDraft mutation hook is available",
+        "useGetMyDrafts query hook fetches the current user's drafts",
+        "useDeleteDraft mutation hook is available",
+        "All draft mutations invalidate the getDraftsByUser query cache on success"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add four new hooks: useSaveDraft (mutation calling actor.saveDraft with title, content, author, images parameters, returning draft ID), useUpdateDraft (mutation calling actor.updateDraft with id, title, content, author, images), useGetMyDrafts (query calling actor.getMyDrafts with queryKey ['myDrafts'], enabled when actor and user are authenticated), and useDeleteDraft (mutation calling actor.deletePost with draft ID). For all mutations, add onSuccess callbacks that invalidate the ['myDrafts'] query cache using queryClient.invalidateQueries. Follow the existing pattern in the file for error handling and actor dependency checks. Verify the authorization component's usage instructions before implementing to ensure proper authentication state handling."
         }
       ]
     }

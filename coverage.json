@@ -1,48 +1,90 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-03-03T07:50:03.079Z",
+  "generatedAt": "2026-03-03T09:09:07.871Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 2,
+    "total": 7,
+    "implemented": 5,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the image upload failure on the Create Post page. The error 'Kunde inte skapa inlägget. Försök med en mindre bild eller försök igen.' occurs because images are too large for the Motoko canister. Implement aggressive canvas-based compression on the frontend in useImageUpload.ts: resize images to a maximum of 1200px on the longest side, compress to JPEG at quality 0.6, and enforce a hard limit of 800 KB per image after compression before submitting to the backend. Display a clear error message if a single image still exceeds the limit after compression.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useImageUpload.ts",
-          "frontend/src/pages/CreatePostPage.tsx",
-          "frontend/src/pages/EditPostPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useImageUpload.ts",
-          "frontend/src/pages/CreatePostPage.tsx",
-          "frontend/src/pages/EditPostPage.tsx"
-        ]
+        "summary": "Add a 'draft' status to the backend post data model so posts can be saved as drafts (not publicly visible). Drafts must be stored persistently per user and retrievable via a dedicated query that returns only the caller's own drafts.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Increase the backend Motoko actor's tolerance for image data by raising the per-image blob size limit to at least 900 KB (from any lower existing limit), and ensure that the createPost and updatePost functions return a meaningful error variant when an image still exceeds the limit so the frontend can surface it correctly.",
+        "summary": "Add backend support for saving and updating a post as a draft, including a saveDraft mutation that accepts the same fields as createPost and returns the draft post ID, and an updateDraft mutation for updating existing drafts.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "Fix the share function on post cards and the post detail page. The share button in PostCard.tsx and PostDetailPage.tsx should copy the canonical post URL (e.g. https://hkloblogg-nav.caffeine.xyz/post/<id>) to the clipboard using the Clipboard API, and display a brief Swedish confirmation toast/tooltip ('Länk kopierad!') after a successful copy. Handle browsers where the Clipboard API is unavailable by falling back to a prompt with the URL.",
+        "summary": "In the Create Post page (CreatePostPage.tsx), implement autosave every 30 seconds while the user is actively editing. When any field (title, author, content, category) has non-empty content, the form should automatically save/update a draft in the backend. Show a subtle 'Draft saved' indicator near the form after each successful autosave.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/PostCard.tsx",
-          "frontend/src/pages/PostDetailPage.tsx"
+          "frontend/src/pages/CreatePostPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/PostCard.tsx",
-          "frontend/src/pages/PostDetailPage.tsx"
+          "frontend/src/pages/CreatePostPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Add a 'Save as Draft' button to the Create Post page form (CreatePostPage.tsx), positioned near the existing 'Skapa inlägg' submit button. Clicking it immediately saves the current form state as a draft in the backend and navigates the user to the 'My Drafts' section.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/CreatePostPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/CreatePostPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Create a separate 'My Drafts' page or clearly delineated section accessible from the main navigation (for authenticated users). It should list all of the current user's draft posts, showing title, last saved timestamp, and a brief content preview. Each draft card must have three actions: 'Edit' (loads draft into the edit form), 'Publish' (publishes it immediately), and 'Delete' (removes the draft with a confirmation prompt).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/MyDraftsPage.tsx",
+          "frontend/src/components/Layout.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/MyDraftsPage.tsx",
+          "frontend/src/components/Layout.tsx",
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "When a user disables the 'Publicera omedelbart' (Publish immediately) toggle on an already-published post (visible in CreatePostPage and EditPostPage), show a confirmation dialog with three options: 'Delete permanently' (deletes the post entirely), 'Save as Draft' (converts the post to draft status), and 'Cancel' (dismisses the dialog and keeps the toggle enabled/post published). The toggle should not change state until the user makes a selection.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/UnpublishDialog.tsx",
+          "frontend/src/pages/CreatePostPage.tsx",
+          "frontend/src/pages/EditPostPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/UnpublishDialog.tsx",
+          "frontend/src/pages/CreatePostPage.tsx",
+          "frontend/src/pages/EditPostPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-7",
+        "summary": "Add React Query hooks in useQueries.ts for the new draft-related backend calls: saveDraft, updateDraft, getDraftsByUser, and deleteDraft (or reuse deletePost). Ensure query cache for drafts is properly invalidated after any mutation.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts"
         ]
       }
     ]
@@ -53,16 +95,17 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/App.tsx",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/PostCard.tsx",
+    "frontend/src/components/Layout.tsx",
+    "frontend/src/components/UnpublishDialog.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useImageUpload.ts",
     "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/CreatePostPage.tsx",
     "frontend/src/pages/EditPostPage.tsx",
-    "frontend/src/pages/PostDetailPage.tsx",
+    "frontend/src/pages/MyDraftsPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

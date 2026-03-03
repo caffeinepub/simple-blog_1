@@ -1,83 +1,168 @@
 {
   "kind": "build_request",
-  "title": "Fix image upload error and share function on HKLO blog",
-  "projectName": "HKLO Blog",
-  "priority": "high",
+  "title": "Add autosave drafts, My Drafts section, and unpublish dialog",
+  "projectName": "HKLO Blogg",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the image upload failure on the Create Post page. The error 'Kunde inte skapa inlägget. Försök med en mindre bild eller försök igen.' occurs because images are too large for the Motoko canister. Implement aggressive canvas-based compression on the frontend in useImageUpload.ts: resize images to a maximum of 1200px on the longest side, compress to JPEG at quality 0.6, and enforce a hard limit of 800 KB per image after compression before submitting to the backend. Display a clear error message if a single image still exceeds the limit after compression.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1",
-          "msg-6"
-        ],
-        "quotes": [
-          "Kunde inte skapa inlägget. Försök med en mindre bild eller försök igen.",
-          "Fixad bildhantering – canvas-baserad komprimering på frontend"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Uploading a large photo (e.g. a standard smartphone photo) compresses it below 800 KB before submission",
-        "Post creation succeeds with a compressed image without showing the error message",
-        "If an image cannot be compressed below 800 KB, a user-facing error in Swedish is shown before submission",
-        "Image preview is shown after compression, not the original file"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Increase the backend Motoko actor's tolerance for image data by raising the per-image blob size limit to at least 900 KB (from any lower existing limit), and ensure that the createPost and updatePost functions return a meaningful error variant when an image still exceeds the limit so the frontend can surface it correctly.",
+      "text": "Add a 'draft' status to the backend post data model so posts can be saved as drafts (not publicly visible). Drafts must be stored persistently per user and retrievable via a dedicated query that returns only the caller's own drafts.",
       "target": "backend",
       "source": {
         "messageIds": [
           "msg-1",
-          "msg-6"
+          "msg-2"
         ],
         "quotes": [
-          "optimerad lagring i Motoko-backend",
-          "bilder för stora för Motoko-canistern"
+          "Separat \"Mina utkast\"",
+          "Vi ha en funktion som gör att ej färdiga inlägg kan sparas som utkast"
         ]
       },
       "acceptanceCriteria": [
-        "Backend accepts image blobs up to 900 KB without rejecting the call",
-        "Backend returns a typed error (e.g. #imageTooLarge) when a single image exceeds the limit",
-        "Existing posts and images are not affected by the change"
+        "A post can have status 'draft' in addition to existing statuses",
+        "Draft posts are not returned by the public getAllPublishedPosts query",
+        "A new query getDraftsByUser returns only the authenticated caller's own drafts",
+        "A draft can be created, updated, and promoted to published status"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Add backend support for saving and updating a post as a draft, including a saveDraft mutation that accepts the same fields as createPost and returns the draft post ID, and an updateDraft mutation for updating existing drafts.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-2"
+        ],
+        "quotes": [
+          "Automatisk sparning av inlägg som håller på att skrivas (autosave till utkast)",
+          "Manuell \"Spara som utkast\"-funktion för ofärdiga inlägg"
+        ]
+      },
+      "acceptanceCriteria": [
+        "saveDraft creates a new post with draft status and returns its ID",
+        "updateDraft updates an existing draft post's fields",
+        "Only the post owner can update or delete their own drafts",
+        "A draft can be deleted permanently via a deleteDraft or reusing the existing deletePost mutation"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Fix the share function on post cards and the post detail page. The share button in PostCard.tsx and PostDetailPage.tsx should copy the canonical post URL (e.g. https://hkloblogg-nav.caffeine.xyz/post/<id>) to the clipboard using the Clipboard API, and display a brief Swedish confirmation toast/tooltip ('Länk kopierad!') after a successful copy. Handle browsers where the Clipboard API is unavailable by falling back to a prompt with the URL.",
+      "text": "In the Create Post page (CreatePostPage.tsx), implement autosave every 30 seconds while the user is actively editing. When any field (title, author, content, category) has non-empty content, the form should automatically save/update a draft in the backend. Show a subtle 'Draft saved' indicator near the form after each successful autosave.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3",
-          "msg-6"
+          "msg-2"
         ],
         "quotes": [
-          "Dela funktionen verkar inte fungera. Felsök funktionen",
-          "Fungerande dela-funktion – dela inlägg via kopierad URL",
-          "Dela-funktionen fungerar inte – behöver felsökas och åtgärdas"
+          "Per 30 sek",
+          "Autosave var 30 sekunder – inlägg som håller på att skrivas sparas automatiskt som utkast"
         ]
       },
       "acceptanceCriteria": [
-        "Clicking the share button on a PostCard copies the correct post URL to the clipboard",
-        "Clicking the share button on the PostDetailPage copies the correct post URL to the clipboard",
-        "A Swedish confirmation message 'Länk kopierad!' appears briefly after copying",
-        "The function does not throw an uncaught error in any supported browser"
+        "Autosave triggers every 30 seconds if any form field has been modified",
+        "Autosave calls saveDraft on first save and updateDraft on subsequent saves for the same session",
+        "A small non-intrusive 'Draft saved' message appears briefly after each successful autosave",
+        "Autosave does not trigger if all fields are empty",
+        "Autosave timer is cleared when the user submits or cancels the form"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add a 'Save as Draft' button to the Create Post page form (CreatePostPage.tsx), positioned near the existing 'Skapa inlägg' submit button. Clicking it immediately saves the current form state as a draft in the backend and navigates the user to the 'My Drafts' section.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-2"
+        ],
+        "quotes": [
+          "Manuell \"Spara som utkast\"-knapp i formuläret"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A 'Save as Draft' button is visible in the Create Post form",
+        "Clicking it saves the current form data as a draft and redirects to My Drafts",
+        "The button shows a loading state while the save is in progress",
+        "A toast notification confirms successful draft save"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Create a separate 'My Drafts' page or clearly delineated section accessible from the main navigation (for authenticated users). It should list all of the current user's draft posts, showing title, last saved timestamp, and a brief content preview. Each draft card must have three actions: 'Edit' (loads draft into the edit form), 'Publish' (publishes it immediately), and 'Delete' (removes the draft with a confirmation prompt).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ],
+        "quotes": [
+          "Separat \"Mina utkast\"",
+          "Separat \"Mina utkast\"-sektion där användaren kan se, redigera och publicera sina sparade utkast"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Authenticated users can navigate to 'My Drafts' from the header navigation",
+        "The page lists all drafts belonging to the current user",
+        "Each draft shows title, last saved date, and a truncated content preview",
+        "Edit action loads the draft into the Edit Post page with all fields pre-populated",
+        "Publish action promotes the draft to published status and removes it from the drafts list",
+        "Delete action shows a confirmation dialog before permanently removing the draft",
+        "An empty state message is shown when there are no drafts",
+        "The drafts list is not visible to unauthenticated users"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "When a user disables the 'Publicera omedelbart' (Publish immediately) toggle on an already-published post (visible in CreatePostPage and EditPostPage), show a confirmation dialog with three options: 'Delete permanently' (deletes the post entirely), 'Save as Draft' (converts the post to draft status), and 'Cancel' (dismisses the dialog and keeps the toggle enabled/post published). The toggle should not change state until the user makes a selection.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-2"
+        ],
+        "quotes": [
+          "Alla tre valen ska vara tillgängliga",
+          "Dialogruta med tre val när \"Publicera omedelbart\"-toggeln stängs av på ett publicerat inlägg: Radera helt / Spara som utkast / Avbryt"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Turning off the 'Publicera omedelbart' toggle on an existing published post immediately shows a dialog",
+        "The dialog presents three clearly labeled buttons: 'Delete permanently', 'Save as Draft', and 'Cancel'",
+        "'Delete permanently' deletes the post and redirects the user away from the edit page",
+        "'Save as Draft' converts the post status to draft and optionally redirects to My Drafts",
+        "'Cancel' dismisses the dialog and restores the toggle to its enabled (published) state",
+        "The toggle does not visually change to off until the user confirms 'Save as Draft' or 'Delete permanently'"
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Add React Query hooks in useQueries.ts for the new draft-related backend calls: saveDraft, updateDraft, getDraftsByUser, and deleteDraft (or reuse deletePost). Ensure query cache for drafts is properly invalidated after any mutation.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-2"
+        ]
+      },
+      "acceptanceCriteria": [
+        "useSaveDraft mutation hook is available and calls the backend saveDraft method",
+        "useUpdateDraft mutation hook is available",
+        "useGetMyDrafts query hook fetches the current user's drafts",
+        "useDeleteDraft mutation hook is available",
+        "All draft mutations invalidate the getDraftsByUser query cache on success"
       ]
     }
   ],
   "constraints": [
-    "Do not change the existing data model or stable variable structure in the Motoko backend without a migration file",
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
-    "Preserve all existing routes and authentication logic in App.tsx"
+    "Draft posts must never appear in the public getAllPublishedPosts feed",
+    "Only the post owner can read, edit, or delete their own drafts",
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui"
   ],
   "nonGoals": [
-    "Rebuilding the entire platform from scratch",
-    "Adding new features beyond fixing image upload and the share function",
-    "Changing the visual design or color palette",
-    "Adding social media sharing integrations (only clipboard copy is in scope)"
+    "Autosave on the Edit Post page (only Create Post page for now)",
+    "Sharing or collaboration on drafts between users",
+    "Draft versioning or history",
+    "Admin visibility into other users' drafts"
   ],
   "imageRequirements": {
     "required": [],

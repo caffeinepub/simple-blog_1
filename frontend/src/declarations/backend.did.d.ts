@@ -21,12 +21,15 @@ export interface Post {
   'content' : string,
   'ownerId' : Principal,
   'createdAt' : Time,
+  'likedBy' : Array<Principal>,
   'author' : string,
+  'dislikedBy' : Array<Principal>,
   'images' : Array<Image>,
 }
 export type PostStatus = { 'published' : null } |
   { 'hidden' : null } |
   { 'draft' : null };
+export interface ReactionCount { 'likes' : bigint, 'dislikes' : bigint }
 export type Time = bigint;
 export type UpdatePostResult = { 'ok' : null } |
   { 'postNotFound' : null } |
@@ -80,6 +83,10 @@ export interface _SERVICE {
    */
   'deletePost' : ActorMethod<[bigint], undefined>,
   /**
+   * / Dislike a post (authenticated users only). Toggles dislike; removes like if present.
+   */
+  'dislikePost' : ActorMethod<[bigint], undefined>,
+  /**
    * / Get all admins (owner only)
    */
   'getAdmins' : ActorMethod<[], Array<Principal>>,
@@ -98,9 +105,17 @@ export interface _SERVICE {
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   /**
+   * / Get all drafts belonging to the caller (authenticated users only)
+   */
+  'getMyDrafts' : ActorMethod<[], Array<Post>>,
+  /**
    * / Get a single post by ID (public, but only published posts for non-admins)
    */
   'getPost' : ActorMethod<[bigint], Post>,
+  /**
+   * / Get like/dislike counts for a post (public, no auth required)
+   */
+  'getPostReactions' : ActorMethod<[bigint], ReactionCount>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   /**
    * / Check if a principal is an admin (any authenticated user can check their own status)
@@ -108,7 +123,11 @@ export interface _SERVICE {
   'isAdmin' : ActorMethod<[Principal], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   /**
-   * / Called by admin to "publish" a user (demote guest to user role)
+   * / Like a post (authenticated users only). Toggles like; removes dislike if present.
+   */
+  'likePost' : ActorMethod<[bigint], undefined>,
+  /**
+   * / Called by admin to promote a principal to user role
    */
   'promoteUser' : ActorMethod<[Principal], undefined>,
   /**
@@ -121,9 +140,20 @@ export interface _SERVICE {
   'removeAuthor' : ActorMethod<[Principal], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   /**
+   * / Save a new draft (authenticated users only)
+   */
+  'saveDraft' : ActorMethod<[string, string, string, Array<Image>], bigint>,
+  /**
    * / Set a new owner (owner only)
    */
   'setOwner' : ActorMethod<[Principal], undefined>,
+  /**
+   * / Update an existing draft (authenticated users only, owner of draft only)
+   */
+  'updateDraft' : ActorMethod<
+    [bigint, string, string, string, Array<Image>],
+    undefined
+  >,
   /**
    * / Update a post (owner of post or admin)
    */

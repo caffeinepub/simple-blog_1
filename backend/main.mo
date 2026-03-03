@@ -38,6 +38,8 @@ actor {
     status : PostStatus;
     images : [Image];
     ownerId : Principal;
+    likedBy : [Principal];
+    dislikedBy : [Principal];
   };
 
   module Post {
@@ -66,11 +68,17 @@ actor {
     #postNotFound;
   };
 
+  public type ReactionCount = {
+    likes : Nat;
+    dislikes : Nat;
+  };
+
   // State
   var owner : Principal = Principal.fromText("2vxsx-fae");
   let posts = Map.empty<Nat, Post>();
   let userProfiles = Map.empty<Principal, UserProfile>();
   var nextPostId = 0;
+  let drafts = Map.empty<Nat, Post>(); // Store drafts by postId
 
   // Owner/Admin management functions
 
@@ -108,12 +116,8 @@ actor {
     if (caller != owner) {
       Runtime.trap("Unauthorized: Only the owner can list admins");
     };
-    // Return owner plus all principals with admin role tracked via AccessControl
-    // Since AccessControl does not expose a list, we maintain our own set via userProfiles iteration
-    // We return all principals that have admin role by checking each known principal
     let adminList = userProfiles.keys().toArray().filter(func(p) { AccessControl.isAdmin(accessControlState, p) });
 
-    // Always include owner if not already present
     let ownerExists = adminList.find(func(p) { p == owner });
 
     switch (ownerExists) {
@@ -157,7 +161,7 @@ actor {
     userProfiles.get(user);
   };
 
-  /// Called by admin to "publish" a user (demote guest to user role)
+  /// Called by admin to promote a principal to user role
   public shared ({ caller }) func promoteUser(user : Principal) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
       Runtime.trap("Unauthorized: Only admins can set users");
@@ -194,6 +198,8 @@ actor {
       status = #published;
       images;
       ownerId = caller;
+      likedBy = [];
+      dislikedBy = [];
     };
     posts.add(id, post);
     nextPostId += 1;
@@ -276,6 +282,103 @@ actor {
     };
   };
 
+  // Reactions Management
+
+  /// Like a post (authenticated users only). Toggles like; removes dislike if present.
+  public shared ({ caller }) func likePost(postId : Nat) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can like posts");
+    };
+
+    switch (posts.get(postId)) {
+      case (null) { Runtime.trap("Post " # postId.toText() # " does not exist!") };
+      case (?post) {
+        let alreadyLiked = post.likedBy.find(func(p : Principal) : Bool { p == caller });
+        let alreadyDisliked = post.dislikedBy.find(func(p : Principal) : Bool { p == caller });
+
+        var newLikedBy = post.likedBy;
+        var newDislikedBy = post.dislikedBy;
+
+        // Toggle like
+        switch (alreadyLiked) {
+          case (null) {
+            // Add to liked
+            newLikedBy := post.likedBy.concat([caller]);
+          };
+          case (_) {
+            // Remove from liked
+            newLikedBy := post.likedBy.filter(func(p : Principal) : Bool { p != caller });
+          };
+        };
+
+        // Remove from disliked if present
+        switch (alreadyDisliked) {
+          case (null) { () };
+          case (_) {
+            newDislikedBy := post.dislikedBy.filter(func(p : Principal) : Bool { p != caller });
+          };
+        };
+
+        let updatedPost = { post with likedBy = newLikedBy; dislikedBy = newDislikedBy };
+        posts.add(postId, updatedPost);
+      };
+    };
+  };
+
+  /// Dislike a post (authenticated users only). Toggles dislike; removes like if present.
+  public shared ({ caller }) func dislikePost(postId : Nat) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can dislike posts");
+    };
+
+    switch (posts.get(postId)) {
+      case (null) { Runtime.trap("Post " # postId.toText() # " does not exist!") };
+      case (?post) {
+        let alreadyLiked = post.likedBy.find(func(p : Principal) : Bool { p == caller });
+        let alreadyDisliked = post.dislikedBy.find(func(p : Principal) : Bool { p == caller });
+
+        var newLikedBy = post.likedBy;
+        var newDislikedBy = post.dislikedBy;
+
+        // Toggle dislike
+        switch (alreadyDisliked) {
+          case (null) {
+            // Add to disliked
+            newDislikedBy := post.dislikedBy.concat([caller]);
+          };
+          case (_) {
+            // Remove from disliked
+            newDislikedBy := post.dislikedBy.filter(func(p : Principal) : Bool { p != caller });
+          };
+        };
+
+        // Remove from liked if present
+        switch (alreadyLiked) {
+          case (null) { () };
+          case (_) {
+            newLikedBy := post.likedBy.filter(func(p : Principal) : Bool { p != caller });
+          };
+        };
+
+        let updatedPost = { post with likedBy = newLikedBy; dislikedBy = newDislikedBy };
+        posts.add(postId, updatedPost);
+      };
+    };
+  };
+
+  /// Get like/dislike counts for a post (public, no auth required)
+  public query func getPostReactions(postId : Nat) : async ReactionCount {
+    switch (posts.get(postId)) {
+      case (null) { Runtime.trap("Post does not exist!") };
+      case (?post) {
+        {
+          likes = post.likedBy.size();
+          dislikes = post.dislikedBy.size();
+        };
+      };
+    };
+  };
+
   // Author management functions
 
   /// Get all unique authors and their display names (admins only)
@@ -316,5 +419,65 @@ actor {
     for (id in idsToRemove.values()) {
       posts.remove(id);
     };
+  };
+
+  //---------------------------
+  // Draft handling functions
+  //---------------------------
+
+  /// Save a new draft (authenticated users only)
+  public shared ({ caller }) func saveDraft(title : Text, content : Text, author : Text, images : [Image]) : async Nat {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can save drafts");
+    };
+
+    let id = nextPostId;
+    let draft : Post = {
+      id;
+      title;
+      content;
+      author;
+      createdAt = Time.now();
+      status = #draft;
+      images;
+      ownerId = caller;
+      likedBy = [];
+      dislikedBy = [];
+    };
+    drafts.add(id, draft);
+    nextPostId += 1;
+    id;
+  };
+
+  /// Update an existing draft (authenticated users only, owner of draft only)
+  public shared ({ caller }) func updateDraft(id : Nat, title : Text, content : Text, author : Text, images : [Image]) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can update drafts");
+    };
+    switch (drafts.get(id)) {
+      case (null) { Runtime.trap("Draft does not exist!") };
+      case (?draft) {
+        if (draft.ownerId != caller) {
+          Runtime.trap("Unauthorized: You do not have permission to update this draft");
+        };
+
+        let updatedDraft : Post = {
+          draft with
+          title;
+          content;
+          author;
+          images;
+        };
+        drafts.add(id, updatedDraft);
+      };
+    };
+  };
+
+  /// Get all drafts belonging to the caller (authenticated users only)
+  public query ({ caller }) func getMyDrafts() : async [Post] {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can retrieve their drafts");
+    };
+    drafts.values().toArray().filter(func(draft : Post) : Bool { draft.ownerId == caller });
   };
 };

@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 import { Link, Outlet } from '@tanstack/react-router';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Button } from '@/components/ui/button';
-import { BookOpen, LogOut, Home, PenSquare, ShieldCheck, LogIn } from 'lucide-react';
+import { BookOpen, LogOut, Home, PenSquare, ShieldCheck, LogIn, FileText } from 'lucide-react';
 import { ADMIN_PRINCIPAL_ID } from '../config/constants';
 
 interface LayoutProps {
@@ -48,6 +48,12 @@ export default function Layout({ children }: LayoutProps) {
                     <Link to="/create" className="gap-2">
                       <PenSquare className="h-4 w-4" />
                       Skapa inlägg
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" asChild>
+                    <Link to="/drafts" className="gap-2">
+                      <FileText className="h-4 w-4" />
+                      Mina utkast
                     </Link>
                   </Button>
                   {isAdmin && (
