@@ -396,7 +396,7 @@ export default function EditPostPage() {
                     id="author"
                     value={author}
                     onChange={(e) => setAuthor(e.target.value)}
-                    placeholder="Ditt namn..."
+                    placeholder="skriv in ett påhittat alias namn"
                     className={fieldErrors.author ? "border-destructive" : ""}
                     data-ocid="edit_post.author.input"
                   />
