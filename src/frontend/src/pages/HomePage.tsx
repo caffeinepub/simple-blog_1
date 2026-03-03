@@ -1,6 +1,6 @@
-import { useGetAllPublishedPosts } from '../hooks/useQueries';
-import PostCard from '../components/PostCard';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from "lucide-react";
+import PostCard from "../components/PostCard";
+import { useGetAllPublishedPosts } from "../hooks/useQueries";
 
 export default function HomePage() {
   const { data: posts, isLoading, error } = useGetAllPublishedPosts();
@@ -19,13 +19,17 @@ export default function HomePage() {
     return (
       <div className="container max-w-5xl mx-auto px-6 py-16">
         <div className="text-center py-20">
-          <p className="text-destructive">Kunde inte ladda inlägg. Försök igen senare.</p>
+          <p className="text-destructive">
+            Kunde inte ladda inlägg. Försök igen senare.
+          </p>
         </div>
       </div>
     );
   }
 
-  const sortedPosts = posts ? [...posts].sort((a, b) => Number(b.createdAt - a.createdAt)) : [];
+  const sortedPosts = posts
+    ? [...posts].sort((a, b) => Number(b.createdAt - a.createdAt))
+    : [];
 
   return (
     <div className="container max-w-5xl mx-auto px-6 py-16">
@@ -41,7 +45,8 @@ export default function HomePage() {
       {sortedPosts.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-muted-foreground text-lg">
-            Inga publicerade inlägg ännu. Bli den första att dela din berättelse!
+            Inga publicerade inlägg ännu. Bli den första att dela din
+            berättelse!
           </p>
         </div>
       ) : (

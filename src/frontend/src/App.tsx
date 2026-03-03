@@ -1,28 +1,42 @@
-import { createRouter, RouterProvider, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
-import HomePage from './pages/HomePage';
-import PostDetailPage from './pages/PostDetailPage';
-import CreatePostPage from './pages/CreatePostPage';
-import EditPostPage from './pages/EditPostPage';
-import LoginPage from './pages/LoginPage';
-import Layout from './components/Layout';
-import ProtectedRoute from './components/ProtectedRoute';
+import {
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from "@tanstack/react-router";
+import Layout from "./components/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { LanguageProvider } from "./contexts/LanguageContext";
+import AdminPage from "./pages/AdminPage";
+import CreatePostPage from "./pages/CreatePostPage";
+import EditPostPage from "./pages/EditPostPage";
+import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
+import MyDraftsPage from "./pages/MyDraftsPage";
+import PostDetailPage from "./pages/PostDetailPage";
+import ProfilePage from "./pages/ProfilePage";
 
 // Root route that handles both protected and public routes
 const rootRoute = createRootRoute({
-  component: () => <Outlet />,
+  component: () => (
+    <LanguageProvider>
+      <Outlet />
+    </LanguageProvider>
+  ),
 });
 
 // Public login route
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/login',
+  path: "/login",
   component: LoginPage,
 });
 
 // Protected routes wrapped in ProtectedRoute and Layout
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/',
+  path: "/",
   component: () => (
     <ProtectedRoute>
       <Layout>
@@ -32,21 +46,20 @@ const indexRoute = createRoute({
   ),
 });
 
+// Post detail is publicly accessible (shows preview/teaser to unauthenticated users)
 const postDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/post/$id',
+  path: "/post/$id",
   component: () => (
-    <ProtectedRoute>
-      <Layout>
-        <PostDetailPage />
-      </Layout>
-    </ProtectedRoute>
+    <Layout>
+      <PostDetailPage />
+    </Layout>
   ),
 });
 
 const editPostRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/post/$id/edit',
+  path: "/post/$id/edit",
   component: () => (
     <ProtectedRoute>
       <Layout>
@@ -58,11 +71,47 @@ const editPostRoute = createRoute({
 
 const createPostRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/create',
+  path: "/create",
   component: () => (
     <ProtectedRoute>
       <Layout>
         <CreatePostPage />
+      </Layout>
+    </ProtectedRoute>
+  ),
+});
+
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin",
+  component: () => (
+    <ProtectedRoute>
+      <Layout>
+        <AdminPage />
+      </Layout>
+    </ProtectedRoute>
+  ),
+});
+
+const draftsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/drafts",
+  component: () => (
+    <ProtectedRoute>
+      <Layout>
+        <MyDraftsPage />
+      </Layout>
+    </ProtectedRoute>
+  ),
+});
+
+const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile",
+  component: () => (
+    <ProtectedRoute>
+      <Layout>
+        <ProfilePage />
       </Layout>
     </ProtectedRoute>
   ),
@@ -74,14 +123,17 @@ const routeTree = rootRoute.addChildren([
   postDetailRoute,
   editPostRoute,
   createPostRoute,
+  adminRoute,
+  draftsRoute,
+  profileRoute,
 ]);
 
-const router = createRouter({ 
+const router = createRouter({
   routeTree,
-  defaultPreload: 'intent',
+  defaultPreload: "intent",
 });
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
   }

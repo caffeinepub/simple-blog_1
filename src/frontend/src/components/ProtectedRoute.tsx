@@ -1,7 +1,7 @@
-import { type ReactNode } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useEffect } from 'react';
+import { useNavigate } from "@tanstack/react-router";
+import type { ReactNode } from "react";
+import { useEffect } from "react";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     const isAuthenticated = identity && !identity.getPrincipal().isAnonymous();
 
     if (!isAuthenticated) {
-      navigate({ to: '/login' });
+      navigate({ to: "/login" });
     }
   }, [identity, isInitializing, navigate]);
 

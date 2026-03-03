@@ -1,18 +1,28 @@
-import { useEffect } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, LogIn, ExternalLink } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useNavigate } from "@tanstack/react-router";
+import { BookOpen, ExternalLink, LogIn } from "lucide-react";
+import { useEffect } from "react";
+import LanguageSelector from "../components/LanguageSelector";
+import { useLanguage } from "../contexts/LanguageContext";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 export default function LoginPage() {
-  const { login, identity, isLoggingIn, isInitializing } = useInternetIdentity();
+  const { login, identity, isLoggingIn, isInitializing } =
+    useInternetIdentity();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   // Redirect to home if already authenticated
   useEffect(() => {
     if (!isInitializing && identity && !identity.getPrincipal().isAnonymous()) {
-      navigate({ to: '/' });
+      navigate({ to: "/" });
     }
   }, [identity, isInitializing, navigate]);
 
@@ -20,7 +30,7 @@ export default function LoginPage() {
     try {
       await login();
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
     }
   };
 
@@ -30,7 +40,7 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin text-4xl mb-4">⏳</div>
-          <p className="text-muted-foreground">Laddar...</p>
+          <p className="text-muted-foreground">{t.loginInitializing}</p>
         </div>
       </div>
     );
@@ -39,6 +49,11 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-8">
+        {/* Language Selector — above HKLO heading */}
+        <div className="flex justify-center">
+          <LanguageSelector compact />
+        </div>
+
         {/* Logo and Title */}
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-3">
@@ -48,7 +63,7 @@ export default function LoginPage() {
             </h1>
           </div>
           <p className="text-muted-foreground text-center text-lg">
-            Dela dina berättelser med världen
+            {t.loginSubtitle}
           </p>
         </div>
 
@@ -56,10 +71,10 @@ export default function LoginPage() {
         <Card className="border-border/50 shadow-lg">
           <CardHeader className="space-y-2">
             <CardTitle className="text-2xl font-serif text-center">
-              Välkommen
+              {t.loginWelcome}
             </CardTitle>
             <CardDescription className="text-center">
-              Logga in för att skapa och dela dina inlägg
+              {t.loginDescription}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -72,12 +87,12 @@ export default function LoginPage() {
               {isLoggingIn ? (
                 <>
                   <span className="animate-spin">⏳</span>
-                  Loggar in...
+                  {t.loginLoading}
                 </>
               ) : (
                 <>
                   <LogIn className="h-5 w-5" />
-                  Logga in med Internet Identity
+                  {t.loginButton}
                 </>
               )}
             </Button>
@@ -88,7 +103,7 @@ export default function LoginPage() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-card px-2 text-muted-foreground">
-                  Har du inget konto?
+                  {t.loginNoAccount}
                 </span>
               </div>
             </div>
@@ -100,11 +115,11 @@ export default function LoginPage() {
               className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-medium"
             >
               <ExternalLink className="h-4 w-4" />
-              Skapa Internet Identity
+              {t.loginCreateIdentity}
             </a>
 
             <p className="text-xs text-muted-foreground text-center leading-relaxed">
-              Internet Identity är en säker och anonym autentiseringstjänst som skyddar din integritet.
+              {t.loginPrivacyNote}
             </p>
           </CardContent>
         </Card>
@@ -112,10 +127,12 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground">
           <p>
-            Byggd med ❤️ med hjälp av{' '}
+            Byggd med ❤️ med hjälp av{" "}
             <a
               href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
-                typeof window !== 'undefined' ? window.location.hostname : 'hklo'
+                typeof window !== "undefined"
+                  ? window.location.hostname
+                  : "hklo",
               )}`}
               target="_blank"
               rel="noopener noreferrer"

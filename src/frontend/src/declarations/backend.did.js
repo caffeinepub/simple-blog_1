@@ -19,17 +19,53 @@ export const _CaffeineStorageRefillResult = IDL.Record({
   'success' : IDL.Opt(IDL.Bool),
   'topped_up_amount' : IDL.Opt(IDL.Nat),
 });
+export const UserRole = IDL.Variant({
+  'admin' : IDL.Null,
+  'user' : IDL.Null,
+  'guest' : IDL.Null,
+});
 export const Image = IDL.Vec(IDL.Nat8);
+export const CreatePostResult = IDL.Variant({
+  'ok' : IDL.Nat,
+  'imageTooLarge' : IDL.Null,
+});
+export const PostStatus = IDL.Variant({
+  'published' : IDL.Null,
+  'hidden' : IDL.Null,
+  'draft' : IDL.Null,
+});
 export const Time = IDL.Int;
 export const Post = IDL.Record({
   'id' : IDL.Nat,
+  'status' : PostStatus,
   'title' : IDL.Text,
   'content' : IDL.Text,
   'ownerId' : IDL.Principal,
-  'published' : IDL.Bool,
   'createdAt' : Time,
+  'likedBy' : IDL.Vec(IDL.Principal),
   'author' : IDL.Text,
+  'dislikedBy' : IDL.Vec(IDL.Principal),
   'images' : IDL.Vec(Image),
+});
+export const UserProfile = IDL.Record({
+  'preferredLanguage' : IDL.Text,
+  'country' : IDL.Text,
+  'name' : IDL.Text,
+  'email' : IDL.Text,
+  'phone' : IDL.Text,
+});
+export const AuthorInfo = IDL.Record({
+  'principal' : IDL.Principal,
+  'displayName' : IDL.Text,
+});
+export const ReactionCount = IDL.Record({
+  'likes' : IDL.Nat,
+  'dislikes' : IDL.Nat,
+});
+export const UpdatePostResult = IDL.Variant({
+  'ok' : IDL.Null,
+  'postNotFound' : IDL.Null,
+  'imageTooLarge' : IDL.Null,
 });
 
 export const idlService = IDL.Service({
@@ -59,19 +95,57 @@ export const idlService = IDL.Service({
       [],
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
+  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'addAdmin' : IDL.Func([IDL.Principal], [], []),
+  'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'createPost' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
+      [CreatePostResult],
+      [],
+    ),
+  'deletePost' : IDL.Func([IDL.Nat], [], []),
+  'dislikePost' : IDL.Func([IDL.Nat], [], []),
+  'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
+  'getAllPostsAdmin' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+  'getAllProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
+  'getAllPublishedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+  'getAuthors' : IDL.Func([], [IDL.Vec(AuthorInfo)], ['query']),
+  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+  'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getMyDrafts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+  'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
+  'getPostReactions' : IDL.Func([IDL.Nat], [ReactionCount], ['query']),
+  'getPreferredLanguage' : IDL.Func([], [IDL.Text], ['query']),
+  'getUserProfile' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
+  'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
+  'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'likePost' : IDL.Func([IDL.Nat], [], []),
+  'promoteUser' : IDL.Func([IDL.Principal], [], []),
+  'removeAdmin' : IDL.Func([IDL.Principal], [], []),
+  'removeAuthor' : IDL.Func([IDL.Principal], [], []),
+  'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'saveDraft' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
       [IDL.Nat],
       [],
     ),
-  'deletePost' : IDL.Func([IDL.Nat], [], []),
-  'getAllPublishedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
-  'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
-  'updatePost' : IDL.Func(
-      [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool, IDL.Vec(Image)],
+  'setOwner' : IDL.Func([IDL.Principal], [], []),
+  'setPreferredLanguage' : IDL.Func([IDL.Text], [], []),
+  'updateDraft' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
       [],
       [],
     ),
+  'updatePost' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, PostStatus, IDL.Vec(Image)],
+      [UpdatePostResult],
+      [],
+    ),
+  'updateUserProfile' : IDL.Func([UserProfile], [], []),
 });
 
 export const idlInitArgs = [];
@@ -88,17 +162,50 @@ export const idlFactory = ({ IDL }) => {
     'success' : IDL.Opt(IDL.Bool),
     'topped_up_amount' : IDL.Opt(IDL.Nat),
   });
+  const UserRole = IDL.Variant({
+    'admin' : IDL.Null,
+    'user' : IDL.Null,
+    'guest' : IDL.Null,
+  });
   const Image = IDL.Vec(IDL.Nat8);
+  const CreatePostResult = IDL.Variant({
+    'ok' : IDL.Nat,
+    'imageTooLarge' : IDL.Null,
+  });
+  const PostStatus = IDL.Variant({
+    'published' : IDL.Null,
+    'hidden' : IDL.Null,
+    'draft' : IDL.Null,
+  });
   const Time = IDL.Int;
   const Post = IDL.Record({
     'id' : IDL.Nat,
+    'status' : PostStatus,
     'title' : IDL.Text,
     'content' : IDL.Text,
     'ownerId' : IDL.Principal,
-    'published' : IDL.Bool,
     'createdAt' : Time,
+    'likedBy' : IDL.Vec(IDL.Principal),
     'author' : IDL.Text,
+    'dislikedBy' : IDL.Vec(IDL.Principal),
     'images' : IDL.Vec(Image),
+  });
+  const UserProfile = IDL.Record({
+    'preferredLanguage' : IDL.Text,
+    'country' : IDL.Text,
+    'name' : IDL.Text,
+    'email' : IDL.Text,
+    'phone' : IDL.Text,
+  });
+  const AuthorInfo = IDL.Record({
+    'principal' : IDL.Principal,
+    'displayName' : IDL.Text,
+  });
+  const ReactionCount = IDL.Record({ 'likes' : IDL.Nat, 'dislikes' : IDL.Nat });
+  const UpdatePostResult = IDL.Variant({
+    'ok' : IDL.Null,
+    'postNotFound' : IDL.Null,
+    'imageTooLarge' : IDL.Null,
   });
   
   return IDL.Service({
@@ -128,19 +235,57 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
+    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'addAdmin' : IDL.Func([IDL.Principal], [], []),
+    'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'createPost' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
+        [CreatePostResult],
+        [],
+      ),
+    'deletePost' : IDL.Func([IDL.Nat], [], []),
+    'dislikePost' : IDL.Func([IDL.Nat], [], []),
+    'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
+    'getAllPostsAdmin' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+    'getAllProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
+    'getAllPublishedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+    'getAuthors' : IDL.Func([], [IDL.Vec(AuthorInfo)], ['query']),
+    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+    'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getMyDrafts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+    'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
+    'getPostReactions' : IDL.Func([IDL.Nat], [ReactionCount], ['query']),
+    'getPreferredLanguage' : IDL.Func([], [IDL.Text], ['query']),
+    'getUserProfile' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
+    'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
+    'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'likePost' : IDL.Func([IDL.Nat], [], []),
+    'promoteUser' : IDL.Func([IDL.Principal], [], []),
+    'removeAdmin' : IDL.Func([IDL.Principal], [], []),
+    'removeAuthor' : IDL.Func([IDL.Principal], [], []),
+    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'saveDraft' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
         [IDL.Nat],
         [],
       ),
-    'deletePost' : IDL.Func([IDL.Nat], [], []),
-    'getAllPublishedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
-    'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
-    'updatePost' : IDL.Func(
-        [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool, IDL.Vec(Image)],
+    'setOwner' : IDL.Func([IDL.Principal], [], []),
+    'setPreferredLanguage' : IDL.Func([IDL.Text], [], []),
+    'updateDraft' : IDL.Func(
+        [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
         [],
         [],
       ),
+    'updatePost' : IDL.Func(
+        [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, PostStatus, IDL.Vec(Image)],
+        [UpdatePostResult],
+        [],
+      ),
+    'updateUserProfile' : IDL.Func([UserProfile], [], []),
   });
 };
 

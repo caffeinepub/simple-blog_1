@@ -1,57 +1,172 @@
-import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useCreatePost } from '../hooks/useQueries';
-import { useImageUpload } from '../hooks/useImageUpload';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ArrowLeft, Upload, X, Image as ImageIcon } from 'lucide-react';
-import { categories, titleSuggestions, type Category } from '../data/titleSuggestions';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { useNavigate } from "@tanstack/react-router";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  FileText,
+  Image as ImageIcon,
+  Loader2,
+  Upload,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import {
+  type Category,
+  categories,
+  titleSuggestions,
+} from "../data/titleSuggestions";
+import { useImageUpload } from "../hooks/useImageUpload";
+import {
+  useCreatePost,
+  useSaveDraft,
+  useUpdateDraft,
+} from "../hooks/useQueries";
+
+const AUTOSAVE_INTERVAL_MS = 30_000;
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
-  const [category, setCategory] = useState<Category | ''>('');
-  const [suggestedTitle, setSuggestedTitle] = useState('');
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [author, setAuthor] = useState('');
+  const [category, setCategory] = useState<Category | "">("");
+  const [suggestedTitle, setSuggestedTitle] = useState("");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [author, setAuthor] = useState("");
   const [published, setPublished] = useState(false);
-  const [errors, setErrors] = useState<{ title?: string; content?: string; author?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{
+    title?: string;
+    content?: string;
+    author?: string;
+  }>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [_draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
+  const [showDraftSaved, setShowDraftSaved] = useState(false);
+
+  // Track current draft ID for autosave updates
+  const currentDraftIdRef = useRef<bigint | null>(null);
+  const autosaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const draftSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const createPostMutation = useCreatePost();
-  const { images, error: imageError, addImages, removeImage, convertToBlobs, clearImages } = useImageUpload();
+  const saveDraftMutation = useSaveDraft();
+  const updateDraftMutation = useUpdateDraft();
+
+  const {
+    images,
+    error: imageError,
+    hasSizeError,
+    isProcessing,
+    addImages,
+    removeImage,
+    convertToBlobs,
+    clearImages,
+  } = useImageUpload();
+
+  const hasContent = title.trim() || content.trim() || author.trim();
+
+  const showDraftSavedIndicator = useCallback(() => {
+    setDraftSavedAt(new Date());
+    setShowDraftSaved(true);
+    if (draftSavedTimerRef.current) clearTimeout(draftSavedTimerRef.current);
+    draftSavedTimerRef.current = setTimeout(
+      () => setShowDraftSaved(false),
+      3000,
+    );
+  }, []);
+
+  const performAutosave = useCallback(async () => {
+    if (!hasContent) return;
+    try {
+      const imageBlobs = await convertToBlobs();
+      if (currentDraftIdRef.current !== null) {
+        await updateDraftMutation.mutateAsync({
+          id: currentDraftIdRef.current,
+          title: title.trim() || "(Utan titel)",
+          content: content.trim(),
+          author: author.trim(),
+          images: imageBlobs,
+        });
+      } else {
+        const newId = await saveDraftMutation.mutateAsync({
+          title: title.trim() || "(Utan titel)",
+          content: content.trim(),
+          author: author.trim(),
+          images: imageBlobs,
+        });
+        currentDraftIdRef.current = newId;
+      }
+      showDraftSavedIndicator();
+    } catch {
+      // Silent autosave failure – don't interrupt the user
+    }
+  }, [
+    hasContent,
+    title,
+    content,
+    author,
+    convertToBlobs,
+    saveDraftMutation,
+    updateDraftMutation,
+    showDraftSavedIndicator,
+  ]);
+
+  // Set up autosave interval
+  useEffect(() => {
+    autosaveTimerRef.current = setInterval(
+      performAutosave,
+      AUTOSAVE_INTERVAL_MS,
+    );
+    return () => {
+      if (autosaveTimerRef.current) clearInterval(autosaveTimerRef.current);
+      if (draftSavedTimerRef.current) clearTimeout(draftSavedTimerRef.current);
+    };
+  }, [performAutosave]);
+
+  const clearAutosave = () => {
+    if (autosaveTimerRef.current) {
+      clearInterval(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+  };
 
   const validateForm = () => {
     const newErrors: { title?: string; content?: string; author?: string } = {};
-    
-    if (!title.trim()) {
-      newErrors.title = 'Titel krävs';
-    }
-    if (!content.trim()) {
-      newErrors.content = 'Innehåll krävs';
-    }
-    if (!author.trim()) {
-      newErrors.author = 'Författarnamn krävs';
-    }
-
-    setErrors(newErrors);
+    if (!title.trim()) newErrors.title = "Titel krävs";
+    if (!content.trim()) newErrors.content = "Innehåll krävs";
+    if (!author.trim()) newErrors.author = "Författarnamn krävs";
+    setFieldErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+    setSubmitError(null);
+    if (!validateForm()) return;
+    if (hasSizeError) return;
 
+    clearAutosave();
     try {
       const imageBlobs = await convertToBlobs();
-      
       await createPostMutation.mutateAsync({
         title: title.trim(),
         content: content.trim(),
@@ -59,23 +174,57 @@ export default function CreatePostPage() {
         published,
         images: imageBlobs,
       });
-      
       clearImages();
-      navigate({ to: '/' });
-    } catch (error) {
-      console.error('Kunde inte skapa inlägg:', error);
+      navigate({ to: "/" });
+    } catch (err) {
+      console.error("Failed to create post:", err);
+      setSubmitError(
+        "Kunde inte skapa inlägget. Försök med en mindre bild eller försök igen.",
+      );
+    }
+  };
+
+  const handleSaveAsDraft = async () => {
+    if (!title.trim() && !content.trim() && !author.trim()) {
+      toast.error("Fyll i minst ett fält innan du sparar som utkast.");
+      return;
+    }
+    clearAutosave();
+    try {
+      const imageBlobs = await convertToBlobs();
+      if (currentDraftIdRef.current !== null) {
+        await updateDraftMutation.mutateAsync({
+          id: currentDraftIdRef.current,
+          title: title.trim() || "(Utan titel)",
+          content: content.trim(),
+          author: author.trim(),
+          images: imageBlobs,
+        });
+      } else {
+        await saveDraftMutation.mutateAsync({
+          title: title.trim() || "(Utan titel)",
+          content: content.trim(),
+          author: author.trim(),
+          images: imageBlobs,
+        });
+      }
+      clearImages();
+      toast.success("Utkastet har sparats!");
+      navigate({ to: "/drafts" });
+    } catch (err) {
+      console.error("Failed to save draft:", err);
+      toast.error("Kunde inte spara utkastet. Försök igen.");
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     addImages(e.target.files);
-    // Reset input so the same file can be selected again
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const handleCategoryChange = (value: string) => {
     setCategory(value as Category);
-    setSuggestedTitle('');
+    setSuggestedTitle("");
   };
 
   const handleSuggestedTitleChange = (value: string) => {
@@ -83,10 +232,13 @@ export default function CreatePostPage() {
     setTitle(value);
   };
 
+  const isSavingDraft =
+    saveDraftMutation.isPending || updateDraftMutation.isPending;
+
   return (
     <div className="container max-w-3xl mx-auto px-6 py-16">
       <Button
-        onClick={() => navigate({ to: '/' })}
+        onClick={() => navigate({ to: "/" })}
         variant="ghost"
         size="sm"
         className="mb-8 -ml-2 text-muted-foreground hover:text-foreground"
@@ -97,15 +249,27 @@ export default function CreatePostPage() {
 
       <Card className="border-border/40 shadow-sm">
         <CardHeader className="space-y-1 pb-6">
-          <CardTitle className="text-3xl font-serif font-bold tracking-tight">
-            Skapa nytt inlägg
-          </CardTitle>
-          <CardDescription className="text-base">
-            Dela dina tankar och berättelser med gemenskapen
-          </CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle className="text-3xl font-serif font-bold tracking-tight">
+                Skapa nytt inlägg
+              </CardTitle>
+              <CardDescription className="text-base mt-1">
+                Dela dina tankar och berättelser med gemenskapen
+              </CardDescription>
+            </div>
+            {/* Draft saved indicator */}
+            <div
+              className={`flex items-center gap-1.5 text-xs text-muted-foreground transition-opacity duration-500 mt-1 shrink-0 ${showDraftSaved ? "opacity-100" : "opacity-0"}`}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+              <span>Utkast sparat</span>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Category */}
             <div className="space-y-2">
               <Label htmlFor="category" className="text-sm font-medium">
                 Kategori
@@ -124,18 +288,25 @@ export default function CreatePostPage() {
               </Select>
             </div>
 
+            {/* Suggested title */}
             {category && (
               <div className="space-y-2">
-                <Label htmlFor="suggested-title" className="text-sm font-medium">
+                <Label
+                  htmlFor="suggested-title"
+                  className="text-sm font-medium"
+                >
                   Föreslagen titel
                 </Label>
-                <Select value={suggestedTitle} onValueChange={handleSuggestedTitleChange}>
+                <Select
+                  value={suggestedTitle}
+                  onValueChange={handleSuggestedTitleChange}
+                >
                   <SelectTrigger id="suggested-title">
                     <SelectValue placeholder="Välj en föreslagen titel (valfritt)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {titleSuggestions[category].map((titleOption, index) => (
-                      <SelectItem key={index} value={titleOption}>
+                    {titleSuggestions[category].map((titleOption) => (
+                      <SelectItem key={titleOption} value={titleOption}>
                         {titleOption}
                       </SelectItem>
                     ))}
@@ -144,6 +315,7 @@ export default function CreatePostPage() {
               </div>
             )}
 
+            {/* Title */}
             <div className="space-y-2">
               <Label htmlFor="title" className="text-sm font-medium">
                 Titel
@@ -153,13 +325,14 @@ export default function CreatePostPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ange din inläggstitel..."
-                className={errors.title ? 'border-destructive' : ''}
+                className={fieldErrors.title ? "border-destructive" : ""}
               />
-              {errors.title && (
-                <p className="text-sm text-destructive">{errors.title}</p>
+              {fieldErrors.title && (
+                <p className="text-sm text-destructive">{fieldErrors.title}</p>
               )}
             </div>
 
+            {/* Author */}
             <div className="space-y-2">
               <Label htmlFor="author" className="text-sm font-medium">
                 Författare
@@ -169,13 +342,14 @@ export default function CreatePostPage() {
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
                 placeholder="Ditt namn..."
-                className={errors.author ? 'border-destructive' : ''}
+                className={fieldErrors.author ? "border-destructive" : ""}
               />
-              {errors.author && (
-                <p className="text-sm text-destructive">{errors.author}</p>
+              {fieldErrors.author && (
+                <p className="text-sm text-destructive">{fieldErrors.author}</p>
               )}
             </div>
 
+            {/* Content */}
             <div className="space-y-2">
               <Label htmlFor="content" className="text-sm font-medium">
                 Innehåll
@@ -186,87 +360,117 @@ export default function CreatePostPage() {
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Skriv din berättelse..."
                 rows={12}
-                className={`resize-none ${errors.content ? 'border-destructive' : ''}`}
+                className={`resize-none ${fieldErrors.content ? "border-destructive" : ""}`}
               />
-              {errors.content && (
-                <p className="text-sm text-destructive">{errors.content}</p>
+              {fieldErrors.content && (
+                <p className="text-sm text-destructive">
+                  {fieldErrors.content}
+                </p>
               )}
             </div>
 
+            {/* Images */}
             <div className="space-y-2">
-              <Label htmlFor="images" className="text-sm font-medium">
-                Bilder
-              </Label>
+              <Label className="text-sm font-medium">Bilder</Label>
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Input
-                    id="images"
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                    multiple
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('images')?.click()}
-                    className="w-full"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Välj bilder
-                  </Button>
-                </div>
-                
+                <Input
+                  id="images"
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                  disabled={isProcessing}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById("images")?.click()}
+                  className="w-full"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Bearbetar bilder...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Välj bilder
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Stöder JPEG, PNG, WebP och GIF · Max 10 MB per bild · Bilder
+                  komprimeras automatiskt till max 800 KB
+                </p>
+
                 {imageError && (
-                  <p className="text-sm text-destructive">{imageError}</p>
+                  <Alert variant="destructive" className="py-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="whitespace-pre-line text-sm">
+                      {imageError}
+                    </AlertDescription>
+                  </Alert>
                 )}
 
-                {images.length > 0 && (
+                {/* New images */}
+                {images.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {images.map((image, index) => (
-                      <div
-                        key={index}
-                        className="relative aspect-square rounded-lg border border-border/40 overflow-hidden bg-muted/30 group"
-                      >
-                        <img
-                          src={image.preview}
-                          alt={`Förhandsvisning ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removeImage(index)}
+                    {images.map((image, index) => {
+                      const key = `img-${index}`;
+                      return (
+                        <div
+                          key={key}
+                          className="relative aspect-square rounded-lg border border-border/40 overflow-hidden bg-muted/30 group"
                         >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        {image.uploadProgress > 0 && image.uploadProgress < 100 && (
-                          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          <img
+                            src={image.preview}
+                            alt={`Bild ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity focus:opacity-100"
+                            aria-label={`Ta bort bild ${index + 1}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                          <div className="absolute bottom-0 left-0 right-0 bg-background/70 px-1.5 py-0.5 text-xs text-foreground truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                            {image.file.name}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-
-                {images.length === 0 && (
+                ) : !isProcessing ? (
                   <div className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed border-border/40 rounded-lg bg-muted/20">
                     <ImageIcon className="h-10 w-10 text-muted-foreground mb-3" />
                     <p className="text-sm text-muted-foreground text-center">
-                      Inga bilder valda. Klicka på knappen ovan för att lägga till bilder.
+                      Inga bilder valda. Klicka på knappen ovan för att lägga
+                      till bilder.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed border-border/40 rounded-lg bg-muted/20">
+                    <Loader2 className="h-10 w-10 text-primary animate-spin mb-3" />
+                    <p className="text-sm text-muted-foreground text-center">
+                      Bearbetar och komprimerar bilder...
                     </p>
                   </div>
                 )}
               </div>
             </div>
 
+            {/* Publish toggle */}
             <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border/40">
               <div className="space-y-0.5">
-                <Label htmlFor="published" className="text-sm font-medium cursor-pointer">
+                <Label
+                  htmlFor="published"
+                  className="text-sm font-medium cursor-pointer"
+                >
                   Publicera omedelbart
                 </Label>
                 <p className="text-sm text-muted-foreground">
@@ -280,10 +484,22 @@ export default function CreatePostPage() {
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
+            {submitError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{submitError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Button
                 type="submit"
-                disabled={createPostMutation.isPending}
+                disabled={
+                  createPostMutation.isPending ||
+                  isProcessing ||
+                  hasSizeError ||
+                  isSavingDraft
+                }
                 className="flex-1"
               >
                 {createPostMutation.isPending ? (
@@ -292,14 +508,41 @@ export default function CreatePostPage() {
                     Skapar...
                   </>
                 ) : (
-                  'Skapa inlägg'
+                  "Skapa inlägg"
                 )}
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate({ to: '/' })}
-                disabled={createPostMutation.isPending}
+                onClick={handleSaveAsDraft}
+                disabled={
+                  createPostMutation.isPending ||
+                  isProcessing ||
+                  hasSizeError ||
+                  isSavingDraft
+                }
+                className="flex-1 sm:flex-none gap-2"
+              >
+                {isSavingDraft ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sparar...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4" />
+                    Spara som utkast
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  clearAutosave();
+                  navigate({ to: "/" });
+                }}
+                disabled={createPostMutation.isPending || isSavingDraft}
               >
                 Avbryt
               </Button>

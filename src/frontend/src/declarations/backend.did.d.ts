@@ -10,18 +10,40 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface AuthorInfo { 'principal' : Principal, 'displayName' : string }
+export type CreatePostResult = { 'ok' : bigint } |
+  { 'imageTooLarge' : null };
 export type Image = Uint8Array;
 export interface Post {
   'id' : bigint,
+  'status' : PostStatus,
   'title' : string,
   'content' : string,
   'ownerId' : Principal,
-  'published' : boolean,
   'createdAt' : Time,
+  'likedBy' : Array<Principal>,
   'author' : string,
+  'dislikedBy' : Array<Principal>,
   'images' : Array<Image>,
 }
+export type PostStatus = { 'published' : null } |
+  { 'hidden' : null } |
+  { 'draft' : null };
+export interface ReactionCount { 'likes' : bigint, 'dislikes' : bigint }
 export type Time = bigint;
+export type UpdatePostResult = { 'ok' : null } |
+  { 'postNotFound' : null } |
+  { 'imageTooLarge' : null };
+export interface UserProfile {
+  'preferredLanguage' : string,
+  'country' : string,
+  'name' : string,
+  'email' : string,
+  'phone' : string,
+}
+export type UserRole = { 'admin' : null } |
+  { 'user' : null } |
+  { 'guest' : null };
 export interface _CaffeineStorageCreateCertificateResult {
   'method' : string,
   'blob_hash' : string,
@@ -49,14 +71,115 @@ export interface _SERVICE {
     _CaffeineStorageRefillResult
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
-  'createPost' : ActorMethod<[string, string, string, Array<Image>], bigint>,
+  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  /**
+   * / Add an admin (owner only)
+   */
+  'addAdmin' : ActorMethod<[Principal], undefined>,
+  'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  /**
+   * / Create a post (authenticated users only)
+   */
+  'createPost' : ActorMethod<
+    [string, string, string, Array<Image>],
+    CreatePostResult
+  >,
+  /**
+   * / Delete a post (owner of post or admin)
+   */
   'deletePost' : ActorMethod<[bigint], undefined>,
+  /**
+   * / Dislike a post (authenticated users only). Toggles dislike; removes like if present.
+   */
+  'dislikePost' : ActorMethod<[bigint], undefined>,
+  /**
+   * / Get all admins (owner only)
+   */
+  'getAdmins' : ActorMethod<[], Array<Principal>>,
+  /**
+   * / Get all posts regardless of status (admins only)
+   */
+  'getAllPostsAdmin' : ActorMethod<[], Array<Post>>,
+  /**
+   * / List all profiles (admins only — profiles contain sensitive PII: email, phone, country)
+   */
+  'getAllProfiles' : ActorMethod<[], Array<UserProfile>>,
+  /**
+   * / Get all published posts (public)
+   */
   'getAllPublishedPosts' : ActorMethod<[], Array<Post>>,
+  /**
+   * / Get all unique authors and their display names (admins only)
+   */
+  'getAuthors' : ActorMethod<[], Array<AuthorInfo>>,
+  'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
+  'getCallerUserRole' : ActorMethod<[], UserRole>,
+  /**
+   * / Get all drafts belonging to the caller (authenticated users only)
+   */
+  'getMyDrafts' : ActorMethod<[], Array<Post>>,
+  /**
+   * / Get a single post by ID (public, but only published posts for non-admins)
+   */
   'getPost' : ActorMethod<[bigint], Post>,
-  'updatePost' : ActorMethod<
-    [bigint, string, string, string, boolean, Array<Image>],
+  /**
+   * / Get like/dislike counts for a post (public, no auth required)
+   */
+  'getPostReactions' : ActorMethod<[bigint], ReactionCount>,
+  /**
+   * / Get the preferred language for the caller (authenticated users only)
+   */
+  'getPreferredLanguage' : ActorMethod<[], string>,
+  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  /**
+   * / Check if a principal is an admin (any authenticated user can check their own status)
+   */
+  'isAdmin' : ActorMethod<[Principal], boolean>,
+  'isCallerAdmin' : ActorMethod<[], boolean>,
+  /**
+   * / Like a post (authenticated users only). Toggles like; removes dislike if present.
+   */
+  'likePost' : ActorMethod<[bigint], undefined>,
+  /**
+   * / Called by admin to promote a principal to user role
+   */
+  'promoteUser' : ActorMethod<[Principal], undefined>,
+  /**
+   * / Remove an admin (owner only). The owner cannot be removed.
+   */
+  'removeAdmin' : ActorMethod<[Principal], undefined>,
+  /**
+   * / Remove all posts belonging to an author (admins only)
+   */
+  'removeAuthor' : ActorMethod<[Principal], undefined>,
+  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  /**
+   * / Save a new draft (authenticated users only)
+   */
+  'saveDraft' : ActorMethod<[string, string, string, Array<Image>], bigint>,
+  /**
+   * / Set a new owner (owner only)
+   */
+  'setOwner' : ActorMethod<[Principal], undefined>,
+  /**
+   * / Set the preferred language for the caller (authenticated users only)
+   */
+  'setPreferredLanguage' : ActorMethod<[string], undefined>,
+  /**
+   * / Update an existing draft (authenticated users only, owner of draft only)
+   */
+  'updateDraft' : ActorMethod<
+    [bigint, string, string, string, Array<Image>],
     undefined
   >,
+  /**
+   * / Update a post (owner of post or admin)
+   */
+  'updatePost' : ActorMethod<
+    [bigint, string, string, string, PostStatus, Array<Image>],
+    UpdatePostResult
+  >,
+  'updateUserProfile' : ActorMethod<[UserProfile], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
