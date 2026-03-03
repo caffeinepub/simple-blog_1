@@ -38,7 +38,12 @@ import {
 } from "../data/titleSuggestions";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import { useDeletePost, useGetPost, useUpdatePost } from "../hooks/useQueries";
+import {
+  useDeletePost,
+  useGetCallerUserProfile,
+  useGetPost,
+  useUpdatePost,
+} from "../hooks/useQueries";
 
 export default function EditPostPage() {
   const { id } = useParams({ from: "/post/$id/edit" });
@@ -47,6 +52,12 @@ export default function EditPostPage() {
   const { data: post, isLoading: isLoadingPost } = useGetPost(BigInt(id));
   const updatePostMutation = useUpdatePost();
   const deletePostMutation = useDeletePost();
+
+  // Load user profile alias
+  const { data: userProfile, isFetched: profileFetched } =
+    useGetCallerUserProfile();
+  const profileAlias = userProfile?.name?.trim() ?? "";
+  const hasProfileAlias = profileAlias.length > 0;
 
   const [category, setCategory] = useState<Category | "">("");
   const [suggestedTitle, setSuggestedTitle] = useState("");
@@ -104,7 +115,7 @@ export default function EditPostPage() {
 
   // Check ownership and populate form
   useEffect(() => {
-    if (post && identity) {
+    if (post && identity && profileFetched) {
       const isOwner =
         identity.getPrincipal().toString() === post.ownerId.toString();
       if (!isOwner) {
@@ -114,13 +125,22 @@ export default function EditPostPage() {
       }
       setTitle(post.title);
       setContent(post.content);
-      setAuthor(post.author);
+      // Use profile alias if available, otherwise fall back to the post's stored author
+      setAuthor(hasProfileAlias ? profileAlias : post.author);
       const isPublished = post.status === PostStatus.published;
       setPublished(isPublished);
       wasPublishedRef.current = isPublished;
       setExistingImages((post.images as Uint8Array[]) || []);
     }
-  }, [post, identity, navigate, id]);
+  }, [
+    post,
+    identity,
+    navigate,
+    id,
+    profileFetched,
+    hasProfileAlias,
+    profileAlias,
+  ]);
 
   const handlePublishedToggle = (newValue: boolean) => {
     // If turning OFF and the post is currently published, show the dialog
@@ -364,13 +384,23 @@ export default function EditPostPage() {
                 <Label htmlFor="author" className="text-sm font-medium">
                   Ditt alias
                 </Label>
-                <Input
-                  id="author"
-                  value={author}
-                  onChange={(e) => setAuthor(e.target.value)}
-                  placeholder="Ditt namn..."
-                  className={fieldErrors.author ? "border-destructive" : ""}
-                />
+                {hasProfileAlias ? (
+                  <p
+                    className="text-sm py-2 px-3 rounded-md bg-muted/40 min-h-[2.5rem] flex items-center text-foreground"
+                    data-ocid="edit_post.author.display"
+                  >
+                    {profileAlias}
+                  </p>
+                ) : (
+                  <Input
+                    id="author"
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="Ditt namn..."
+                    className={fieldErrors.author ? "border-destructive" : ""}
+                    data-ocid="edit_post.author.input"
+                  />
+                )}
                 {fieldErrors.author && (
                   <p className="text-sm text-destructive">
                     {fieldErrors.author}
