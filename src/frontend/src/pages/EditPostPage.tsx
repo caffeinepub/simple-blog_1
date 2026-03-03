@@ -362,7 +362,7 @@ export default function EditPostPage() {
               {/* Author */}
               <div className="space-y-2">
                 <Label htmlFor="author" className="text-sm font-medium">
-                  Författare
+                  Ditt alias
                 </Label>
                 <Input
                   id="author"

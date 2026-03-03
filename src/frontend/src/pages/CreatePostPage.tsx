@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import type { UserProfile } from "../backend";
 import {
   type Category,
   categories,
@@ -39,6 +40,8 @@ import {
 import { useImageUpload } from "../hooks/useImageUpload";
 import {
   useCreatePost,
+  useGetCallerUserProfile,
+  useSaveCallerUserProfile,
   useSaveDraft,
   useUpdateDraft,
 } from "../hooks/useQueries";
@@ -70,6 +73,20 @@ export default function CreatePostPage() {
   const createPostMutation = useCreatePost();
   const saveDraftMutation = useSaveDraft();
   const updateDraftMutation = useUpdateDraft();
+  const saveProfileMutation = useSaveCallerUserProfile();
+
+  // Load the user's profile alias
+  const { data: userProfile, isFetched: profileFetched } =
+    useGetCallerUserProfile();
+  const profileAlias = userProfile?.name?.trim() ?? "";
+  const hasProfileAlias = profileAlias.length > 0;
+
+  // Pre-fill author from profile alias once profile loads
+  useEffect(() => {
+    if (profileFetched && hasProfileAlias) {
+      setAuthor(profileAlias);
+    }
+  }, [profileFetched, hasProfileAlias, profileAlias]);
 
   const {
     images,
@@ -167,10 +184,28 @@ export default function CreatePostPage() {
     clearAutosave();
     try {
       const imageBlobs = await convertToBlobs();
+      const trimmedAuthor = author.trim();
+
+      // If the user has no saved alias yet, save it to their profile now
+      if (!hasProfileAlias && trimmedAuthor) {
+        try {
+          const updatedProfile: UserProfile = {
+            name: trimmedAuthor,
+            email: userProfile?.email ?? "",
+            phone: userProfile?.phone ?? "",
+            country: userProfile?.country ?? "",
+            preferredLanguage: userProfile?.preferredLanguage ?? "sv",
+          };
+          await saveProfileMutation.mutateAsync(updatedProfile);
+        } catch {
+          // Non-fatal — profile save failure should not block post creation
+        }
+      }
+
       await createPostMutation.mutateAsync({
         title: title.trim(),
         content: content.trim(),
-        author: author.trim(),
+        author: trimmedAuthor,
         published,
         images: imageBlobs,
       });
@@ -335,15 +370,30 @@ export default function CreatePostPage() {
             {/* Author */}
             <div className="space-y-2">
               <Label htmlFor="author" className="text-sm font-medium">
-                Författare
+                Ditt alias
               </Label>
-              <Input
-                id="author"
-                value={author}
-                onChange={(e) => setAuthor(e.target.value)}
-                placeholder="Ditt namn..."
-                className={fieldErrors.author ? "border-destructive" : ""}
-              />
+              {hasProfileAlias ? (
+                <p
+                  className="text-sm py-2 px-3 rounded-md bg-muted/40 min-h-[2.5rem] flex items-center text-foreground"
+                  data-ocid="create_post.author.display"
+                >
+                  {profileAlias}
+                </p>
+              ) : (
+                <>
+                  <Input
+                    id="author"
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="Ditt namn..."
+                    className={fieldErrors.author ? "border-destructive" : ""}
+                    data-ocid="create_post.author.input"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Aliaset sparas automatiskt i din profil
+                  </p>
+                </>
+              )}
               {fieldErrors.author && (
                 <p className="text-sm text-destructive">{fieldErrors.author}</p>
               )}

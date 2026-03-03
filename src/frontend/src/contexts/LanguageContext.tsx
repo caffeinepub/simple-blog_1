@@ -11,8 +11,10 @@ import translations, { LANGUAGES } from "../i18n/translations";
 
 const STORAGE_KEY = "hklo_preferred_language";
 
+const VALID_LANG_CODES: LanguageCode[] = ["sv", "en", "de", "fr", "zh", "es"];
+
 function isValidLanguageCode(code: string): code is LanguageCode {
-  return LANGUAGES.some((l) => l.code === code);
+  return VALID_LANG_CODES.includes(code as LanguageCode);
 }
 
 function getInitialLanguage(): LanguageCode {

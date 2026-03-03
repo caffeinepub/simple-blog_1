@@ -37,7 +37,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { UserProfile } from "../backend";
 import { useLanguage } from "../contexts/LanguageContext";
-import { COUNTRIES } from "../data/countries";
 import {
   useGetAllProfiles,
   useGetCallerUserProfile,
@@ -174,38 +173,52 @@ function ProfileForm() {
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* Language selector — always visible */}
+        {/* Language/Country selector — always visible */}
         <div className="space-y-1.5">
           <Label className="flex items-center gap-1.5 text-sm font-medium">
             <Globe className="h-3.5 w-3.5 text-muted-foreground" />
             {t.profileLanguage}
           </Label>
           <Select
-            value={language}
-            onValueChange={(val) => handleLanguageChange(val as LanguageCode)}
+            value={
+              // Show the country code that maps to the current language, or first matching
+              LANGUAGES.find((l) => l.langCode === language)?.code ??
+              LANGUAGES[0].code
+            }
+            onValueChange={(val) => {
+              const entry = LANGUAGES.find((l) => l.code === val);
+              if (entry?.langCode) {
+                handleLanguageChange(entry.langCode);
+              }
+            }}
             disabled={setPreferredLanguage.isPending}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger
+              className="w-full"
+              data-ocid="profile.language.select"
+            >
               <SelectValue>
                 {(() => {
-                  const lang = LANGUAGES.find((l) => l.code === language);
-                  return lang ? (
+                  const entry =
+                    LANGUAGES.find((l) => l.langCode === language) ??
+                    LANGUAGES[0];
+                  return (
                     <span className="flex items-center gap-2">
                       <span className="text-base leading-none">
-                        {lang.flag}
+                        {entry.flag}
                       </span>
-                      <span>{lang.label}</span>
+                      <span>{entry.label}</span>
                     </span>
-                  ) : null;
+                  );
                 })()}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent>
-              {LANGUAGES.map((lang) => (
-                <SelectItem key={lang.code} value={lang.code}>
+            <SelectContent className="max-h-72 overflow-y-auto">
+              {LANGUAGES.map((entry) => (
+                <SelectItem key={entry.code} value={entry.code}>
                   <span className="flex items-center gap-2">
-                    <span className="text-base leading-none">{lang.flag}</span>
-                    <span className="font-medium">{lang.label}</span>
+                    <span className="text-base leading-none">{entry.flag}</span>
+                    <span className="font-medium">{entry.label}</span>
                   </span>
                 </SelectItem>
               ))}
@@ -221,14 +234,14 @@ function ProfileForm() {
 
         <Separator />
 
-        {/* Name */}
+        {/* Alias */}
         <div className="space-y-1.5">
           <Label
             htmlFor="profile-name"
             className="flex items-center gap-1.5 text-sm font-medium"
           >
             <User className="h-3.5 w-3.5 text-muted-foreground" />
-            {t.profileName}
+            Ditt Alias
           </Label>
           {isEditing ? (
             <Input
@@ -237,109 +250,11 @@ function ProfileForm() {
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               disabled={saveProfile.isPending}
+              data-ocid="profile.input"
             />
           ) : (
             <p className="text-sm py-2 px-3 rounded-md bg-muted/40 min-h-[2.5rem] flex items-center">
               {form.name || (
-                <span className="text-muted-foreground italic">
-                  {t.profileNotSet}
-                </span>
-              )}
-            </p>
-          )}
-        </div>
-
-        {/* Email */}
-        <div className="space-y-1.5">
-          <Label
-            htmlFor="profile-email"
-            className="flex items-center gap-1.5 text-sm font-medium"
-          >
-            <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-            {t.profileEmail}
-          </Label>
-          {isEditing ? (
-            <Input
-              id="profile-email"
-              type="email"
-              placeholder={t.profileEmailPlaceholder}
-              value={form.email}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, email: e.target.value }))
-              }
-              disabled={saveProfile.isPending}
-            />
-          ) : (
-            <p className="text-sm py-2 px-3 rounded-md bg-muted/40 min-h-[2.5rem] flex items-center">
-              {form.email || (
-                <span className="text-muted-foreground italic">
-                  {t.profileNotSet}
-                </span>
-              )}
-            </p>
-          )}
-        </div>
-
-        {/* Phone */}
-        <div className="space-y-1.5">
-          <Label
-            htmlFor="profile-phone"
-            className="flex items-center gap-1.5 text-sm font-medium"
-          >
-            <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-            {t.profilePhone}
-          </Label>
-          {isEditing ? (
-            <Input
-              id="profile-phone"
-              type="tel"
-              placeholder={t.profilePhonePlaceholder}
-              value={form.phone}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, phone: e.target.value }))
-              }
-              disabled={saveProfile.isPending}
-            />
-          ) : (
-            <p className="text-sm py-2 px-3 rounded-md bg-muted/40 min-h-[2.5rem] flex items-center">
-              {form.phone || (
-                <span className="text-muted-foreground italic">
-                  {t.profileNotSet}
-                </span>
-              )}
-            </p>
-          )}
-        </div>
-
-        {/* Country */}
-        <div className="space-y-1.5">
-          <Label
-            htmlFor="profile-country"
-            className="flex items-center gap-1.5 text-sm font-medium"
-          >
-            <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-            {t.profileCountry}
-          </Label>
-          {isEditing ? (
-            <Select
-              value={form.country}
-              onValueChange={(val) => setForm((f) => ({ ...f, country: val }))}
-              disabled={saveProfile.isPending}
-            >
-              <SelectTrigger id="profile-country">
-                <SelectValue placeholder={t.profileCountryPlaceholder} />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                {COUNTRIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <p className="text-sm py-2 px-3 rounded-md bg-muted/40 min-h-[2.5rem] flex items-center">
-              {form.country || (
                 <span className="text-muted-foreground italic">
                   {t.profileNotSet}
                 </span>
@@ -356,6 +271,7 @@ function ProfileForm() {
                 onClick={handleSave}
                 disabled={saveProfile.isPending}
                 className="gap-2"
+                data-ocid="profile.save_button"
               >
                 {saveProfile.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -369,16 +285,38 @@ function ProfileForm() {
                   variant="outline"
                   onClick={handleCancel}
                   disabled={saveProfile.isPending}
+                  data-ocid="profile.cancel_button"
                 >
                   {t.profileCancel}
                 </Button>
               )}
             </>
           ) : (
-            <Button variant="outline" onClick={handleEdit} className="gap-2">
-              <PenSquare className="h-4 w-4" />
-              {t.profileEdit}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={handleSave}
+                disabled={saveProfile.isPending}
+                className="gap-2"
+                data-ocid="profile.save_button"
+              >
+                {saveProfile.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {saveProfile.isPending ? t.profileSaving : t.profileSave}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleEdit}
+                className="gap-2"
+                data-ocid="profile.edit_button"
+              >
+                <PenSquare className="h-4 w-4" />
+                {t.profileEdit}
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>
@@ -542,7 +480,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (isFetched && profile?.preferredLanguage) {
       const lang = profile.preferredLanguage as LanguageCode;
-      const validCodes = ["sv", "en", "de", "fr", "zh", "es"];
+      const validCodes: LanguageCode[] = ["sv", "en", "de", "fr", "zh", "es"];
       if (validCodes.includes(lang)) {
         setLanguage(lang);
       }

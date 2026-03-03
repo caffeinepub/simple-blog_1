@@ -49,15 +49,63 @@ export interface Translations {
   languageSelectorLabel: string;
 }
 
-export const LANGUAGES: { code: LanguageCode; flag: string; label: string }[] =
-  [
-    { code: "sv", flag: "🇸🇪", label: "SV" },
-    { code: "en", flag: "🇬🇧", label: "EN" },
-    { code: "de", flag: "🇩🇪", label: "DE" },
-    { code: "fr", flag: "🇫🇷", label: "FR" },
-    { code: "zh", flag: "🇨🇳", label: "ZH" },
-    { code: "es", flag: "🇪🇸", label: "ES" },
-  ];
+/** Country entries for the language/country selector */
+export interface CountryEntry {
+  code: string;
+  flag: string;
+  label: string;
+  /** Language code when this country maps to an app language (optional) */
+  langCode?: LanguageCode;
+}
+
+export const LANGUAGES: CountryEntry[] = [
+  { code: "AL", flag: "🇦🇱", label: "AL" },
+  { code: "AD", flag: "🇦🇩", label: "AD" },
+  { code: "AU", flag: "🇦🇺", label: "AU" },
+  { code: "BE", flag: "🇧🇪", label: "BE" },
+  { code: "BA", flag: "🇧🇦", label: "BA" },
+  { code: "BG", flag: "🇧🇬", label: "BG" },
+  { code: "DK", flag: "🇩🇰", label: "DK" },
+  { code: "EE", flag: "🇪🇪", label: "EE" },
+  { code: "FI", flag: "🇫🇮", label: "FI" },
+  { code: "FR", flag: "🇫🇷", label: "FR", langCode: "fr" },
+  { code: "GR", flag: "🇬🇷", label: "GR" },
+  { code: "IE", flag: "🇮🇪", label: "IE" },
+  { code: "IS", flag: "🇮🇸", label: "IS" },
+  { code: "IT", flag: "🇮🇹", label: "IT" },
+  { code: "JP", flag: "🇯🇵", label: "JP" },
+  { code: "XK", flag: "🇽🇰", label: "XK" },
+  { code: "HR", flag: "🇭🇷", label: "HR" },
+  { code: "LV", flag: "🇱🇻", label: "LV" },
+  { code: "LI", flag: "🇱🇮", label: "LI" },
+  { code: "LT", flag: "🇱🇹", label: "LT" },
+  { code: "LU", flag: "🇱🇺", label: "LU" },
+  { code: "MT", flag: "🇲🇹", label: "MT" },
+  { code: "MD", flag: "🇲🇩", label: "MD" },
+  { code: "MC", flag: "🇲🇨", label: "MC" },
+  { code: "ME", flag: "🇲🇪", label: "ME" },
+  { code: "NL", flag: "🇳🇱", label: "NL" },
+  { code: "MK", flag: "🇲🇰", label: "MK" },
+  { code: "NO", flag: "🇳🇴", label: "NO" },
+  { code: "PL", flag: "🇵🇱", label: "PL" },
+  { code: "PT", flag: "🇵🇹", label: "PT" },
+  { code: "RO", flag: "🇷🇴", label: "RO" },
+  { code: "SM", flag: "🇸🇲", label: "SM" },
+  { code: "CH", flag: "🇨🇭", label: "CH" },
+  { code: "RS", flag: "🇷🇸", label: "RS" },
+  { code: "SK", flag: "🇸🇰", label: "SK" },
+  { code: "SI", flag: "🇸🇮", label: "SI" },
+  { code: "ES", flag: "🇪🇸", label: "ES", langCode: "es" },
+  { code: "GB", flag: "🇬🇧", label: "GB", langCode: "en" },
+  { code: "SE", flag: "🇸🇪", label: "SE", langCode: "sv" },
+  { code: "KR", flag: "🇰🇷", label: "KR" },
+  { code: "DE", flag: "🇩🇪", label: "DE", langCode: "de" },
+  { code: "CZ", flag: "🇨🇿", label: "CZ" },
+  { code: "UA", flag: "🇺🇦", label: "UA" },
+  { code: "HU", flag: "🇭🇺", label: "HU" },
+  { code: "VA", flag: "🇻🇦", label: "VA" },
+  { code: "AT", flag: "🇦🇹", label: "AT" },
+];
 
 const translations: Record<LanguageCode, Translations> = {
   sv: {
