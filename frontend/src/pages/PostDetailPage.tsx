@@ -75,12 +75,22 @@ export default function PostDetailPage() {
   };
 
   const handleCopyLink = async () => {
-    const url = `${window.location.origin}/#/post/${id}`;
+    const url = `${window.location.origin}/post/${id}`;
     try {
-      await navigator.clipboard.writeText(url);
-      toast.success('Länk kopierad till urklipp!');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success('Länk kopierad!');
+      } else {
+        // Fallback for browsers without Clipboard API
+        window.prompt('Kopiera länken:', url);
+      }
     } catch {
-      toast.error('Kunde inte kopiera länken.');
+      // Fallback if clipboard write fails
+      try {
+        window.prompt('Kopiera länken:', url);
+      } catch {
+        toast.error('Kunde inte kopiera länken.');
+      }
     }
   };
 

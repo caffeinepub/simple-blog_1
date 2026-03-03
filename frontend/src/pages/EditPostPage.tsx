@@ -37,6 +37,7 @@ export default function EditPostPage() {
   const {
     images: newImages,
     error: imageError,
+    hasSizeError,
     isProcessing,
     addImages,
     removeImage,
@@ -92,6 +93,7 @@ export default function EditPostPage() {
     e.preventDefault();
     setSubmitError(null);
     if (!validateForm() || !post) return;
+    if (hasSizeError) return;
 
     try {
       const newImageBlobs = await convertToBlobs();
@@ -304,7 +306,7 @@ export default function EditPostPage() {
                   )}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Stöder JPEG, PNG, WebP och GIF · Max 10 MB per bild · Bilder komprimeras automatiskt
+                  Stöder JPEG, PNG, WebP och GIF · Max 10 MB per bild · Bilder komprimeras automatiskt till max 800 KB
                 </p>
 
                 {imageError && (
@@ -432,7 +434,7 @@ export default function EditPostPage() {
             <div className="flex gap-3 pt-4">
               <Button
                 type="submit"
-                disabled={updatePostMutation.isPending || isProcessing}
+                disabled={updatePostMutation.isPending || isProcessing || hasSizeError}
                 className="flex-1"
               >
                 {updatePostMutation.isPending ? (

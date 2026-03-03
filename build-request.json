@@ -1,94 +1,83 @@
 {
   "kind": "build_request",
-  "title": "Shareable post links with preview/teaser gate and multi-author support",
+  "title": "Fix image upload error and share function on HKLO blog",
   "projectName": "HKLO Blog",
-  "priority": "normal",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Allow any authenticated user to create blog posts (multi-author platform). Remove any restriction that limits post creation to admins/owners only. The 'Create Post' page and navigation link must be accessible to all logged-in users.",
-      "target": "both",
+      "text": "Fix the image upload failure on the Create Post page. The error 'Kunde inte skapa inlägget. Försök med en mindre bild eller försök igen.' occurs because images are too large for the Motoko canister. Implement aggressive canvas-based compression on the frontend in useImageUpload.ts: resize images to a maximum of 1200px on the longest side, compress to JPEG at quality 0.6, and enforce a hard limit of 800 KB per image after compression before submitting to the backend. Display a clear error message if a single image still exceeds the limit after compression.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-1",
+          "msg-6"
         ],
         "quotes": [
-          "Yes multi-author platform"
+          "Kunde inte skapa inlägget. Försök med en mindre bild eller försök igen.",
+          "Fixad bildhantering – canvas-baserad komprimering på frontend"
         ]
       },
       "acceptanceCriteria": [
-        "Any logged-in user can navigate to the Create Post page and submit a new post",
-        "The Create Post navigation link is visible to all authenticated users, not just admins",
-        "Backend allows any authenticated principal to call the create post function"
+        "Uploading a large photo (e.g. a standard smartphone photo) compresses it below 800 KB before submission",
+        "Post creation succeeds with a compressed image without showing the error message",
+        "If an image cannot be compressed below 800 KB, a user-facing error in Swedish is shown before submission",
+        "Image preview is shown after compression, not the original file"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add a 'Copy shareable link' button to each blog post detail page and post card. The shareable link must be a direct URL to that specific post (e.g., /#/post/{postId}).",
-      "target": "frontend",
+      "text": "Increase the backend Motoko actor's tolerance for image data by raising the per-image blob size limit to at least 900 KB (from any lower existing limit), and ensure that the createPost and updatePost functions return a meaningful error variant when an image still exceeds the limit so the frontend can surface it correctly.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-1",
+          "msg-6"
         ],
         "quotes": [
-          "Preview/teaser"
+          "optimerad lagring i Motoko-backend",
+          "bilder för stora för Motoko-canistern"
         ]
       },
       "acceptanceCriteria": [
-        "A 'Copy link' or share icon button appears on each PostCard and PostDetailPage",
-        "Clicking the button copies the direct post URL to the clipboard",
-        "A brief success toast or indicator confirms the link was copied"
+        "Backend accepts image blobs up to 900 KB without rejecting the call",
+        "Backend returns a typed error (e.g. #imageTooLarge) when a single image exceeds the limit",
+        "Existing posts and images are not affected by the change"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "When an unauthenticated visitor opens a shared post link, show a preview/teaser of the post (title, author, date, and the first ~150 words or 3 sentences of content, plus the first image if available) followed by a login gate prompt. The full post content must be hidden behind the gate. The login gate must provide a button to log in via Internet Identity and a link to create a new Internet Identity.",
+      "text": "Fix the share function on post cards and the post detail page. The share button in PostCard.tsx and PostDetailPage.tsx should copy the canonical post URL (e.g. https://hkloblogg-nav.caffeine.xyz/post/<id>) to the clipboard using the Clipboard API, and display a brief Swedish confirmation toast/tooltip ('Länk kopierad!') after a successful copy. Handle browsers where the Clipboard API is unavailable by falling back to a prompt with the URL.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-3",
+          "msg-6"
         ],
         "quotes": [
-          "Preview/teaser"
+          "Dela funktionen verkar inte fungera. Felsök funktionen",
+          "Fungerande dela-funktion – dela inlägg via kopierad URL",
+          "Dela-funktionen fungerar inte – behöver felsökas och åtgärdas"
         ]
       },
       "acceptanceCriteria": [
-        "Unauthenticated users opening a post URL see the post title, author, date, first image (if any), and a truncated content preview (~150 words)",
-        "A visually distinct login gate overlay or section appears after the preview, with a gradient fade on the truncated text",
-        "The login gate includes a 'Log in with Internet Identity' button and a 'Create Internet Identity' link",
-        "After successful login, the user is automatically returned to the same post and sees the full content",
-        "Authenticated users see the full post content without any gate"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "The PostDetailPage must support anonymous actor access so unauthenticated visitors can fetch the post data needed to render the preview/teaser. The backend getPost (or equivalent) function must be callable without authentication.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "Preview/teaser"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Unauthenticated (anonymous) callers can retrieve a published post by ID from the backend",
-        "The post data returned includes title, author, creation date, content, and images",
-        "Draft and hidden posts remain inaccessible to unauthenticated users"
+        "Clicking the share button on a PostCard copies the correct post URL to the clipboard",
+        "Clicking the share button on the PostDetailPage copies the correct post URL to the clipboard",
+        "A Swedish confirmation message 'Länk kopierad!' appears briefly after copying",
+        "The function does not throw an uncaught error in any supported browser"
       ]
     }
   ],
   "constraints": [
+    "Do not change the existing data model or stable variable structure in the Motoko backend without a migration file",
     "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
-    "Shareable links must use the existing hash-based routing pattern already in the app",
-    "After login from the post preview gate, redirect the user back to the original post URL"
+    "Preserve all existing routes and authentication logic in App.tsx"
   ],
   "nonGoals": [
-    "Email sharing or any email-based notification system",
-    "Social media share buttons (Twitter, Facebook, etc.)",
-    "Paid/subscriber-only content tiers",
-    "Comments or reactions on posts"
+    "Rebuilding the entire platform from scratch",
+    "Adding new features beyond fixing image upload and the share function",
+    "Changing the visual design or color palette",
+    "Adding social media sharing integrations (only clipboard copy is in scope)"
   ],
   "imageRequirements": {
     "required": [],

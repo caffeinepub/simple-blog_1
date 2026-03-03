@@ -11,6 +11,8 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface AuthorInfo { 'principal' : Principal, 'displayName' : string }
+export type CreatePostResult = { 'ok' : bigint } |
+  { 'imageTooLarge' : null };
 export type Image = Uint8Array;
 export interface Post {
   'id' : bigint,
@@ -26,6 +28,9 @@ export type PostStatus = { 'published' : null } |
   { 'hidden' : null } |
   { 'draft' : null };
 export type Time = bigint;
+export type UpdatePostResult = { 'ok' : null } |
+  { 'postNotFound' : null } |
+  { 'imageTooLarge' : null };
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
@@ -66,7 +71,10 @@ export interface _SERVICE {
   /**
    * / Create a post (authenticated users only)
    */
-  'createPost' : ActorMethod<[string, string, string, Array<Image>], bigint>,
+  'createPost' : ActorMethod<
+    [string, string, string, Array<Image>],
+    CreatePostResult
+  >,
   /**
    * / Delete a post (owner of post or admin)
    */
@@ -100,6 +108,10 @@ export interface _SERVICE {
   'isAdmin' : ActorMethod<[Principal], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   /**
+   * / Called by admin to "publish" a user (demote guest to user role)
+   */
+  'promoteUser' : ActorMethod<[Principal], undefined>,
+  /**
    * / Remove an admin (owner only). The owner cannot be removed.
    */
   'removeAdmin' : ActorMethod<[Principal], undefined>,
@@ -117,7 +129,7 @@ export interface _SERVICE {
    */
   'updatePost' : ActorMethod<
     [bigint, string, string, string, PostStatus, Array<Image>],
-    undefined
+    UpdatePostResult
   >,
 }
 export declare const idlService: IDL.ServiceClass;

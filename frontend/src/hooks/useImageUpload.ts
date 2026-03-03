@@ -10,8 +10,9 @@ interface ImageFile {
 const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
 const ACCEPTED_TYPES_LABEL = 'JPEG, PNG, WebP eller GIF';
 const MAX_FILE_SIZE_MB = 10;
-const MAX_SIDE = 1600;
-const JPEG_QUALITY = 0.85;
+const MAX_SIDE = 1200;
+const JPEG_QUALITY = 0.6;
+const MAX_COMPRESSED_BYTES = 800_000; // 800 KB
 
 /**
  * Compress and resize an image file using the Canvas API.
@@ -36,6 +37,7 @@ async function compressImage(file: File): Promise<{ bytes: Uint8Array; previewUr
         return;
       }
 
+      // Resize to max MAX_SIDE on the longest side
       if (width > MAX_SIDE || height > MAX_SIDE) {
         if (width >= height) {
           height = Math.round((height * MAX_SIDE) / width);
@@ -65,6 +67,18 @@ async function compressImage(file: File): Promise<{ bytes: Uint8Array; previewUr
             reject(new Error('Bildkomprimering misslyckades. Försök med en annan bild.'));
             return;
           }
+
+          // Check compressed size against the 800 KB limit
+          if (blob.size > MAX_COMPRESSED_BYTES) {
+            URL.revokeObjectURL(URL.createObjectURL(blob));
+            reject(
+              new Error(
+                `Bilden är fortfarande för stor efter komprimering (${(blob.size / 1024).toFixed(0)} KB). Max 800 KB tillåts.`,
+              ),
+            );
+            return;
+          }
+
           const previewUrl = URL.createObjectURL(blob);
           blob
             .arrayBuffer()
@@ -163,6 +177,8 @@ export function useImageUpload() {
       }
       return newImages;
     });
+    // Clear error when user removes an image
+    setError(null);
   }, []);
 
   /**
@@ -199,9 +215,13 @@ export function useImageUpload() {
     setIsProcessing(false);
   }, []);
 
+  // True when there is a size-related error that should block submission
+  const hasSizeError = !!error && error.includes('fortfarande för stor');
+
   return {
     images,
     error,
+    hasSizeError,
     isProcessing,
     addImages,
     removeImage,

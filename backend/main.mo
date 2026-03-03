@@ -21,15 +21,15 @@ actor {
 
   // Types
 
-  type Image = Storage.ExternalBlob;
+  public type Image = Storage.ExternalBlob;
 
-  type PostStatus = {
+  public type PostStatus = {
     #published;
     #draft;
     #hidden;
   };
 
-  type Post = {
+  public type Post = {
     id : Nat;
     title : Text;
     content : Text;
@@ -53,6 +53,17 @@ actor {
   public type AuthorInfo = {
     principal : Principal;
     displayName : Text;
+  };
+
+  public type CreatePostResult = {
+    #ok : Nat;
+    #imageTooLarge;
+  };
+
+  public type UpdatePostResult = {
+    #ok : ();
+    #imageTooLarge;
+    #postNotFound;
   };
 
   // State
@@ -146,17 +157,30 @@ actor {
     userProfiles.get(user);
   };
 
+  /// Called by admin to "publish" a user (demote guest to user role)
+  public shared ({ caller }) func promoteUser(user : Principal) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
+      Runtime.trap("Unauthorized: Only admins can set users");
+    };
+    if (user.isAnonymous()) {
+      Runtime.trap("Cannot promote anonymous principal");
+    };
+    AccessControl.assignRole(accessControlState, caller, user, #user);
+  };
+
   // Post management functions
 
   /// Create a post (authenticated users only)
-  public shared ({ caller }) func createPost(title : Text, content : Text, author : Text, images : [Image]) : async Nat {
+  public shared ({ caller }) func createPost(title : Text, content : Text, author : Text, images : [Image]) : async CreatePostResult {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can create posts");
     };
 
     if (images.size() > 0) {
       for (image in images.values()) {
-        assert (image.size() > 0);
+        if (image.size() > 900_000) {
+          return #imageTooLarge;
+        };
       };
     };
 
@@ -173,7 +197,7 @@ actor {
     };
     posts.add(id, post);
     nextPostId += 1;
-    id;
+    #ok(id);
   };
 
   /// Get a single post by ID (public, but only published posts for non-admins)
@@ -203,12 +227,12 @@ actor {
   };
 
   /// Update a post (owner of post or admin)
-  public shared ({ caller }) func updatePost(id : Nat, title : Text, content : Text, author : Text, status : PostStatus, images : [Image]) : async () {
+  public shared ({ caller }) func updatePost(id : Nat, title : Text, content : Text, author : Text, status : PostStatus, images : [Image]) : async UpdatePostResult {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can update posts");
     };
     switch (posts.get(id)) {
-      case (null) { Runtime.trap("Post does not exist!") };
+      case (null) { #postNotFound };
       case (?post) {
         if (post.ownerId != caller and not AccessControl.isAdmin(accessControlState, caller)) {
           Runtime.trap("Unauthorized: You do not have permission to update this post");
@@ -216,7 +240,9 @@ actor {
 
         if (images.size() > 0) {
           for (image in images.values()) {
-            assert (image.size() > 0);
+            if (image.size() > 900_000) {
+              return #imageTooLarge;
+            };
           };
         };
 
@@ -229,6 +255,7 @@ actor {
           images;
         };
         posts.add(id, updatedPost);
+        #ok;
       };
     };
   };

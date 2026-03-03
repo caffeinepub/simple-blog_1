@@ -2,10 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-allow-any-authenticated-user-to-create-blog-posts-multi-author-platform-remove-any-restriction-that-limits-post-creation-to-admins-owners-only-the-create-post-page-and-navigation-link-must-be-accessible-to-all-logged-in-users",
-      "featureTitle": "Allow any authenticated user to create blog posts (multi-author platform). Remove any restriction that limits post creation to admins/owners only. The 'Create Post' page and navigation link must be accessible to all logged-in users.",
+      "featureId": "feature-fix-the-image-upload-failure-on-the-create-post-page-the-error-kunde-inte-skapa-inl-gget-f-rs-k-med-en-mindre-bild-eller-f-rs-k-igen-occurs-because-images-are-too-large-for-the-motoko-canister-implement-aggressive-canvas-based-compression-on-the-frontend-in-useimageupload-ts-resize-images-to-a-maximum-of-1200px-on-the-longest-side-compress-to-jpeg-at-quality-0-6-and-enforce-a-hard-limit-of-800-kb-per-image-after-compression-before-submitting-to-the-backend-display-a-clear-error-message-if-a-single-image-still-exceeds-the-limit-after-compression",
+      "featureTitle": "Fix the image upload failure on the Create Post page. The error 'Kunde inte skapa inlägget. Försök med en mindre bild eller försök igen.' occurs because images are too large for the Motoko canister. Implement aggressive canvas-based compression on the frontend in useImageUpload.ts: resize images to a maximum of 1200px on the longest side, compress to JPEG at quality 0.6, and enforce a hard limit of 800 KB per image after compression before submitting to the backend. Display a clear error message if a single image still exceeds the limit after compression.",
       "files": [
-        "frontend/src/components/Layout.tsx"
+        "frontend/src/hooks/useImageUpload.ts",
+        "frontend/src/pages/CreatePostPage.tsx",
+        "frontend/src/pages/EditPostPage.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -22,33 +24,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-a-copy-shareable-link-button-to-each-blog-post-detail-page-and-post-card-the-shareable-link-must-be-a-direct-url-to-that-specific-post-e-g-post-postid",
-      "featureTitle": "Add a 'Copy shareable link' button to each blog post detail page and post card. The shareable link must be a direct URL to that specific post (e.g., /#/post/{postId}).",
+      "featureId": "feature-fix-the-share-function-on-post-cards-and-the-post-detail-page-the-share-button-in-postcard-tsx-and-postdetailpage-tsx-should-copy-the-canonical-post-url-e-g-https-hkloblogg-nav-caffeine-xyz-post-id-to-the-clipboard-using-the-clipboard-api-and-display-a-brief-swedish-confirmation-toast-tooltip-l-nk-kopierad-after-a-successful-copy-handle-browsers-where-the-clipboard-api-is-unavailable-by-falling-back-to-a-prompt-with-the-url",
+      "featureTitle": "Fix the share function on post cards and the post detail page. The share button in PostCard.tsx and PostDetailPage.tsx should copy the canonical post URL (e.g. https://hkloblogg-nav.caffeine.xyz/post/<id>) to the clipboard using the Clipboard API, and display a brief Swedish confirmation toast/tooltip ('Länk kopierad!') after a successful copy. Handle browsers where the Clipboard API is unavailable by falling back to a prompt with the URL.",
       "files": [
         "frontend/src/components/PostCard.tsx",
         "frontend/src/pages/PostDetailPage.tsx"
-      ],
-      "components": [
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "blob-storage@4.0.0",
-        "authorization@4.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-when-an-unauthenticated-visitor-opens-a-shared-post-link-show-a-preview-teaser-of-the-post-title-author-date-and-the-first-150-words-or-3-sentences-of-content-plus-the-first-image-if-available-followed-by-a-login-gate-prompt-the-full-post-content-must-be-hidden-behind-the-gate-the-login-gate-must-provide-a-button-to-log-in-via-internet-identity-and-a-link-to-create-a-new-internet-identity",
-      "featureTitle": "When an unauthenticated visitor opens a shared post link, show a preview/teaser of the post (title, author, date, and the first ~150 words or 3 sentences of content, plus the first image if available) followed by a login gate prompt. The full post content must be hidden behind the gate. The login gate must provide a button to log in via Internet Identity and a link to create a new Internet Identity.",
-      "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/pages/PostDetailPage.tsx",
-        "frontend/src/utils/contentTruncator.ts"
       ],
       "components": [
         "core-infrastructure@1.0.2",

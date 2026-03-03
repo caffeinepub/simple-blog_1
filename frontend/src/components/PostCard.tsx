@@ -52,12 +52,22 @@ export default function PostCard({ post }: PostCardProps) {
   const handleCopyLink = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const url = `${window.location.origin}/#/post/${post.id.toString()}`;
+    const url = `${window.location.origin}/post/${post.id.toString()}`;
     try {
-      await navigator.clipboard.writeText(url);
-      toast.success('Länk kopierad till urklipp!');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success('Länk kopierad!');
+      } else {
+        // Fallback for browsers without Clipboard API
+        window.prompt('Kopiera länken:', url);
+      }
     } catch {
-      toast.error('Kunde inte kopiera länken.');
+      // Fallback if clipboard write fails
+      try {
+        window.prompt('Kopiera länken:', url);
+      } catch {
+        toast.error('Kunde inte kopiera länken.');
+      }
     }
   };
 

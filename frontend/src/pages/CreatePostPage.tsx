@@ -28,6 +28,7 @@ export default function CreatePostPage() {
   const {
     images,
     error: imageError,
+    hasSizeError,
     isProcessing,
     addImages,
     removeImage,
@@ -48,6 +49,7 @@ export default function CreatePostPage() {
     e.preventDefault();
     setSubmitError(null);
     if (!validateForm()) return;
+    if (hasSizeError) return;
 
     try {
       const imageBlobs = await convertToBlobs();
@@ -229,7 +231,7 @@ export default function CreatePostPage() {
                   )}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Stöder JPEG, PNG, WebP och GIF · Max {10} MB per bild · Bilder komprimeras automatiskt
+                  Stöder JPEG, PNG, WebP och GIF · Max 10 MB per bild · Bilder komprimeras automatiskt till max 800 KB
                 </p>
 
                 {imageError && (
@@ -314,13 +316,13 @@ export default function CreatePostPage() {
             <div className="flex gap-3 pt-4">
               <Button
                 type="submit"
-                disabled={createPostMutation.isPending || isProcessing}
+                disabled={createPostMutation.isPending || isProcessing || hasSizeError}
                 className="flex-1"
               >
                 {createPostMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Skapar...
+                    Skapar inlägg...
                   </>
                 ) : (
                   'Skapa inlägg'

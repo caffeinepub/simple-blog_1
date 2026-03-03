@@ -25,6 +25,10 @@ export const UserRole = IDL.Variant({
   'guest' : IDL.Null,
 });
 export const Image = IDL.Vec(IDL.Nat8);
+export const CreatePostResult = IDL.Variant({
+  'ok' : IDL.Nat,
+  'imageTooLarge' : IDL.Null,
+});
 export const PostStatus = IDL.Variant({
   'published' : IDL.Null,
   'hidden' : IDL.Null,
@@ -46,6 +50,11 @@ export const AuthorInfo = IDL.Record({
   'displayName' : IDL.Text,
 });
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
+export const UpdatePostResult = IDL.Variant({
+  'ok' : IDL.Null,
+  'postNotFound' : IDL.Null,
+  'imageTooLarge' : IDL.Null,
+});
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -79,7 +88,7 @@ export const idlService = IDL.Service({
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'createPost' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
-      [IDL.Nat],
+      [CreatePostResult],
       [],
     ),
   'deletePost' : IDL.Func([IDL.Nat], [], []),
@@ -97,13 +106,14 @@ export const idlService = IDL.Service({
     ),
   'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'promoteUser' : IDL.Func([IDL.Principal], [], []),
   'removeAdmin' : IDL.Func([IDL.Principal], [], []),
   'removeAuthor' : IDL.Func([IDL.Principal], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'setOwner' : IDL.Func([IDL.Principal], [], []),
   'updatePost' : IDL.Func(
       [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, PostStatus, IDL.Vec(Image)],
-      [],
+      [UpdatePostResult],
       [],
     ),
 });
@@ -128,6 +138,10 @@ export const idlFactory = ({ IDL }) => {
     'guest' : IDL.Null,
   });
   const Image = IDL.Vec(IDL.Nat8);
+  const CreatePostResult = IDL.Variant({
+    'ok' : IDL.Nat,
+    'imageTooLarge' : IDL.Null,
+  });
   const PostStatus = IDL.Variant({
     'published' : IDL.Null,
     'hidden' : IDL.Null,
@@ -149,6 +163,11 @@ export const idlFactory = ({ IDL }) => {
     'displayName' : IDL.Text,
   });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
+  const UpdatePostResult = IDL.Variant({
+    'ok' : IDL.Null,
+    'postNotFound' : IDL.Null,
+    'imageTooLarge' : IDL.Null,
+  });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -182,7 +201,7 @@ export const idlFactory = ({ IDL }) => {
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'createPost' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
-        [IDL.Nat],
+        [CreatePostResult],
         [],
       ),
     'deletePost' : IDL.Func([IDL.Nat], [], []),
@@ -200,13 +219,14 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'promoteUser' : IDL.Func([IDL.Principal], [], []),
     'removeAdmin' : IDL.Func([IDL.Principal], [], []),
     'removeAuthor' : IDL.Func([IDL.Principal], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'setOwner' : IDL.Func([IDL.Principal], [], []),
     'updatePost' : IDL.Func(
         [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, PostStatus, IDL.Vec(Image)],
-        [],
+        [UpdatePostResult],
         [],
       ),
   });

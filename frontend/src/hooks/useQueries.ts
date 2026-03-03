@@ -53,10 +53,19 @@ export function useCreatePost() {
     }) => {
       if (!actor) throw new Error('Actor not initialized');
 
-      const postId = await actor.createPost(title, content, author, images);
+      const createResult = await actor.createPost(title, content, author, images);
+
+      if (createResult.__kind__ === 'imageTooLarge') {
+        throw new Error('Bilden är för stor. Max 800 KB per bild tillåts.');
+      }
+
+      const postId = createResult.ok;
 
       if (published) {
-        await actor.updatePost(postId, title, content, author, PostStatus.published, images);
+        const updateResult = await actor.updatePost(postId, title, content, author, PostStatus.published, images);
+        if (updateResult === 'imageTooLarge') {
+          throw new Error('Bilden är för stor. Max 800 KB per bild tillåts.');
+        }
       }
 
       return postId;
@@ -89,7 +98,10 @@ export function useUpdatePost() {
     }) => {
       if (!actor) throw new Error('Actor not initialized');
       const status = published ? PostStatus.published : PostStatus.draft;
-      await actor.updatePost(id, title, content, author, status, images);
+      const result = await actor.updatePost(id, title, content, author, status, images);
+      if (result === 'imageTooLarge') {
+        throw new Error('Bilden är för stor. Max 800 KB per bild tillåts.');
+      }
       return id;
     },
     onSuccess: (id) => {
@@ -231,7 +243,10 @@ export function useAdminUpdatePost() {
       images?: Uint8Array[];
     }) => {
       if (!actor) throw new Error('Actor not initialized');
-      await actor.updatePost(id, title, content, author, status, images);
+      const result = await actor.updatePost(id, title, content, author, status, images);
+      if (result === 'imageTooLarge') {
+        throw new Error('Bilden är för stor. Max 800 KB per bild tillåts.');
+      }
       return id;
     },
     onSuccess: (id) => {
@@ -266,7 +281,10 @@ export function useAdminChangePostStatus() {
     mutationFn: async ({ id, status }: { id: bigint; status: PostStatus }) => {
       if (!actor) throw new Error('Actor not initialized');
       const post = await actor.getPost(id);
-      await actor.updatePost(id, post.title, post.content, post.author, status, post.images);
+      const result = await actor.updatePost(id, post.title, post.content, post.author, status, post.images);
+      if (result === 'imageTooLarge') {
+        throw new Error('Bilden är för stor. Max 800 KB per bild tillåts.');
+      }
       return id;
     },
     onSuccess: (id) => {

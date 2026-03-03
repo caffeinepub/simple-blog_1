@@ -1,80 +1,54 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Shareable post links with preview/teaser gate and multi-author support",
+  "title": "Fix image upload error and share function on HKLO blog",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Remove admin-only restrictions on post creation and make the Create Post page accessible to all authenticated users",
+      "summary": "Fix image upload failure by implementing aggressive canvas-based compression in useImageUpload.ts to resize images to max 1200px, compress to JPEG at quality 0.6, and enforce 800 KB limit before submission",
       "acceptanceCriteria": [
-        "Any logged-in user can navigate to the Create Post page and submit a new post",
-        "The Create Post navigation link is visible to all authenticated users, not just admins",
-        "Backend allows any authenticated principal to call the create post function"
+        "Uploading a large photo (e.g. a standard smartphone photo) compresses it below 800 KB before submission",
+        "Post creation succeeds with a compressed image without showing the error message",
+        "If an image cannot be compressed below 800 KB, a user-facing error in Swedish is shown before submission",
+        "Image preview is shown after compression, not the original file"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/Layout.tsx",
+          "path": "frontend/src/hooks/useImageUpload.ts",
           "operation": "modify",
-          "description": "Update the navigation to show the 'Create Post' link to all authenticated users instead of admin-only. Remove any conditional logic that hides the Create Post link based on admin status. Ensure the link is visible whenever isAuthenticated is true."
+          "description": "Replace the current image handling logic with aggressive canvas-based compression. Implement a multi-step compression function that: (1) loads the image into a canvas element, (2) calculates dimensions to resize the longest side to max 1200px while preserving aspect ratio, (3) draws the resized image on canvas, (4) exports to JPEG at quality 0.6 using canvas.toBlob, (5) checks if the resulting blob exceeds 800 KB and if so, sets a Swedish error message ('Bilden är fortfarande för stor efter komprimering. Max 800 KB tillåts.') in the hook's error state, (6) converts the compressed blob to Uint8Array for preview and backend submission. Update the preview URL generation to use the compressed blob instead of the original file. Expose the error state so CreatePostPage and EditPostPage can display it."
         },
         {
           "path": "frontend/src/pages/CreatePostPage.tsx",
           "operation": "modify",
-          "description": "Remove any admin-only guards or checks on the CreatePostPage component. Ensure the page is accessible to any authenticated user. The page should only verify that the user is logged in (via ProtectedRoute wrapper in App.tsx), not that they are an admin."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Add a 'Copy shareable link' button to each blog post detail page and post card to enable easy sharing",
-      "acceptanceCriteria": [
-        "A 'Copy link' or share icon button appears on each PostCard and PostDetailPage",
-        "Clicking the button copies the direct post URL to the clipboard",
-        "A brief success toast or indicator confirms the link was copied"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/PostCard.tsx",
-          "operation": "modify",
-          "description": "Add a 'Copy link' button (using Share2 or Link icon from lucide-react) to the PostCard component. The button should construct the shareable URL using the pattern window.location.origin + '/#/post/' + post.id. Implement a click handler that uses navigator.clipboard.writeText() to copy the URL and show a brief toast notification (using sonner) confirming 'Link copied to clipboard'. Position the button prominently near the read more link."
+          "description": "Display the image compression error from useImageUpload hook when present. Add a user-facing error message in Swedish below the image upload section that shows when an image exceeds the 800 KB limit after compression. Ensure the 'Skapa inlägg' button is disabled when there is an image size error. Clear the error when the user removes the problematic image."
         },
         {
-          "path": "frontend/src/pages/PostDetailPage.tsx",
+          "path": "frontend/src/pages/EditPostPage.tsx",
           "operation": "modify",
-          "description": "Add a 'Copy shareable link' button to the PostDetailPage header area (near the edit/delete buttons). Use the Share2 or Link icon from lucide-react. The button should construct the shareable URL using window.location.origin + '/#/post/' + postId and copy it to clipboard on click using navigator.clipboard.writeText(). Show a success toast notification using sonner confirming the link was copied."
+          "description": "Display the image compression error from useImageUpload hook when present. Add a user-facing error message in Swedish below the image upload section that shows when an image exceeds the 800 KB limit after compression. Ensure the 'Spara ändringar' button is disabled when there is an image size error. Clear the error when the user removes the problematic image."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Implement a preview/teaser gate for unauthenticated visitors on shared post links, showing limited content and prompting login",
+      "summary": "Fix share function to copy canonical post URL to clipboard and display Swedish confirmation toast",
       "acceptanceCriteria": [
-        "Unauthenticated users opening a post URL see the post title, author, date, first image (if any), and a truncated content preview (~150 words)",
-        "A visually distinct login gate overlay or section appears after the preview, with a gradient fade on the truncated text",
-        "The login gate includes a 'Log in with Internet Identity' button and a 'Create Internet Identity' link",
-        "After successful login, the user is automatically returned to the same post and sees the full content",
-        "Authenticated users see the full post content without any gate"
+        "Clicking the share button on a PostCard copies the correct post URL to the clipboard",
+        "Clicking the share button on the PostDetailPage copies the correct post URL to the clipboard",
+        "A Swedish confirmation message 'Länk kopierad!' appears briefly after copying",
+        "The function does not throw an uncaught error in any supported browser"
       ],
       "file_operations": [
         {
+          "path": "frontend/src/components/PostCard.tsx",
+          "operation": "modify",
+          "description": "Implement the share button click handler to copy the canonical post URL (https://hkloblogg-nav.caffeine.xyz/post/{post.id}) to the clipboard using navigator.clipboard.writeText(). On successful copy, display a brief toast/tooltip with the Swedish text 'Länk kopierad!' that auto-dismisses after 2 seconds. If the Clipboard API is unavailable or the copy fails, fall back to showing a browser prompt with the URL using window.prompt(). Wrap the clipboard operation in a try-catch block to handle errors gracefully without throwing uncaught exceptions."
+        },
+        {
           "path": "frontend/src/pages/PostDetailPage.tsx",
           "operation": "modify",
-          "description": "Modify PostDetailPage to support unauthenticated access and display a preview/teaser gate. Use useInternetIdentity to check authentication status. For unauthenticated visitors: (1) Use an anonymous actor to fetch the post data (the useActor hook already supports this). (2) Display the post title, author, date, and first image if available. (3) Truncate the content to approximately 150 words or 3 sentences using a utility function. (4) Apply a gradient fade overlay (using Tailwind classes like 'bg-gradient-to-b from-transparent to-white') over the truncated content. (5) Render a login gate section below the preview with a prominent 'Log in with Internet Identity' button (calling the login function from useInternetIdentity) and a link to https://identity.ic0.app with text 'Create Internet Identity'. (6) Store the current post URL in sessionStorage before login so the user can be redirected back after authentication. For authenticated users: display the full post content without any truncation or gate. Remove the ProtectedRoute wrapper for this page in App.tsx to allow anonymous access."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Remove the ProtectedRoute wrapper from the post detail route (path '/post/:postId') to allow unauthenticated visitors to access the PostDetailPage. The page itself will handle authentication checks internally and display the appropriate preview/teaser gate or full content."
-        },
-        {
-          "path": "frontend/src/hooks/useInternetIdentity.ts",
-          "operation": "modify",
-          "description": "Add logic to check sessionStorage for a stored redirect URL after successful login. If a redirect URL exists (stored by PostDetailPage before login), navigate to that URL and clear the sessionStorage entry. This ensures users are returned to the shared post they were viewing after logging in from the preview gate."
-        },
-        {
-          "path": "frontend/src/utils/contentTruncator.ts",
-          "operation": "create",
-          "description": "Create a utility function truncateContent(content: string, maxWords: number = 150): string that truncates blog post content to approximately the specified number of words or 3 sentences, whichever comes first. The function should preserve sentence boundaries when possible and add an ellipsis (...) at the end of truncated content. Export this function for use in PostDetailPage."
+          "description": "Implement the share button click handler to copy the canonical post URL (https://hkloblogg-nav.caffeine.xyz/post/{post.id}) to the clipboard using navigator.clipboard.writeText(). On successful copy, display a brief toast/tooltip with the Swedish text 'Länk kopierad!' that auto-dismisses after 2 seconds. If the Clipboard API is unavailable or the copy fails, fall back to showing a browser prompt with the URL using window.prompt(). Wrap the clipboard operation in a try-catch block to handle errors gracefully without throwing uncaught exceptions."
         }
       ]
     }

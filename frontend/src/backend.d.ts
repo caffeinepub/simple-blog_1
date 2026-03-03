@@ -7,6 +7,13 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export type CreatePostResult = {
+    __kind__: "ok";
+    ok: bigint;
+} | {
+    __kind__: "imageTooLarge";
+    imageTooLarge: null;
+};
 export type Time = bigint;
 export interface Post {
     id: bigint;
@@ -31,6 +38,11 @@ export enum PostStatus {
     hidden = "hidden",
     draft = "draft"
 }
+export enum UpdatePostResult {
+    ok = "ok",
+    postNotFound = "postNotFound",
+    imageTooLarge = "imageTooLarge"
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -45,7 +57,7 @@ export interface backendInterface {
     /**
      * / Create a post (authenticated users only)
      */
-    createPost(title: string, content: string, author: string, images: Array<Image>): Promise<bigint>;
+    createPost(title: string, content: string, author: string, images: Array<Image>): Promise<CreatePostResult>;
     /**
      * / Delete a post (owner of post or admin)
      */
@@ -79,6 +91,10 @@ export interface backendInterface {
     isAdmin(principal: Principal): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     /**
+     * / Called by admin to "publish" a user (demote guest to user role)
+     */
+    promoteUser(user: Principal): Promise<void>;
+    /**
      * / Remove an admin (owner only). The owner cannot be removed.
      */
     removeAdmin(principal: Principal): Promise<void>;
@@ -94,5 +110,5 @@ export interface backendInterface {
     /**
      * / Update a post (owner of post or admin)
      */
-    updatePost(id: bigint, title: string, content: string, author: string, status: PostStatus, images: Array<Image>): Promise<void>;
+    updatePost(id: bigint, title: string, content: string, author: string, status: PostStatus, images: Array<Image>): Promise<UpdatePostResult>;
 }

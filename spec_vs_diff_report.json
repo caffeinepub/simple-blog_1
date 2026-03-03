@@ -1,43 +1,29 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-03-03T05:58:32.851Z",
-  "summary": "The diff implements most of the requested features: shareable copy-link buttons on PostCard and PostDetailPage (REQ-2), a preview/teaser login gate for unauthenticated users on PostDetailPage (REQ-3), the post detail route made publicly accessible (REQ-4 frontend side), and the 'Create Post' nav link visible to all authenticated users (REQ-1 frontend). However, there is no evidence of backend changes to remove admin/owner restrictions on post creation (REQ-1 backend AC) or to allow anonymous callers to call getPost without authentication (REQ-4 backend AC). The diff is entirely frontend-only.",
+  "generatedAt": "2026-03-03T07:50:03.075Z",
+  "summary": "All three requirements are substantially implemented. REQ-1 (frontend compression) and REQ-3 (share function) are fully addressed. REQ-2 (backend limit increase) shows the new result types in the truncated backend diff, but the actual 900 KB numeric constant enforcement in the Motoko code is not visible in the truncated diff, creating minor uncertainty.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Backend allows any authenticated principal to call the create post function (remove admin/owner-only restriction on the backend)",
-      "reason": "The diff contains only frontend changes. No backend Motoko/Rust/Candid files were modified to remove the admin/owner check on post creation.",
+      "id": "REQ-2",
+      "requirement": "Raise the per-image blob size limit to at least 900 KB in the Motoko backend and return #imageTooLarge when exceeded.",
+      "reason": "The diff shows the new CreatePostResult and UpdatePostResult types with #imageTooLarge variants in backend/main.mo, confirming the typed error return. However, the file is truncated and the actual numeric constant enforcing the 900 KB limit in createPost/updatePost logic is not visible. It is unclear whether the hard limit was actually raised to at least 900 KB.",
       "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "requirement": "Unauthenticated (anonymous) callers can retrieve a published post by ID from the backend; Draft and hidden posts remain inaccessible to unauthenticated users",
-      "reason": "No backend files were modified in the diff. The backend getPost function's access control allowing anonymous callers for published posts while blocking drafts/hidden posts is not shown to have been changed.",
-      "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "The login gate includes a 'Create Internet Identity' link",
-      "reason": "The PostDetailPage.tsx diff is truncated and the login gate UI section is not fully visible. While a login button is implemented, it cannot be confirmed from the truncated diff whether a 'Create Internet Identity' link is present in the gate UI.",
-      "evidence": [
-        "frontend/src/pages/PostDetailPage.tsx"
+        "backend/main.mo"
       ]
     }
   ],
   "hallucinated_features": [],
-  "confidence": 0.72,
+  "confidence": 0.78,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/components/Layout.tsx",
     "frontend/src/components/PostCard.tsx",
+    "frontend/src/hooks/useImageUpload.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/CreatePostPage.tsx",
+    "frontend/src/pages/EditPostPage.tsx",
     "frontend/src/pages/PostDetailPage.tsx",
-    "frontend/src/utils/contentTruncator.ts",
     "project_state.json"
   ]
 }
