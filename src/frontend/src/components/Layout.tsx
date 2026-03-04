@@ -9,6 +9,7 @@ import {
   PenSquare,
   ShieldCheck,
   UserCircle,
+  Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { ADMIN_PRINCIPAL_ID } from "../config/constants";
@@ -66,6 +67,16 @@ export default function Layout({ children }: LayoutProps) {
                     <Link to="/drafts" className="gap-2">
                       <FileText className="h-4 w-4" />
                       Mina utkast
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" asChild>
+                    <Link
+                      to="/users"
+                      className="gap-2"
+                      data-ocid="nav.users.link"
+                    >
+                      <Users className="h-4 w-4" />
+                      Användare
                     </Link>
                   </Button>
                   <Button variant="ghost" asChild>

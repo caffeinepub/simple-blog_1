@@ -62,6 +62,10 @@ export const ReactionCount = IDL.Record({
   'likes' : IDL.Nat,
   'dislikes' : IDL.Nat,
 });
+export const PublicProfile = IDL.Record({
+  'principal' : IDL.Principal,
+  'alias' : IDL.Text,
+});
 export const UpdatePostResult = IDL.Variant({
   'ok' : IDL.Null,
   'postNotFound' : IDL.Null,
@@ -105,6 +109,7 @@ export const idlService = IDL.Service({
     ),
   'deletePost' : IDL.Func([IDL.Nat], [], []),
   'dislikePost' : IDL.Func([IDL.Nat], [], []),
+  'followUser' : IDL.Func([IDL.Principal], [], []),
   'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
   'getAllPostsAdmin' : IDL.Func([], [IDL.Vec(Post)], ['query']),
   'getAllProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
@@ -112,10 +117,13 @@ export const idlService = IDL.Service({
   'getAuthors' : IDL.Func([], [IDL.Vec(AuthorInfo)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getFollowedUsers' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
+  'getFollowerCount' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
   'getMyDrafts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
   'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
   'getPostReactions' : IDL.Func([IDL.Nat], [ReactionCount], ['query']),
   'getPreferredLanguage' : IDL.Func([], [IDL.Text], ['query']),
+  'getPublicProfiles' : IDL.Func([], [IDL.Vec(PublicProfile)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -123,6 +131,7 @@ export const idlService = IDL.Service({
     ),
   'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'isFollowing' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'likePost' : IDL.Func([IDL.Nat], [], []),
   'promoteUser' : IDL.Func([IDL.Principal], [], []),
   'removeAdmin' : IDL.Func([IDL.Principal], [], []),
@@ -135,6 +144,7 @@ export const idlService = IDL.Service({
     ),
   'setOwner' : IDL.Func([IDL.Principal], [], []),
   'setPreferredLanguage' : IDL.Func([IDL.Text], [], []),
+  'unfollowUser' : IDL.Func([IDL.Principal], [], []),
   'updateDraft' : IDL.Func(
       [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
       [],
@@ -202,6 +212,10 @@ export const idlFactory = ({ IDL }) => {
     'displayName' : IDL.Text,
   });
   const ReactionCount = IDL.Record({ 'likes' : IDL.Nat, 'dislikes' : IDL.Nat });
+  const PublicProfile = IDL.Record({
+    'principal' : IDL.Principal,
+    'alias' : IDL.Text,
+  });
   const UpdatePostResult = IDL.Variant({
     'ok' : IDL.Null,
     'postNotFound' : IDL.Null,
@@ -245,6 +259,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'deletePost' : IDL.Func([IDL.Nat], [], []),
     'dislikePost' : IDL.Func([IDL.Nat], [], []),
+    'followUser' : IDL.Func([IDL.Principal], [], []),
     'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'getAllPostsAdmin' : IDL.Func([], [IDL.Vec(Post)], ['query']),
     'getAllProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
@@ -252,10 +267,13 @@ export const idlFactory = ({ IDL }) => {
     'getAuthors' : IDL.Func([], [IDL.Vec(AuthorInfo)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getFollowedUsers' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
+    'getFollowerCount' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
     'getMyDrafts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
     'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
     'getPostReactions' : IDL.Func([IDL.Nat], [ReactionCount], ['query']),
     'getPreferredLanguage' : IDL.Func([], [IDL.Text], ['query']),
+    'getPublicProfiles' : IDL.Func([], [IDL.Vec(PublicProfile)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
@@ -263,6 +281,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'isFollowing' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'likePost' : IDL.Func([IDL.Nat], [], []),
     'promoteUser' : IDL.Func([IDL.Principal], [], []),
     'removeAdmin' : IDL.Func([IDL.Principal], [], []),
@@ -275,6 +294,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'setOwner' : IDL.Func([IDL.Principal], [], []),
     'setPreferredLanguage' : IDL.Func([IDL.Text], [], []),
+    'unfollowUser' : IDL.Func([IDL.Principal], [], []),
     'updateDraft' : IDL.Func(
         [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
         [],

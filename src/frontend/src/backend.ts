@@ -104,6 +104,18 @@ export type CreatePostResult = {
 export interface _CaffeineStorageRefillInformation {
     proposed_top_up_amount?: bigint;
 }
+export interface AuthorInfo {
+    principal: Principal;
+    displayName: string;
+}
+export interface _CaffeineStorageCreateCertificateResult {
+    method: string;
+    blob_hash: string;
+}
+export interface PublicProfile {
+    principal: Principal;
+    alias: string;
+}
 export interface Post {
     id: bigint;
     status: PostStatus;
@@ -117,14 +129,6 @@ export interface Post {
     images: Array<Image>;
 }
 export type Image = Uint8Array;
-export interface AuthorInfo {
-    principal: Principal;
-    displayName: string;
-}
-export interface _CaffeineStorageCreateCertificateResult {
-    method: string;
-    blob_hash: string;
-}
 export interface UserProfile {
     preferredLanguage: string;
     country: string;
@@ -177,6 +181,10 @@ export interface backendInterface {
      */
     dislikePost(postId: bigint): Promise<void>;
     /**
+     * / Follow a user (authenticated users only)
+     */
+    followUser(target: Principal): Promise<void>;
+    /**
      * / Get all admins (owner only)
      */
     getAdmins(): Promise<Array<Principal>>;
@@ -199,6 +207,14 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     /**
+     * / Get list of users the caller follows (authenticated users only)
+     */
+    getFollowedUsers(): Promise<Array<Principal>>;
+    /**
+     * / Get follower count for a user (public)
+     */
+    getFollowerCount(target: Principal): Promise<bigint>;
+    /**
      * / Get all drafts belonging to the caller (authenticated users only)
      */
     getMyDrafts(): Promise<Array<Post>>;
@@ -214,12 +230,20 @@ export interface backendInterface {
      * / Get the preferred language for the caller (authenticated users only)
      */
     getPreferredLanguage(): Promise<string>;
+    /**
+     * / Get all users who have a public profile (name only, must not be empty)
+     */
+    getPublicProfiles(): Promise<Array<PublicProfile>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     /**
      * / Check if a principal is an admin (any authenticated user can check their own status)
      */
     isAdmin(principal: Principal): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
+    /**
+     * / Check if user is following another user (authenticated users only)
+     */
+    isFollowing(target: Principal): Promise<boolean>;
     /**
      * / Like a post (authenticated users only). Toggles like; removes dislike if present.
      */
@@ -249,6 +273,10 @@ export interface backendInterface {
      * / Set the preferred language for the caller (authenticated users only)
      */
     setPreferredLanguage(language: string): Promise<void>;
+    /**
+     * / Unfollow a user (authenticated users only)
+     */
+    unfollowUser(target: Principal): Promise<void>;
     /**
      * / Update an existing draft (authenticated users only, owner of draft only)
      */
@@ -430,6 +458,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async followUser(arg0: Principal): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.followUser(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.followUser(arg0);
+            return result;
+        }
+    }
     async getAdmins(): Promise<Array<Principal>> {
         if (this.processError) {
             try {
@@ -528,6 +570,34 @@ export class Backend implements backendInterface {
             return from_candid_UserRole_n18(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getFollowedUsers(): Promise<Array<Principal>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getFollowedUsers();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getFollowedUsers();
+            return result;
+        }
+    }
+    async getFollowerCount(arg0: Principal): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getFollowerCount(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getFollowerCount(arg0);
+            return result;
+        }
+    }
     async getMyDrafts(): Promise<Array<Post>> {
         if (this.processError) {
             try {
@@ -584,6 +654,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getPublicProfiles(): Promise<Array<PublicProfile>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPublicProfiles();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPublicProfiles();
+            return result;
+        }
+    }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
@@ -623,6 +707,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.isCallerAdmin();
+            return result;
+        }
+    }
+    async isFollowing(arg0: Principal): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.isFollowing(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.isFollowing(arg0);
             return result;
         }
     }
@@ -735,6 +833,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.setPreferredLanguage(arg0);
+            return result;
+        }
+    }
+    async unfollowUser(arg0: Principal): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.unfollowUser(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.unfollowUser(arg0);
             return result;
         }
     }

@@ -1,15 +1,42 @@
-# Specification
+# HKLO Blog
 
-## Summary
-**Goal:** Add autosave drafts, a "My Drafts" section, and an unpublish confirmation dialog to the HKLO Blogg application.
+## Current State
+A multi-author Swedish blog platform with:
+- Internet Identity login with principal-based admin (`ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae`)
+- Posts with images, categories, like/dislike reactions with animations
+- Search/filter on home page
+- Shareable post links with teaser for unauthenticated visitors
+- Draft/autosave system with unpublish dialog
+- User profiles with alias
+- Language selector (SV, EN, DE, FR, ZH, ES)
+- Admin panel for post/author management
+- Authorization via access-control mixin
 
-**Planned changes:**
-- Add a `draft` status to the backend post data model; draft posts are not visible in the public feed and are only accessible by their owner
-- Add `saveDraft`, `updateDraft`, `getDraftsByUser`, and `deleteDraft` backend mutations/queries
-- In the Create Post page, implement autosave every 30 seconds that saves/updates a draft when any field has content, with a subtle "Draft saved" indicator
-- Add a "Save as Draft" button next to the "Skapa inlägg" button in the Create Post form that saves immediately and navigates to My Drafts
-- Create a "My Drafts" page accessible from the header navigation (authenticated users only), listing the user's drafts with title, last saved timestamp, and content preview; each draft card has Edit, Publish, and Delete (with confirmation) actions
-- When the "Publicera omedelbart" toggle is turned off on an already-published post, show a confirmation dialog with three options: "Delete permanently", "Save as Draft", and "Cancel"; the toggle does not change state until the user confirms
-- Add React Query hooks (`useSaveDraft`, `useUpdateDraft`, `useGetMyDrafts`, `useDeleteDraft`) with proper cache invalidation
+## Requested Changes (Diff)
 
-**User-visible outcome:** Users can save unfinished posts as drafts (manually or via autosave), manage their drafts in a dedicated "My Drafts" section, and safely unpublish or delete published posts through a confirmation dialog when toggling off the publish switch.
+### Add
+- **Follow system backend**: follow/unfollow a user (by principal), get follower count (not follower list), get list of users the caller follows, check if caller follows a specific user
+- **User discovery**: get all public user profiles (alias + principal) so users can browse/follow others; only name/alias is exposed publicly
+- **"Mitt flöde" tab on Home**: a dedicated tab on the Home page showing only posts from users the caller follows, sorted newest first
+- **Follow button on PostCard**: next to author alias — "Följ" / "Följer" toggle button; hidden when viewing own post
+- **Users page**: new `/users` route listing all users with aliases and their follower count, with a Follow/Unfollow button per user; includes search by alias
+- **Follower count in Profile**: show follower count on the profile page; never reveal who the followers are
+
+### Modify
+- `main.mo`: add follow state (`followers: Map<Principal, Set<Principal>>`), add `followUser`, `unfollowUser`, `isFollowing`, `getFollowerCount`, `getFollowedUsers`, `getPublicProfiles` functions
+- `HomePage.tsx`: add "Alla inlägg" / "Mitt flöde" tabs; Mitt flöde loads posts from followed users only
+- `PostCard.tsx`: add Follow/Unfollow button next to author alias
+- `ProfilePage.tsx`: display follower count
+- `Layout.tsx` / `App.tsx`: add navigation link and route for Users page
+
+### Remove
+- Nothing removed
+
+## Implementation Plan
+1. Update `main.mo` with follow state and 6 new query/update functions
+2. Regenerate `backend.d.ts` bindings
+3. Add `UsersPage.tsx` — searchable list of all users with follow buttons
+4. Add `/users` route in `App.tsx` and navigation link in `Layout.tsx`
+5. Update `PostCard.tsx` — add Follow/Unfollow toggle button next to author alias
+6. Update `HomePage.tsx` — add tabs ("Alla inlägg" / "Mitt flöde") and implement feed filtering
+7. Update `ProfilePage.tsx` — fetch and display follower count

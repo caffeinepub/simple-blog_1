@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Post } from "../backend";
 import { useShare } from "../hooks/useShare";
 import { formatDate } from "../utils/dateFormatter";
+import FollowButton from "./FollowButton";
 import ReactionButtons from "./ReactionButtons";
 import ShareModal from "./ShareModal";
 
@@ -109,6 +110,10 @@ export default function PostCard({ post }: PostCardProps) {
             <div className="flex items-center gap-2">
               <User className="h-4 w-4" />
               <span className="font-medium">{post.author}</span>
+              <FollowButton
+                targetPrincipal={post.ownerId}
+                targetAlias={post.author}
+              />
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />

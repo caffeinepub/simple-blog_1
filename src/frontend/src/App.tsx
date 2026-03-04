@@ -16,6 +16,7 @@ import LoginPage from "./pages/LoginPage";
 import MyDraftsPage from "./pages/MyDraftsPage";
 import PostDetailPage from "./pages/PostDetailPage";
 import ProfilePage from "./pages/ProfilePage";
+import UsersPage from "./pages/UsersPage";
 
 // Root route that handles both protected and public routes
 const rootRoute = createRootRoute({
@@ -117,6 +118,18 @@ const profileRoute = createRoute({
   ),
 });
 
+const usersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/users",
+  component: () => (
+    <ProtectedRoute>
+      <Layout>
+        <UsersPage />
+      </Layout>
+    </ProtectedRoute>
+  ),
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   indexRoute,
@@ -126,6 +139,7 @@ const routeTree = rootRoute.addChildren([
   adminRoute,
   draftsRoute,
   profileRoute,
+  usersRoute,
 ]);
 
 const router = createRouter({

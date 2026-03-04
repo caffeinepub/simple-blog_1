@@ -1,13 +1,13 @@
-import Text "mo:core/Text";
 import Array "mo:core/Array";
+import Iter "mo:core/Iter";
 import Order "mo:core/Order";
-import Time "mo:core/Time";
-import Int "mo:core/Int";
-import Map "mo:core/Map";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
-import Iter "mo:core/Iter";
+import Int "mo:core/Int";
+import Map "mo:core/Map";
 import Set "mo:core/Set";
+import Text "mo:core/Text";
+import Time "mo:core/Time";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import AccessControl "authorization/access-control";
@@ -77,12 +77,18 @@ actor {
     dislikes : Nat;
   };
 
+  public type PublicProfile = {
+    principal : Principal;
+    alias : Text;
+  };
+
   // State
-  var owner : Principal = Principal.fromText("2vxsx-fae");
+  var owner : Principal = Principal.fromText("ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae");
   let posts = Map.empty<Nat, Post>();
   let userProfiles = Map.empty<Principal, UserProfile>();
   var nextPostId = 0;
-  let drafts = Map.empty<Nat, Post>(); // Store drafts by postId
+  let drafts = Map.empty<Nat, Post>();
+  let followMap = Map.empty<Principal, Set.Set<Principal>>(); // Follow system
 
   // Owner/Admin management functions
 
@@ -549,5 +555,105 @@ actor {
       Runtime.trap("Unauthorized: Only authenticated users can retrieve their drafts");
     };
     drafts.values().toArray().filter(func(draft : Post) : Bool { draft.ownerId == caller });
+  };
+
+  //--- Follow System ---
+
+  /// Follow a user (authenticated users only)
+  public shared ({ caller }) func followUser(target : Principal) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can follow others");
+    };
+
+    if (caller == target) {
+      Runtime.trap("You cannot follow yourself");
+    };
+
+    let currentFollowers = switch (followMap.get(target)) {
+      case (null) { Set.empty<Principal>() };
+      case (?followers) { followers };
+    };
+
+    if (currentFollowers.contains(caller)) {
+      return;
+    };
+
+    let updatedFollowers = Set.empty<Principal>();
+    for (follower in currentFollowers.values()) {
+      updatedFollowers.add(follower);
+    };
+    updatedFollowers.add(caller);
+
+    followMap.add(target, updatedFollowers);
+  };
+
+  /// Unfollow a user (authenticated users only)
+  public shared ({ caller }) func unfollowUser(target : Principal) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can unfollow others");
+    };
+
+    switch (followMap.get(target)) {
+      case (null) { return };
+      case (?followers) {
+        if (not followers.contains(caller)) {
+          return;
+        };
+        followers.remove(caller);
+        if (followers.isEmpty()) {
+          followMap.remove(target);
+        };
+      };
+    };
+  };
+
+  /// Check if user is following another user (authenticated users only)
+  public query ({ caller }) func isFollowing(target : Principal) : async Bool {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can check follow status");
+    };
+    switch (followMap.get(target)) {
+      case (null) { false };
+      case (?followers) { followers.contains(caller) };
+    };
+  };
+
+  /// Get follower count for a user (public)
+  public query func getFollowerCount(target : Principal) : async Nat {
+    switch (followMap.get(target)) {
+      case (null) { 0 };
+      case (?followers) { followers.size() };
+    };
+  };
+
+  /// Get list of users the caller follows (authenticated users only)
+  public query ({ caller }) func getFollowedUsers() : async [Principal] {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can get their followed users");
+    };
+
+    var followedUsers : [Principal] = [];
+    for ((target, followers) in followMap.entries()) {
+      if (followers.contains(caller)) {
+        followedUsers := followedUsers.concat([target]);
+      };
+    };
+    followedUsers;
+  };
+
+  /// Get all users who have a public profile (name only, must not be empty)
+  public query func getPublicProfiles() : async [PublicProfile] {
+    let publicProfiles = userProfiles.entries().toArray().filter(
+      func((principal, profile)) { profile.name != "" and profile.name != "unnamed" }
+    );
+
+    publicProfiles.map(
+      func((principal, profile)) {
+        {
+          principal;
+          alias = profile.name;
+        };
+      }
+    );
   };
 };

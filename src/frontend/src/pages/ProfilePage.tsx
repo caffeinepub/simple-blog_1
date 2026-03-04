@@ -37,9 +37,11 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { UserProfile } from "../backend";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useGetAllProfiles,
   useGetCallerUserProfile,
+  useGetFollowerCount,
   useIsCallerAdmin,
   useSaveCallerUserProfile,
   useSetPreferredLanguage,
@@ -468,6 +470,48 @@ function ProfileResultCard({ profile }: { profile: UserProfile }) {
   );
 }
 
+// ─── Follower Count ───────────────────────────────────────────────────────────
+
+function FollowerCountCard() {
+  const { identity } = useInternetIdentity();
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+  const principal = isAuthenticated ? identity.getPrincipal() : undefined;
+  const { data: followerCount, isLoading } = useGetFollowerCount(principal);
+
+  if (!isAuthenticated) return null;
+
+  return (
+    <Card className="border-border/40 shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-xl font-serif flex items-center gap-2">
+          <Users className="h-5 w-5 text-muted-foreground" />
+          Dina följare
+        </CardTitle>
+        <CardDescription>
+          Antalet användare som följer dig. Du kan aldrig se vilka de är.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Users className="h-6 w-6 text-primary" />
+          </div>
+          {isLoading ? (
+            <Skeleton className="h-8 w-24" />
+          ) : (
+            <div>
+              <p className="text-2xl font-bold text-foreground tabular-nums">
+                {followerCount !== undefined ? Number(followerCount) : 0}
+              </p>
+              <p className="text-sm text-muted-foreground">följare</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -501,6 +545,7 @@ export default function ProfilePage() {
 
       <div className="space-y-6">
         <ProfileForm />
+        <FollowerCountCard />
         <UserSearch isAdmin={!!isAdmin} />
       </div>
     </main>

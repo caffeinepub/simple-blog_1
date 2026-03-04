@@ -4,6 +4,7 @@ import type {
   AuthorInfo,
   Image,
   Post,
+  PublicProfile,
   ReactionCount,
   UserProfile,
 } from "../backend";
@@ -578,6 +579,110 @@ export function useRemoveAuthor() {
       queryClient.invalidateQueries({ queryKey: ["authors"] });
       queryClient.invalidateQueries({ queryKey: ["posts", "admin"] });
       queryClient.invalidateQueries({ queryKey: ["posts", "published"] });
+    },
+  });
+}
+
+// ─── Follow Hooks ─────────────────────────────────────────────────────────────
+
+export function useGetPublicProfiles() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<PublicProfile[]>({
+    queryKey: ["publicProfiles"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getPublicProfiles();
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 30_000,
+  });
+}
+
+export function useGetFollowedUsers() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+
+  return useQuery<Principal[]>({
+    queryKey: ["followedUsers"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getFollowedUsers();
+    },
+    enabled: !!actor && !isFetching && isAuthenticated,
+    staleTime: 15_000,
+  });
+}
+
+export function useGetFollowerCount(target: Principal | undefined) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<bigint>({
+    queryKey: ["followerCount", target?.toString()],
+    queryFn: async () => {
+      if (!actor || !target) return BigInt(0);
+      return actor.getFollowerCount(target);
+    },
+    enabled: !!actor && !isFetching && !!target,
+    staleTime: 30_000,
+  });
+}
+
+export function useIsFollowing(target: Principal | undefined) {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+
+  return useQuery<boolean>({
+    queryKey: ["isFollowing", target?.toString()],
+    queryFn: async () => {
+      if (!actor || !target) return false;
+      return actor.isFollowing(target);
+    },
+    enabled: !!actor && !isFetching && isAuthenticated && !!target,
+    staleTime: 15_000,
+  });
+}
+
+export function useFollowUser() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (target: Principal) => {
+      if (!actor) throw new Error("Actor not initialized");
+      await actor.followUser(target);
+    },
+    onSuccess: (_data, target) => {
+      queryClient.invalidateQueries({ queryKey: ["followedUsers"] });
+      queryClient.invalidateQueries({
+        queryKey: ["isFollowing", target.toString()],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["followerCount", target.toString()],
+      });
+    },
+  });
+}
+
+export function useUnfollowUser() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (target: Principal) => {
+      if (!actor) throw new Error("Actor not initialized");
+      await actor.unfollowUser(target);
+    },
+    onSuccess: (_data, target) => {
+      queryClient.invalidateQueries({ queryKey: ["followedUsers"] });
+      queryClient.invalidateQueries({
+        queryKey: ["isFollowing", target.toString()],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["followerCount", target.toString()],
+      });
     },
   });
 }

@@ -29,6 +29,7 @@ export interface Post {
 export type PostStatus = { 'published' : null } |
   { 'hidden' : null } |
   { 'draft' : null };
+export interface PublicProfile { 'principal' : Principal, 'alias' : string }
 export interface ReactionCount { 'likes' : bigint, 'dislikes' : bigint }
 export type Time = bigint;
 export type UpdatePostResult = { 'ok' : null } |
@@ -93,6 +94,10 @@ export interface _SERVICE {
    */
   'dislikePost' : ActorMethod<[bigint], undefined>,
   /**
+   * / Follow a user (authenticated users only)
+   */
+  'followUser' : ActorMethod<[Principal], undefined>,
+  /**
    * / Get all admins (owner only)
    */
   'getAdmins' : ActorMethod<[], Array<Principal>>,
@@ -115,6 +120,14 @@ export interface _SERVICE {
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   /**
+   * / Get list of users the caller follows (authenticated users only)
+   */
+  'getFollowedUsers' : ActorMethod<[], Array<Principal>>,
+  /**
+   * / Get follower count for a user (public)
+   */
+  'getFollowerCount' : ActorMethod<[Principal], bigint>,
+  /**
    * / Get all drafts belonging to the caller (authenticated users only)
    */
   'getMyDrafts' : ActorMethod<[], Array<Post>>,
@@ -130,12 +143,20 @@ export interface _SERVICE {
    * / Get the preferred language for the caller (authenticated users only)
    */
   'getPreferredLanguage' : ActorMethod<[], string>,
+  /**
+   * / Get all users who have a public profile (name only, must not be empty)
+   */
+  'getPublicProfiles' : ActorMethod<[], Array<PublicProfile>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   /**
    * / Check if a principal is an admin (any authenticated user can check their own status)
    */
   'isAdmin' : ActorMethod<[Principal], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  /**
+   * / Check if user is following another user (authenticated users only)
+   */
+  'isFollowing' : ActorMethod<[Principal], boolean>,
   /**
    * / Like a post (authenticated users only). Toggles like; removes dislike if present.
    */
@@ -165,6 +186,10 @@ export interface _SERVICE {
    * / Set the preferred language for the caller (authenticated users only)
    */
   'setPreferredLanguage' : ActorMethod<[string], undefined>,
+  /**
+   * / Unfollow a user (authenticated users only)
+   */
+  'unfollowUser' : ActorMethod<[Principal], undefined>,
   /**
    * / Update an existing draft (authenticated users only, owner of draft only)
    */

@@ -19,6 +19,14 @@ export type CreatePostResult = {
     __kind__: "imageTooLarge";
     imageTooLarge: null;
 };
+export interface AuthorInfo {
+    principal: Principal;
+    displayName: string;
+}
+export interface PublicProfile {
+    principal: Principal;
+    alias: string;
+}
 export interface Post {
     id: bigint;
     status: PostStatus;
@@ -32,10 +40,6 @@ export interface Post {
     images: Array<Image>;
 }
 export type Image = Uint8Array;
-export interface AuthorInfo {
-    principal: Principal;
-    displayName: string;
-}
 export interface UserProfile {
     preferredLanguage: string;
     country: string;
@@ -77,6 +81,10 @@ export interface backendInterface {
      */
     dislikePost(postId: bigint): Promise<void>;
     /**
+     * / Follow a user (authenticated users only)
+     */
+    followUser(target: Principal): Promise<void>;
+    /**
      * / Get all admins (owner only)
      */
     getAdmins(): Promise<Array<Principal>>;
@@ -99,6 +107,14 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     /**
+     * / Get list of users the caller follows (authenticated users only)
+     */
+    getFollowedUsers(): Promise<Array<Principal>>;
+    /**
+     * / Get follower count for a user (public)
+     */
+    getFollowerCount(target: Principal): Promise<bigint>;
+    /**
      * / Get all drafts belonging to the caller (authenticated users only)
      */
     getMyDrafts(): Promise<Array<Post>>;
@@ -114,12 +130,20 @@ export interface backendInterface {
      * / Get the preferred language for the caller (authenticated users only)
      */
     getPreferredLanguage(): Promise<string>;
+    /**
+     * / Get all users who have a public profile (name only, must not be empty)
+     */
+    getPublicProfiles(): Promise<Array<PublicProfile>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     /**
      * / Check if a principal is an admin (any authenticated user can check their own status)
      */
     isAdmin(principal: Principal): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
+    /**
+     * / Check if user is following another user (authenticated users only)
+     */
+    isFollowing(target: Principal): Promise<boolean>;
     /**
      * / Like a post (authenticated users only). Toggles like; removes dislike if present.
      */
@@ -149,6 +173,10 @@ export interface backendInterface {
      * / Set the preferred language for the caller (authenticated users only)
      */
     setPreferredLanguage(language: string): Promise<void>;
+    /**
+     * / Unfollow a user (authenticated users only)
+     */
+    unfollowUser(target: Principal): Promise<void>;
     /**
      * / Update an existing draft (authenticated users only, owner of draft only)
      */
