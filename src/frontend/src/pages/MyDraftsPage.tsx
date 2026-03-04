@@ -1,6 +1,5 @@
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -156,6 +155,12 @@ function DraftCard({
 }) {
   const preview = truncateContent(draft.content, 30);
   const dateStr = formatDate(draft.createdAt);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleConfirmDelete = () => {
+    setDialogOpen(false);
+    onDelete();
+  };
 
   return (
     <Card className="border-border/40 shadow-sm hover:shadow-md transition-shadow">
@@ -215,13 +220,16 @@ function DraftCard({
             )}
             Publicera
           </Button>
-          <AlertDialog>
+
+          <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <AlertDialogTrigger asChild>
               <Button
                 size="sm"
                 variant="ghost"
                 disabled={isPublishing || isDeleting}
+                onClick={() => setDialogOpen(true)}
                 className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                data-ocid="drafts.delete_button"
               >
                 {isDeleting ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -231,7 +239,7 @@ function DraftCard({
                 Ta bort
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent data-ocid="drafts.dialog">
               <AlertDialogHeader>
                 <AlertDialogTitle>Ta bort utkast</AlertDialogTitle>
                 <AlertDialogDescription>
@@ -240,13 +248,16 @@ function DraftCard({
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Avbryt</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={onDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                <AlertDialogCancel data-ocid="drafts.cancel_button">
+                  Avbryt
+                </AlertDialogCancel>
+                <Button
+                  variant="destructive"
+                  onClick={handleConfirmDelete}
+                  data-ocid="drafts.confirm_button"
                 >
                   Ta bort permanent
-                </AlertDialogAction>
+                </Button>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -360,8 +371,9 @@ export default function MyDraftsPage() {
     try {
       await deleteDraftMutation.mutateAsync(draft.id);
       toast.success("Utkastet har tagits bort.");
-    } catch {
-      toast.error("Kunde inte ta bort utkastet. Försök igen.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Okänt fel";
+      toast.error(`Kunde inte ta bort utkastet: ${msg}`);
     } finally {
       setDeletingId(null);
     }

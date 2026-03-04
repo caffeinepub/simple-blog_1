@@ -289,7 +289,19 @@ export function useDeleteDraft() {
   return useMutation({
     mutationFn: async (id: bigint) => {
       if (!actor) throw new Error("Actor not initialized");
-      await actor.deletePost(id);
+      try {
+        await actor.deletePost(id);
+      } catch (err: unknown) {
+        // Surface the exact backend error message (e.g. Runtime.trap messages)
+        if (err instanceof Error) {
+          throw err;
+        }
+        const msg =
+          typeof err === "string"
+            ? err
+            : JSON.stringify(err) || "Okänt fel från servern";
+        throw new Error(msg);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myDrafts"] });

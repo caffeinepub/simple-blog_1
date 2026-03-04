@@ -18,8 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import data from "@emoji-mart/data";
-import Picker from "@emoji-mart/react";
+// Inline emoji picker (replaces @emoji-mart — not in package.json)
 import {
   Calendar,
   Image as ImageIcon,
@@ -47,6 +46,267 @@ import {
   useSaveCallerUserProfile,
 } from "../hooks/useQueries";
 import { formatDate } from "../utils/dateFormatter";
+
+// ─── Inline Emoji Picker ──────────────────────────────────────────────────────
+
+const EMOJI_CATEGORIES: { label: string; emojis: string[] }[] = [
+  {
+    label: "Smileys",
+    emojis: [
+      "😀",
+      "😃",
+      "😄",
+      "😁",
+      "😆",
+      "😅",
+      "😂",
+      "🤣",
+      "😊",
+      "😇",
+      "🙂",
+      "🙃",
+      "😉",
+      "😌",
+      "😍",
+      "🥰",
+      "😘",
+      "😗",
+      "😙",
+      "😚",
+      "😋",
+      "😛",
+      "😝",
+      "😜",
+      "🤪",
+      "🤨",
+      "🧐",
+      "🤓",
+      "😎",
+      "🥸",
+      "🤩",
+      "🥳",
+      "😏",
+      "😒",
+      "😞",
+      "😔",
+      "😟",
+      "😕",
+      "🙁",
+      "☹️",
+      "😣",
+      "😖",
+      "😫",
+      "😩",
+      "🥺",
+      "😢",
+      "😭",
+      "😤",
+      "😠",
+      "😡",
+      "🤬",
+      "🤯",
+      "😳",
+      "🥵",
+      "🥶",
+      "😱",
+      "😨",
+      "😰",
+      "😥",
+      "😓",
+    ],
+  },
+  {
+    label: "Händer",
+    emojis: [
+      "👍",
+      "👎",
+      "👌",
+      "✌️",
+      "🤞",
+      "🤟",
+      "🤘",
+      "🤙",
+      "👈",
+      "👉",
+      "👆",
+      "🖕",
+      "👇",
+      "☝️",
+      "👋",
+      "🤚",
+      "🖐️",
+      "✋",
+      "🖖",
+      "👏",
+      "🙌",
+      "🤲",
+      "🤝",
+      "🙏",
+      "💪",
+      "🦾",
+      "🦿",
+      "✍️",
+      "🤳",
+      "💅",
+    ],
+  },
+  {
+    label: "Hjärtan",
+    emojis: [
+      "❤️",
+      "🧡",
+      "💛",
+      "💚",
+      "💙",
+      "💜",
+      "🖤",
+      "🤍",
+      "🤎",
+      "💔",
+      "❣️",
+      "💕",
+      "💞",
+      "💓",
+      "💗",
+      "💖",
+      "💘",
+      "💝",
+      "💟",
+      "☮️",
+    ],
+  },
+  {
+    label: "Natur",
+    emojis: [
+      "🌸",
+      "🌺",
+      "🌻",
+      "🌹",
+      "🌷",
+      "🌱",
+      "🌿",
+      "🍀",
+      "🍁",
+      "🍂",
+      "🍃",
+      "🌳",
+      "🌲",
+      "🎋",
+      "🎄",
+      "🌵",
+      "🌴",
+      "🌾",
+      "☘️",
+      "🍄",
+      "🐶",
+      "🐱",
+      "🐭",
+      "🐹",
+      "🐰",
+      "🦊",
+      "🐻",
+      "🐼",
+      "🐨",
+      "🐯",
+    ],
+  },
+  {
+    label: "Mat",
+    emojis: [
+      "🍕",
+      "🍔",
+      "🍟",
+      "🌮",
+      "🌯",
+      "🥪",
+      "🥗",
+      "🍜",
+      "🍣",
+      "🍱",
+      "🍩",
+      "🍪",
+      "🎂",
+      "🍰",
+      "🧁",
+      "🍫",
+      "🍬",
+      "🍭",
+      "🍦",
+      "🧃",
+      "☕",
+      "🍵",
+      "🧋",
+      "🥤",
+      "🍺",
+      "🥂",
+      "🍷",
+      "🥃",
+      "🍸",
+      "🎉",
+    ],
+  },
+];
+
+function EmojiPicker({
+  onSelect,
+}: {
+  onSelect: (emoji: string) => void;
+}) {
+  const [activeCategory, setActiveCategory] = useState(0);
+  const [search, setSearch] = useState("");
+
+  const filtered = search.trim()
+    ? EMOJI_CATEGORIES.flatMap((c) => c.emojis).filter(() => true)
+    : (EMOJI_CATEGORIES[activeCategory]?.emojis ?? []);
+
+  // Simple search: just show all when searching (emoji search by character not meaningful)
+  const displayEmojis = search.trim()
+    ? EMOJI_CATEGORIES.flatMap((c) => c.emojis)
+    : filtered;
+
+  return (
+    <div className="w-72 p-2 space-y-2">
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Sök emoji..."
+        className="w-full text-xs px-2 py-1 rounded border border-border/40 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+      />
+      {!search.trim() && (
+        <div className="flex gap-1 flex-wrap">
+          {EMOJI_CATEGORIES.map((cat, i) => (
+            <button
+              key={cat.label}
+              type="button"
+              onClick={() => setActiveCategory(i)}
+              className={`text-xs px-2 py-0.5 rounded-full transition-colors ${
+                activeCategory === i
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="grid grid-cols-8 gap-0.5 max-h-40 overflow-y-auto">
+        {displayEmojis.map((emoji) => (
+          <button
+            key={emoji}
+            type="button"
+            onClick={() => onSelect(emoji)}
+            className="h-8 w-8 flex items-center justify-center text-lg rounded hover:bg-accent transition-colors"
+            title={emoji}
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ─── Inline Image Display ─────────────────────────────────────────────────────
 
@@ -155,22 +415,21 @@ function CommentRow({ comment, isOwn, postId }: CommentRowProps) {
     }
   };
 
-  const insertEmojiInEdit = (emojiObj: { native?: string }) => {
-    if (!emojiObj.native) return;
+  const insertEmojiInEdit = (emoji: string) => {
     const el = editTextareaRef.current;
     if (!el) {
-      setEditContent((prev) => prev + emojiObj.native);
+      setEditContent((prev) => prev + emoji);
+      setEmojiOpen(false);
       return;
     }
     const start = el.selectionStart ?? editContent.length;
     const end = el.selectionEnd ?? editContent.length;
-    const next =
-      editContent.slice(0, start) + emojiObj.native + editContent.slice(end);
+    const next = editContent.slice(0, start) + emoji + editContent.slice(end);
     setEditContent(next);
     setEmojiOpen(false);
     setTimeout(() => {
       el.focus();
-      const pos = start + (emojiObj.native?.length ?? 0);
+      const pos = start + emoji.length;
       el.setSelectionRange(pos, pos);
     }, 50);
   };
@@ -223,18 +482,8 @@ function CommentRow({ comment, isOwn, postId }: CommentRowProps) {
                       <Smile className="h-4 w-4" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent
-                    className="p-0 w-auto border-0 shadow-xl"
-                    align="end"
-                  >
-                    <Picker
-                      data={data}
-                      locale="sv"
-                      onEmojiSelect={insertEmojiInEdit}
-                      theme="light"
-                      previewPosition="none"
-                      skinTonePosition="none"
-                    />
+                  <PopoverContent className="p-2 w-auto shadow-xl" align="end">
+                    <EmojiPicker onSelect={insertEmojiInEdit} />
                   </PopoverContent>
                 </Popover>
               </div>
@@ -427,22 +676,21 @@ export default function CommentsSection({ postId }: CommentsSectionProps) {
     }
   }, [profileFetched, hasProfileAlias, profileAlias]);
 
-  const insertEmoji = (emojiObj: { native?: string }) => {
-    if (!emojiObj.native) return;
+  const insertEmoji = (emoji: string) => {
     const el = textareaRef.current;
     if (!el) {
-      setNewComment((prev) => prev + emojiObj.native);
+      setNewComment((prev) => prev + emoji);
+      setEmojiOpen(false);
       return;
     }
     const start = el.selectionStart ?? newComment.length;
     const end = el.selectionEnd ?? newComment.length;
-    const next =
-      newComment.slice(0, start) + emojiObj.native + newComment.slice(end);
+    const next = newComment.slice(0, start) + emoji + newComment.slice(end);
     setNewComment(next);
     setEmojiOpen(false);
     setTimeout(() => {
       el.focus();
-      const pos = start + (emojiObj.native?.length ?? 0);
+      const pos = start + emoji.length;
       el.setSelectionRange(pos, pos);
     }, 50);
   };
@@ -613,18 +861,11 @@ export default function CommentsSection({ postId }: CommentsSectionProps) {
                 </Button>
               </PopoverTrigger>
               <PopoverContent
-                className="p-0 w-auto border-0 shadow-xl"
+                className="p-2 w-auto shadow-xl"
                 align="end"
                 data-ocid="comments.emoji.popover"
               >
-                <Picker
-                  data={data}
-                  locale="sv"
-                  onEmojiSelect={insertEmoji}
-                  theme="light"
-                  previewPosition="none"
-                  skinTonePosition="none"
-                />
+                <EmojiPicker onSelect={insertEmoji} />
               </PopoverContent>
             </Popover>
           </div>
