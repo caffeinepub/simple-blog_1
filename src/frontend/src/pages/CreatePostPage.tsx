@@ -22,14 +22,13 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   AlertCircle,
   ArrowLeft,
-  CheckCircle2,
   FileText,
   Image as ImageIcon,
   Loader2,
   Upload,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { UserProfile } from "../backend";
 import {
@@ -46,8 +45,6 @@ import {
   useUpdateDraft,
 } from "../hooks/useQueries";
 
-const AUTOSAVE_INTERVAL_MS = 30_000;
-
 export default function CreatePostPage() {
   const navigate = useNavigate();
   const [category, setCategory] = useState<Category | "">("");
@@ -62,13 +59,9 @@ export default function CreatePostPage() {
     author?: string;
   }>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [_draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
-  const [showDraftSaved, setShowDraftSaved] = useState(false);
 
-  // Track current draft ID for autosave updates
+  // Track current draft ID for manual saves
   const currentDraftIdRef = useRef<bigint | null>(null);
-  const autosaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const draftSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const createPostMutation = useCreatePost();
   const saveDraftMutation = useSaveDraft();
@@ -99,73 +92,6 @@ export default function CreatePostPage() {
     clearImages,
   } = useImageUpload();
 
-  const hasContent = title.trim() || content.trim() || author.trim();
-
-  const showDraftSavedIndicator = useCallback(() => {
-    setDraftSavedAt(new Date());
-    setShowDraftSaved(true);
-    if (draftSavedTimerRef.current) clearTimeout(draftSavedTimerRef.current);
-    draftSavedTimerRef.current = setTimeout(
-      () => setShowDraftSaved(false),
-      3000,
-    );
-  }, []);
-
-  const performAutosave = useCallback(async () => {
-    if (!hasContent) return;
-    try {
-      const imageBlobs = await convertToBlobs();
-      if (currentDraftIdRef.current !== null) {
-        await updateDraftMutation.mutateAsync({
-          id: currentDraftIdRef.current,
-          title: title.trim() || "(Utan titel)",
-          content: content.trim(),
-          author: author.trim(),
-          images: imageBlobs,
-        });
-      } else {
-        const newId = await saveDraftMutation.mutateAsync({
-          title: title.trim() || "(Utan titel)",
-          content: content.trim(),
-          author: author.trim(),
-          images: imageBlobs,
-        });
-        currentDraftIdRef.current = newId;
-      }
-      showDraftSavedIndicator();
-    } catch {
-      // Silent autosave failure – don't interrupt the user
-    }
-  }, [
-    hasContent,
-    title,
-    content,
-    author,
-    convertToBlobs,
-    saveDraftMutation,
-    updateDraftMutation,
-    showDraftSavedIndicator,
-  ]);
-
-  // Set up autosave interval
-  useEffect(() => {
-    autosaveTimerRef.current = setInterval(
-      performAutosave,
-      AUTOSAVE_INTERVAL_MS,
-    );
-    return () => {
-      if (autosaveTimerRef.current) clearInterval(autosaveTimerRef.current);
-      if (draftSavedTimerRef.current) clearTimeout(draftSavedTimerRef.current);
-    };
-  }, [performAutosave]);
-
-  const clearAutosave = () => {
-    if (autosaveTimerRef.current) {
-      clearInterval(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
-  };
-
   const validateForm = () => {
     const newErrors: { title?: string; content?: string; author?: string } = {};
     if (!title.trim()) newErrors.title = "Titel krävs";
@@ -181,7 +107,6 @@ export default function CreatePostPage() {
     if (!validateForm()) return;
     if (hasSizeError) return;
 
-    clearAutosave();
     try {
       const imageBlobs = await convertToBlobs();
       const trimmedAuthor = author.trim();
@@ -224,7 +149,6 @@ export default function CreatePostPage() {
       toast.error("Fyll i minst ett fält innan du sparar som utkast.");
       return;
     }
-    clearAutosave();
     try {
       const imageBlobs = await convertToBlobs();
       if (currentDraftIdRef.current !== null) {
@@ -236,19 +160,26 @@ export default function CreatePostPage() {
           images: imageBlobs,
         });
       } else {
-        await saveDraftMutation.mutateAsync({
+        const newId = await saveDraftMutation.mutateAsync({
           title: title.trim() || "(Utan titel)",
           content: content.trim(),
           author: author.trim(),
           images: imageBlobs,
         });
+        currentDraftIdRef.current = newId;
       }
       clearImages();
-      toast.success("Utkastet har sparats!");
+      toast.success(
+        "Utkastet har sparats! Du hittar det under Mina inlägg och utkast.",
+        {
+          duration: 4000,
+        },
+      );
       navigate({ to: "/drafts" });
     } catch (err) {
       console.error("Failed to save draft:", err);
-      toast.error("Kunde inte spara utkastet. Försök igen.");
+      const errMsg = err instanceof Error ? err.message : "Okänt fel";
+      toast.error(`Kunde inte spara utkastet: ${errMsg}`);
     }
   };
 
@@ -293,13 +224,32 @@ export default function CreatePostPage() {
                 Dela dina tankar och berättelser med gemenskapen
               </CardDescription>
             </div>
-            {/* Draft saved indicator */}
-            <div
-              className={`flex items-center gap-1.5 text-xs text-muted-foreground transition-opacity duration-500 mt-1 shrink-0 ${showDraftSaved ? "opacity-100" : "opacity-0"}`}
+            {/* Save as draft button at the top */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSaveAsDraft}
+              disabled={
+                createPostMutation.isPending ||
+                isProcessing ||
+                hasSizeError ||
+                isSavingDraft
+              }
+              className="shrink-0 gap-2"
+              data-ocid="create_post.save_draft_top.button"
             >
-              <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-              <span>Utkast sparat</span>
-            </div>
+              {isSavingDraft ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Sparar...
+                </>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4" />
+                  Spara som utkast
+                </>
+              )}
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -588,10 +538,7 @@ export default function CreatePostPage() {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => {
-                  clearAutosave();
-                  navigate({ to: "/" });
-                }}
+                onClick={() => navigate({ to: "/" })}
                 disabled={createPostMutation.isPending || isSavingDraft}
               >
                 Avbryt
