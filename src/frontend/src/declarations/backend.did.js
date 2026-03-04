@@ -29,6 +29,16 @@ export const CreatePostResult = IDL.Variant({
   'ok' : IDL.Nat,
   'imageTooLarge' : IDL.Null,
 });
+export const DeleteCommentResult = IDL.Variant({
+  'ok' : IDL.Null,
+  'notFound' : IDL.Null,
+  'notOwner' : IDL.Null,
+});
+export const EditCommentResult = IDL.Variant({
+  'ok' : IDL.Null,
+  'notFound' : IDL.Null,
+  'notOwner' : IDL.Null,
+});
 export const PostStatus = IDL.Variant({
   'published' : IDL.Null,
   'hidden' : IDL.Null,
@@ -57,6 +67,29 @@ export const UserProfile = IDL.Record({
 export const AuthorInfo = IDL.Record({
   'principal' : IDL.Principal,
   'displayName' : IDL.Text,
+});
+export const Comment = IDL.Record({
+  'id' : IDL.Nat,
+  'isDeleted' : IDL.Bool,
+  'content' : IDL.Text,
+  'createdAt' : Time,
+  'authorAlias' : IDL.Text,
+  'authorPrincipal' : IDL.Principal,
+  'postId' : IDL.Nat,
+  'images' : IDL.Vec(IDL.Vec(IDL.Nat8)),
+});
+export const GetCommentsResult = IDL.Variant({
+  'ok' : IDL.Vec(Comment),
+  'postNotFound' : IDL.Null,
+});
+export const Notification = IDL.Record({
+  'id' : IDL.Nat,
+  'createdAt' : Time,
+  'isRead' : IDL.Bool,
+  'commenterAlias' : IDL.Text,
+  'postTitle' : IDL.Text,
+  'recipientPrincipal' : IDL.Principal,
+  'postId' : IDL.Nat,
 });
 export const ReactionCount = IDL.Record({
   'likes' : IDL.Nat,
@@ -101,14 +134,26 @@ export const idlService = IDL.Service({
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addAdmin' : IDL.Func([IDL.Principal], [], []),
+  'addComment' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Text, IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [IDL.Nat],
+      [],
+    ),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'clearAllNotifications' : IDL.Func([], [], []),
   'createPost' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
       [CreatePostResult],
       [],
     ),
+  'deleteComment' : IDL.Func([IDL.Nat], [DeleteCommentResult], []),
   'deletePost' : IDL.Func([IDL.Nat], [], []),
   'dislikePost' : IDL.Func([IDL.Nat], [], []),
+  'editComment' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [EditCommentResult],
+      [],
+    ),
   'followUser' : IDL.Func([IDL.Principal], [], []),
   'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
   'getAllPostsAdmin' : IDL.Func([], [IDL.Vec(Post)], ['query']),
@@ -117,13 +162,16 @@ export const idlService = IDL.Service({
   'getAuthors' : IDL.Func([], [IDL.Vec(AuthorInfo)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getCommentsForPost' : IDL.Func([IDL.Nat], [GetCommentsResult], ['query']),
   'getFollowedUsers' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
   'getFollowerCount' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
   'getMyDrafts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+  'getNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
   'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
   'getPostReactions' : IDL.Func([IDL.Nat], [ReactionCount], ['query']),
   'getPreferredLanguage' : IDL.Func([], [IDL.Text], ['query']),
   'getPublicProfiles' : IDL.Func([], [IDL.Vec(PublicProfile)], ['query']),
+  'getUnreadNotificationCount' : IDL.Func([], [IDL.Nat], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -133,6 +181,7 @@ export const idlService = IDL.Service({
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isFollowing' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'likePost' : IDL.Func([IDL.Nat], [], []),
+  'markNotificationRead' : IDL.Func([IDL.Nat], [], []),
   'promoteUser' : IDL.Func([IDL.Principal], [], []),
   'removeAdmin' : IDL.Func([IDL.Principal], [], []),
   'removeAuthor' : IDL.Func([IDL.Principal], [], []),
@@ -182,6 +231,16 @@ export const idlFactory = ({ IDL }) => {
     'ok' : IDL.Nat,
     'imageTooLarge' : IDL.Null,
   });
+  const DeleteCommentResult = IDL.Variant({
+    'ok' : IDL.Null,
+    'notFound' : IDL.Null,
+    'notOwner' : IDL.Null,
+  });
+  const EditCommentResult = IDL.Variant({
+    'ok' : IDL.Null,
+    'notFound' : IDL.Null,
+    'notOwner' : IDL.Null,
+  });
   const PostStatus = IDL.Variant({
     'published' : IDL.Null,
     'hidden' : IDL.Null,
@@ -210,6 +269,29 @@ export const idlFactory = ({ IDL }) => {
   const AuthorInfo = IDL.Record({
     'principal' : IDL.Principal,
     'displayName' : IDL.Text,
+  });
+  const Comment = IDL.Record({
+    'id' : IDL.Nat,
+    'isDeleted' : IDL.Bool,
+    'content' : IDL.Text,
+    'createdAt' : Time,
+    'authorAlias' : IDL.Text,
+    'authorPrincipal' : IDL.Principal,
+    'postId' : IDL.Nat,
+    'images' : IDL.Vec(IDL.Vec(IDL.Nat8)),
+  });
+  const GetCommentsResult = IDL.Variant({
+    'ok' : IDL.Vec(Comment),
+    'postNotFound' : IDL.Null,
+  });
+  const Notification = IDL.Record({
+    'id' : IDL.Nat,
+    'createdAt' : Time,
+    'isRead' : IDL.Bool,
+    'commenterAlias' : IDL.Text,
+    'postTitle' : IDL.Text,
+    'recipientPrincipal' : IDL.Principal,
+    'postId' : IDL.Nat,
   });
   const ReactionCount = IDL.Record({ 'likes' : IDL.Nat, 'dislikes' : IDL.Nat });
   const PublicProfile = IDL.Record({
@@ -251,14 +333,26 @@ export const idlFactory = ({ IDL }) => {
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addAdmin' : IDL.Func([IDL.Principal], [], []),
+    'addComment' : IDL.Func(
+        [IDL.Nat, IDL.Text, IDL.Text, IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [IDL.Nat],
+        [],
+      ),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'clearAllNotifications' : IDL.Func([], [], []),
     'createPost' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
         [CreatePostResult],
         [],
       ),
+    'deleteComment' : IDL.Func([IDL.Nat], [DeleteCommentResult], []),
     'deletePost' : IDL.Func([IDL.Nat], [], []),
     'dislikePost' : IDL.Func([IDL.Nat], [], []),
+    'editComment' : IDL.Func(
+        [IDL.Nat, IDL.Text, IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [EditCommentResult],
+        [],
+      ),
     'followUser' : IDL.Func([IDL.Principal], [], []),
     'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'getAllPostsAdmin' : IDL.Func([], [IDL.Vec(Post)], ['query']),
@@ -267,13 +361,16 @@ export const idlFactory = ({ IDL }) => {
     'getAuthors' : IDL.Func([], [IDL.Vec(AuthorInfo)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getCommentsForPost' : IDL.Func([IDL.Nat], [GetCommentsResult], ['query']),
     'getFollowedUsers' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'getFollowerCount' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
     'getMyDrafts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+    'getNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
     'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
     'getPostReactions' : IDL.Func([IDL.Nat], [ReactionCount], ['query']),
     'getPreferredLanguage' : IDL.Func([], [IDL.Text], ['query']),
     'getPublicProfiles' : IDL.Func([], [IDL.Vec(PublicProfile)], ['query']),
+    'getUnreadNotificationCount' : IDL.Func([], [IDL.Nat], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
@@ -283,6 +380,7 @@ export const idlFactory = ({ IDL }) => {
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isFollowing' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'likePost' : IDL.Func([IDL.Nat], [], []),
+    'markNotificationRead' : IDL.Func([IDL.Nat], [], []),
     'promoteUser' : IDL.Func([IDL.Principal], [], []),
     'removeAdmin' : IDL.Func([IDL.Principal], [], []),
     'removeAuthor' : IDL.Func([IDL.Principal], [], []),

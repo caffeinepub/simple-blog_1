@@ -11,9 +11,36 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface AuthorInfo { 'principal' : Principal, 'displayName' : string }
+export interface Comment {
+  'id' : bigint,
+  'isDeleted' : boolean,
+  'content' : string,
+  'createdAt' : Time,
+  'authorAlias' : string,
+  'authorPrincipal' : Principal,
+  'postId' : bigint,
+  'images' : Array<Uint8Array>,
+}
 export type CreatePostResult = { 'ok' : bigint } |
   { 'imageTooLarge' : null };
+export type DeleteCommentResult = { 'ok' : null } |
+  { 'notFound' : null } |
+  { 'notOwner' : null };
+export type EditCommentResult = { 'ok' : null } |
+  { 'notFound' : null } |
+  { 'notOwner' : null };
+export type GetCommentsResult = { 'ok' : Array<Comment> } |
+  { 'postNotFound' : null };
 export type Image = Uint8Array;
+export interface Notification {
+  'id' : bigint,
+  'createdAt' : Time,
+  'isRead' : boolean,
+  'commenterAlias' : string,
+  'postTitle' : string,
+  'recipientPrincipal' : Principal,
+  'postId' : bigint,
+}
 export interface Post {
   'id' : bigint,
   'status' : PostStatus,
@@ -77,7 +104,12 @@ export interface _SERVICE {
    * / Add an admin (owner only)
    */
   'addAdmin' : ActorMethod<[Principal], undefined>,
+  'addComment' : ActorMethod<
+    [bigint, string, string, Array<Uint8Array>],
+    bigint
+  >,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'clearAllNotifications' : ActorMethod<[], undefined>,
   /**
    * / Create a post (authenticated users only)
    */
@@ -85,6 +117,7 @@ export interface _SERVICE {
     [string, string, string, Array<Image>],
     CreatePostResult
   >,
+  'deleteComment' : ActorMethod<[bigint], DeleteCommentResult>,
   /**
    * / Delete a post (owner of post or admin)
    */
@@ -93,6 +126,10 @@ export interface _SERVICE {
    * / Dislike a post (authenticated users only). Toggles dislike; removes like if present.
    */
   'dislikePost' : ActorMethod<[bigint], undefined>,
+  'editComment' : ActorMethod<
+    [bigint, string, Array<Uint8Array>],
+    EditCommentResult
+  >,
   /**
    * / Follow a user (authenticated users only)
    */
@@ -119,6 +156,7 @@ export interface _SERVICE {
   'getAuthors' : ActorMethod<[], Array<AuthorInfo>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getCommentsForPost' : ActorMethod<[bigint], GetCommentsResult>,
   /**
    * / Get list of users the caller follows (authenticated users only)
    */
@@ -131,6 +169,7 @@ export interface _SERVICE {
    * / Get all drafts belonging to the caller (authenticated users only)
    */
   'getMyDrafts' : ActorMethod<[], Array<Post>>,
+  'getNotifications' : ActorMethod<[], Array<Notification>>,
   /**
    * / Get a single post by ID (public, but only published posts for non-admins)
    */
@@ -147,6 +186,7 @@ export interface _SERVICE {
    * / Get all users who have a public profile (name only, must not be empty)
    */
   'getPublicProfiles' : ActorMethod<[], Array<PublicProfile>>,
+  'getUnreadNotificationCount' : ActorMethod<[], bigint>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   /**
    * / Check if a principal is an admin (any authenticated user can check their own status)
@@ -161,6 +201,7 @@ export interface _SERVICE {
    * / Like a post (authenticated users only). Toggles like; removes dislike if present.
    */
   'likePost' : ActorMethod<[bigint], undefined>,
+  'markNotificationRead' : ActorMethod<[bigint], undefined>,
   /**
    * / Called by admin to promote a principal to user role
    */

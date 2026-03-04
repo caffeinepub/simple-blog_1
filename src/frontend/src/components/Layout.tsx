@@ -14,6 +14,7 @@ import {
 import type { ReactNode } from "react";
 import { ADMIN_PRINCIPAL_ID } from "../config/constants";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import NotificationBell from "./NotificationBell";
 
 interface LayoutProps {
   children?: ReactNode;
@@ -66,7 +67,7 @@ export default function Layout({ children }: LayoutProps) {
                   <Button variant="ghost" asChild>
                     <Link to="/drafts" className="gap-2">
                       <FileText className="h-4 w-4" />
-                      Mina utkast
+                      Mina inlägg och utkast
                     </Link>
                   </Button>
                   <Button variant="ghost" asChild>
@@ -85,6 +86,7 @@ export default function Layout({ children }: LayoutProps) {
                       Profil
                     </Link>
                   </Button>
+                  <NotificationBell />
                   {isAdmin && (
                     <Button variant="ghost" asChild>
                       <Link to="/admin" className="gap-2">

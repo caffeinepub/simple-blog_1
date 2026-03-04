@@ -24,11 +24,17 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import CommentsSection from "../components/CommentsSection";
 import ImageGallery from "../components/ImageGallery";
 import ReactionButtons from "../components/ReactionButtons";
 import ShareModal from "../components/ShareModal";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import { useDeletePost, useGetPost } from "../hooks/useQueries";
+import {
+  useClearAllNotifications,
+  useDeletePost,
+  useGetNotifications,
+  useGetPost,
+} from "../hooks/useQueries";
 import { useShare } from "../hooks/useShare";
 import { truncateContent } from "../utils/contentTruncator";
 import { formatDate } from "../utils/dateFormatter";
@@ -46,6 +52,8 @@ export default function PostDetailPage() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const { share, isSupported } = useShare();
+  const { data: notifications = [] } = useGetNotifications();
+  const clearAllMutation = useClearAllNotifications();
 
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
   const isOwner =
@@ -126,6 +134,19 @@ export default function PostDetailPage() {
       }
     }
   }, [isAuthenticated]);
+
+  // Mark notifications as read when the post owner views their post
+  const clearMutate = clearAllMutation.mutate;
+  useEffect(() => {
+    if (!isOwner || !post || notifications.length === 0) return;
+    const postIdStr = post.id.toString();
+    const hasUnreadForPost = notifications.some(
+      (n) => !n.isRead && n.postId.toString() === postIdStr,
+    );
+    if (hasUnreadForPost) {
+      clearMutate();
+    }
+  }, [isOwner, post, notifications, clearMutate]);
 
   if (isLoading || isInitializing) {
     return (
@@ -402,6 +423,9 @@ export default function PostDetailPage() {
         <div className="pt-6 border-t border-border/30">
           <ReactionButtons post={post} />
         </div>
+
+        {/* Comments */}
+        <CommentsSection postId={post.id} />
       </article>
 
       <ShareModal

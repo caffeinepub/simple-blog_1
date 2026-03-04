@@ -2,15 +2,21 @@ import { Principal } from "@dfinity/principal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AuthorInfo,
+  Comment,
+  GetCommentsResult,
   Image,
+  Notification,
   Post,
   PublicProfile,
   ReactionCount,
   UserProfile,
 } from "../backend";
-import { PostStatus } from "../backend";
+import { DeleteCommentResult, PostStatus } from "../backend";
 import { useActor } from "./useActor";
 import { useInternetIdentity } from "./useInternetIdentity";
+
+// ─── EditCommentResult (defined here since it mirrors DeleteCommentResult) ────
+export type EditCommentResult = "ok" | "notFound" | "notOwner";
 
 // ─── Public / User Hooks ────────────────────────────────────────────────────
 
@@ -683,6 +689,186 @@ export function useUnfollowUser() {
       queryClient.invalidateQueries({
         queryKey: ["followerCount", target.toString()],
       });
+    },
+  });
+}
+
+// ─── Comment Hooks ────────────────────────────────────────────────────────────
+
+export function useGetCommentsForPost(postId: bigint) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Comment[]>({
+    queryKey: ["comments", postId.toString()],
+    queryFn: async () => {
+      if (!actor) return [];
+      const result: GetCommentsResult = await actor.getCommentsForPost(postId);
+      if (result.__kind__ === "ok") {
+        return result.ok.filter((c) => !c.isDeleted);
+      }
+      return [];
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 15_000,
+  });
+}
+
+export function useAddComment() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      postId,
+      content,
+      authorAlias,
+      images = [],
+    }: {
+      postId: bigint;
+      content: string;
+      authorAlias: string;
+      images?: Uint8Array[];
+    }) => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.addComment(postId, content, authorAlias, images);
+    },
+    onSuccess: (_data, { postId }) => {
+      queryClient.invalidateQueries({
+        queryKey: ["comments", postId.toString()],
+      });
+    },
+  });
+}
+
+export function useEditComment() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      commentId,
+      content,
+      images = [],
+      postId,
+    }: {
+      commentId: bigint;
+      content: string;
+      images?: Uint8Array[];
+      postId: bigint;
+    }) => {
+      if (!actor) throw new Error("Actor not initialized");
+      const result = await actor.editComment(commentId, content, images);
+      const resultStr = String(result);
+      if (resultStr === "notFound") {
+        throw new Error("Kommentaren hittades inte.");
+      }
+      if (resultStr === "notOwner") {
+        throw new Error("Du äger inte denna kommentar.");
+      }
+      return { commentId, postId };
+    },
+    onSuccess: (_data, { postId }) => {
+      queryClient.invalidateQueries({
+        queryKey: ["comments", postId.toString()],
+      });
+    },
+  });
+}
+
+export function useDeleteComment() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      commentId,
+      postId,
+    }: {
+      commentId: bigint;
+      postId: bigint;
+    }) => {
+      if (!actor) throw new Error("Actor not initialized");
+      const result = await actor.deleteComment(commentId);
+      if (result === DeleteCommentResult.notFound) {
+        throw new Error("Kommentaren hittades inte.");
+      }
+      if (result === DeleteCommentResult.notOwner) {
+        throw new Error("Du äger inte denna kommentar.");
+      }
+      return { commentId, postId };
+    },
+    onSuccess: (_data, { postId }) => {
+      queryClient.invalidateQueries({
+        queryKey: ["comments", postId.toString()],
+      });
+    },
+  });
+}
+
+// ─── Notification Hooks ───────────────────────────────────────────────────────
+
+export function useGetNotifications() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+
+  return useQuery<Notification[]>({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getNotifications();
+    },
+    enabled: !!actor && !isFetching && isAuthenticated,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
+}
+
+export function useGetUnreadNotificationCount() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+
+  return useQuery<bigint>({
+    queryKey: ["unreadNotificationCount"],
+    queryFn: async () => {
+      if (!actor) return BigInt(0);
+      return actor.getUnreadNotificationCount();
+    },
+    enabled: !!actor && !isFetching && isAuthenticated,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (notificationId: bigint) => {
+      if (!actor) throw new Error("Actor not initialized");
+      await actor.markNotificationRead(notificationId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unreadNotificationCount"] });
+    },
+  });
+}
+
+export function useClearAllNotifications() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      await actor.clearAllNotifications();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unreadNotificationCount"] });
     },
   });
 }

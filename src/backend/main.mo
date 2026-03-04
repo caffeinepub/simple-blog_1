@@ -1,25 +1,24 @@
 import Array "mo:core/Array";
+import Blob "mo:core/Blob";
+import Int "mo:core/Int";
 import Iter "mo:core/Iter";
+import Map "mo:core/Map";
 import Order "mo:core/Order";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
-import Int "mo:core/Int";
-import Map "mo:core/Map";
 import Set "mo:core/Set";
 import Text "mo:core/Text";
 import Time "mo:core/Time";
-import Storage "blob-storage/Storage";
-import MixinStorage "blob-storage/Mixin";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
+import MixinStorage "blob-storage/Mixin";
+import Storage "blob-storage/Storage";
 
 actor {
   include MixinStorage();
 
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
-
-  // Types
 
   public type Image = Storage.ExternalBlob;
 
@@ -82,6 +81,64 @@ actor {
     alias : Text;
   };
 
+  public type Comment = {
+    id : Nat;
+    postId : Nat;
+    authorPrincipal : Principal;
+    authorAlias : Text;
+    content : Text;
+    images : [Blob];
+    createdAt : Time.Time;
+    isDeleted : Bool;
+  };
+
+  public type Notification = {
+    id : Nat;
+    recipientPrincipal : Principal;
+    postId : Nat;
+    postTitle : Text;
+    commenterAlias : Text;
+    createdAt : Time.Time;
+    isRead : Bool;
+  };
+
+  public type EditCommentResult = {
+    #ok;
+    #notFound;
+    #notOwner;
+  };
+
+  public type DeleteCommentResult = {
+    #ok;
+    #notFound;
+    #notOwner;
+  };
+
+  public type LikeResult = {
+    #ok : ();
+    #alreadyLiked : ();
+  };
+
+  public type DislikeResult = {
+    #ok : ();
+    #alreadyDisliked : ();
+  };
+
+  public type GetCommentsResult = {
+    #ok : [Comment];
+    #postNotFound : ();
+  };
+
+  public type GetNotificationsResult = {
+    #ok : [Notification];
+    #userNotFound : ();
+  };
+
+  public type MarkNotificationReadResult = {
+    #ok : ();
+    #notificationNotFound : ();
+  };
+
   // State
   var owner : Principal = Principal.fromText("ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae");
   let posts = Map.empty<Nat, Post>();
@@ -89,6 +146,10 @@ actor {
   var nextPostId = 0;
   let drafts = Map.empty<Nat, Post>();
   let followMap = Map.empty<Principal, Set.Set<Principal>>(); // Follow system
+  let comments = Map.empty<Nat, Comment>();
+  let notifications = Map.empty<Nat, Notification>();
+  var nextCommentId = 0;
+  var nextNotificationId = 0;
 
   // Owner/Admin management functions
 
@@ -655,5 +716,164 @@ actor {
         };
       }
     );
+  };
+
+  // New Comments and Notifications
+
+  public shared ({ caller }) func addComment(postId : Nat, content : Text, authorAlias : Text, images : [Blob]) : async Nat {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can comment");
+    };
+
+    if (content == "") {
+      Runtime.trap("Comment content cannot be empty");
+    };
+
+    switch (posts.get(postId)) {
+      case (null) { Runtime.trap("Invalid post " # postId.toText()) };
+      case (?post) {
+        let commentId = nextCommentId;
+        let comment : Comment = {
+          id = commentId;
+          postId;
+          authorPrincipal = caller;
+          authorAlias;
+          content;
+          images;
+          createdAt = Time.now();
+          isDeleted = false;
+        };
+
+        comments.add(commentId, comment);
+        nextCommentId += 1;
+
+        // Only create notification if the commenter is not the post owner
+        if (caller != post.ownerId) {
+          let notificationId = nextNotificationId;
+          let notification : Notification = {
+            id = notificationId;
+            recipientPrincipal = post.ownerId;
+            postId;
+            postTitle = post.title;
+            commenterAlias = authorAlias;
+            createdAt = Time.now();
+            isRead = false;
+          };
+
+          notifications.add(notificationId, notification);
+          nextNotificationId += 1;
+        };
+
+        commentId;
+      };
+    };
+  };
+
+  public shared ({ caller }) func editComment(commentId : Nat, content : Text, images : [Blob]) : async EditCommentResult {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can edit comments");
+    };
+
+    switch (comments.get(commentId)) {
+      case (null) { #notFound };
+      case (?comment) {
+        if (comment.authorPrincipal != caller) { #notOwner }
+        else {
+          let updatedComment : Comment = {
+            comment with
+            content;
+            images;
+          };
+          comments.add(commentId, updatedComment);
+          #ok;
+        };
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteComment(commentId : Nat) : async DeleteCommentResult {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can delete comments");
+    };
+
+    switch (comments.get(commentId)) {
+      case (null) { #notFound };
+      case (?comment) {
+        if (comment.authorPrincipal != caller) { #notOwner }
+        else {
+          let updatedComment : Comment = { comment with isDeleted = true };
+          comments.add(commentId, updatedComment);
+          #ok;
+        };
+      };
+    };
+  };
+
+  public query ({ caller }) func getCommentsForPost(postId : Nat) : async GetCommentsResult {
+    switch (posts.get(postId)) {
+      case (null) { #postNotFound };
+      case (_) {
+        let postComments = comments.entries().toArray().filter(
+          func(entry) { entry.1.postId == postId and not entry.1.isDeleted }
+        );
+        let result = postComments.map(func(entry) { entry.1 });
+        #ok(result);
+      };
+    };
+  };
+
+  public query ({ caller }) func getNotifications() : async [Notification] {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can get notifications");
+    };
+
+    let userNotifications = notifications.values().toArray().filter(
+      func(notification) { notification.recipientPrincipal == caller }
+    );
+
+    userNotifications;
+  };
+
+  public query ({ caller }) func getUnreadNotificationCount() : async Nat {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can get notification count");
+    };
+
+    let unreadNotifications = notifications.values().toArray().filter(
+      func(notification) {
+        notification.recipientPrincipal == caller and not notification.isRead
+      }
+    );
+    unreadNotifications.size();
+  };
+
+  public shared ({ caller }) func markNotificationRead(notificationId : Nat) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can mark notifications as read");
+    };
+
+    switch (notifications.get(notificationId)) {
+      case (null) { Runtime.trap("Notification not found") };
+      case (?notification) {
+        if (notification.recipientPrincipal != caller) {
+          Runtime.trap("You do not own this notification");
+        };
+        let updatedNotification : Notification = { notification with isRead = true };
+        notifications.add(notificationId, updatedNotification);
+      };
+    };
+  };
+
+  public shared ({ caller }) func clearAllNotifications() : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can clear notifications");
+    };
+
+    for ((id, notification) in notifications.entries()) {
+      if (notification.recipientPrincipal == caller and not notification.isRead) {
+        let updatedNotification : Notification = { notification with isRead = true };
+        notifications.add(id, updatedNotification);
+      };
+    };
   };
 };

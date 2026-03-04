@@ -19,6 +19,23 @@ export type CreatePostResult = {
     __kind__: "imageTooLarge";
     imageTooLarge: null;
 };
+export type GetCommentsResult = {
+    __kind__: "ok";
+    ok: Array<Comment>;
+} | {
+    __kind__: "postNotFound";
+    postNotFound: null;
+};
+export interface Comment {
+    id: bigint;
+    isDeleted: boolean;
+    content: string;
+    createdAt: Time;
+    authorAlias: string;
+    authorPrincipal: Principal;
+    postId: bigint;
+    images: Array<Uint8Array>;
+}
 export interface AuthorInfo {
     principal: Principal;
     displayName: string;
@@ -39,6 +56,15 @@ export interface Post {
     dislikedBy: Array<Principal>;
     images: Array<Image>;
 }
+export interface Notification {
+    id: bigint;
+    createdAt: Time;
+    isRead: boolean;
+    commenterAlias: string;
+    postTitle: string;
+    recipientPrincipal: Principal;
+    postId: bigint;
+}
 export type Image = Uint8Array;
 export interface UserProfile {
     preferredLanguage: string;
@@ -46,6 +72,11 @@ export interface UserProfile {
     name: string;
     email: string;
     phone: string;
+}
+export enum DeleteCommentResult {
+    ok = "ok",
+    notFound = "notFound",
+    notOwner = "notOwner"
 }
 export enum PostStatus {
     published = "published",
@@ -67,11 +98,14 @@ export interface backendInterface {
      * / Add an admin (owner only)
      */
     addAdmin(principal: Principal): Promise<void>;
+    addComment(postId: bigint, content: string, authorAlias: string, images: Array<Uint8Array>): Promise<bigint>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    clearAllNotifications(): Promise<void>;
     /**
      * / Create a post (authenticated users only)
      */
     createPost(title: string, content: string, author: string, images: Array<Image>): Promise<CreatePostResult>;
+    deleteComment(commentId: bigint): Promise<DeleteCommentResult>;
     /**
      * / Delete a post (owner of post or admin)
      */
@@ -80,6 +114,7 @@ export interface backendInterface {
      * / Dislike a post (authenticated users only). Toggles dislike; removes like if present.
      */
     dislikePost(postId: bigint): Promise<void>;
+    editComment(commentId: bigint, content: string, images: Array<Uint8Array>): Promise<EditCommentResult>;
     /**
      * / Follow a user (authenticated users only)
      */
@@ -106,6 +141,7 @@ export interface backendInterface {
     getAuthors(): Promise<Array<AuthorInfo>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getCommentsForPost(postId: bigint): Promise<GetCommentsResult>;
     /**
      * / Get list of users the caller follows (authenticated users only)
      */
@@ -118,6 +154,7 @@ export interface backendInterface {
      * / Get all drafts belonging to the caller (authenticated users only)
      */
     getMyDrafts(): Promise<Array<Post>>;
+    getNotifications(): Promise<Array<Notification>>;
     /**
      * / Get a single post by ID (public, but only published posts for non-admins)
      */
@@ -134,6 +171,7 @@ export interface backendInterface {
      * / Get all users who have a public profile (name only, must not be empty)
      */
     getPublicProfiles(): Promise<Array<PublicProfile>>;
+    getUnreadNotificationCount(): Promise<bigint>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     /**
      * / Check if a principal is an admin (any authenticated user can check their own status)
@@ -148,6 +186,7 @@ export interface backendInterface {
      * / Like a post (authenticated users only). Toggles like; removes dislike if present.
      */
     likePost(postId: bigint): Promise<void>;
+    markNotificationRead(notificationId: bigint): Promise<void>;
     /**
      * / Called by admin to promote a principal to user role
      */
