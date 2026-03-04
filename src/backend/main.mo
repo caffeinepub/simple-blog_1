@@ -14,6 +14,8 @@ import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
 import Storage "blob-storage/Storage";
 
+
+
 actor {
   include MixinStorage();
 
@@ -616,6 +618,62 @@ actor {
       Runtime.trap("Unauthorized: Only authenticated users can retrieve their drafts");
     };
     drafts.values().toArray().filter(func(draft : Post) : Bool { draft.ownerId == caller });
+  };
+
+  /// Get a specific draft by ID (authenticated users only, owner of draft only)
+  public query ({ caller }) func getDraft(id : Nat) : async Post {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can retrieve drafts");
+    };
+    switch (drafts.get(id)) {
+      case (null) { Runtime.trap("Draft does not exist!") };
+      case (?draft) {
+        if (draft.ownerId != caller) {
+          Runtime.trap("Unauthorized: You do not have permission to access this draft");
+        };
+        draft;
+      };
+    };
+  };
+
+  /// Delete a draft by ID (authenticated users only, owner of draft only)
+  public shared ({ caller }) func deleteDraft(id : Nat) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can delete drafts");
+    };
+    switch (drafts.get(id)) {
+      case (null) { Runtime.trap("Draft does not exist!") };
+      case (?draft) {
+        if (draft.ownerId != caller) {
+          Runtime.trap("Unauthorized: You do not have permission to delete this draft");
+        };
+        drafts.remove(id);
+      };
+    };
+  };
+
+  /// Publish a draft (authenticated users only, owner of draft only)
+  public shared ({ caller }) func publishDraft(id : Nat) : async UpdatePostResult {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can publish drafts");
+    };
+    switch (drafts.get(id)) {
+      case (null) { #postNotFound };
+      case (?draft) {
+        if (draft.ownerId != caller) {
+          Runtime.trap("Unauthorized: You do not have permission to publish this draft");
+        };
+
+        // Update status and add to posts map
+        let publishedPost : Post = { draft with status = #published };
+        posts.add(id, publishedPost);
+
+        // Remove from drafts map
+        drafts.remove(id);
+
+        #ok;
+      };
+    };
   };
 
   //--- Follow System ---

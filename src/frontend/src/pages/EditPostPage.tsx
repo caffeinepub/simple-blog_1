@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import {
   AlertCircle,
@@ -30,6 +29,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PostStatus } from "../backend";
+import RichTextEditor from "../components/RichTextEditor";
 import UnpublishDialog from "../components/UnpublishDialog";
 import {
   type Category,
@@ -199,10 +199,15 @@ export default function EditPostPage() {
     setShowUnpublishDialog(false);
   };
 
+  const isContentEmpty = (html: string) => {
+    const stripped = html.replace(/<[^>]*>/g, "").trim();
+    return stripped.length === 0;
+  };
+
   const validateForm = () => {
     const newErrors: { title?: string; content?: string; author?: string } = {};
     if (!title.trim()) newErrors.title = "Titel krävs";
-    if (!content.trim()) newErrors.content = "Innehåll krävs";
+    if (isContentEmpty(content)) newErrors.content = "Innehåll krävs";
     if (!author.trim()) newErrors.author = "Författarnamn krävs";
     setFieldErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -413,13 +418,12 @@ export default function EditPostPage() {
                 <Label htmlFor="content" className="text-sm font-medium">
                   Innehåll
                 </Label>
-                <Textarea
-                  id="content"
+                <RichTextEditor
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
+                  onChange={setContent}
                   placeholder="Skriv din berättelse..."
-                  rows={12}
-                  className={`resize-none ${fieldErrors.content ? "border-destructive" : ""}`}
+                  hasError={!!fieldErrors.content}
+                  data-ocid="edit_post.content.editor"
                 />
                 {fieldErrors.content && (
                   <p className="text-sm text-destructive">

@@ -107,6 +107,10 @@ export interface backendInterface {
     createPost(title: string, content: string, author: string, images: Array<Image>): Promise<CreatePostResult>;
     deleteComment(commentId: bigint): Promise<DeleteCommentResult>;
     /**
+     * / Delete a draft by ID (authenticated users only, owner of draft only)
+     */
+    deleteDraft(id: bigint): Promise<void>;
+    /**
      * / Delete a post (owner of post or admin)
      */
     deletePost(id: bigint): Promise<void>;
@@ -142,6 +146,10 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCommentsForPost(postId: bigint): Promise<GetCommentsResult>;
+    /**
+     * / Get a specific draft by ID (authenticated users only, owner of draft only)
+     */
+    getDraft(id: bigint): Promise<Post>;
     /**
      * / Get list of users the caller follows (authenticated users only)
      */
@@ -191,6 +199,10 @@ export interface backendInterface {
      * / Called by admin to promote a principal to user role
      */
     promoteUser(user: Principal): Promise<void>;
+    /**
+     * / Publish a draft (authenticated users only, owner of draft only)
+     */
+    publishDraft(id: bigint): Promise<UpdatePostResult>;
     /**
      * / Remove an admin (owner only). The owner cannot be removed.
      */

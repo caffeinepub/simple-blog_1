@@ -35,7 +35,7 @@ import {
   useGetAllPublishedPosts,
   useGetMyDrafts,
   useGetNotifications,
-  useUpdatePost,
+  usePublishDraft,
 } from "../hooks/useQueries";
 import { truncateContent } from "../utils/contentTruncator";
 import { formatDate } from "../utils/dateFormatter";
@@ -141,6 +141,7 @@ function PublishedPostCard({
 function DraftCard({
   draft,
   onEdit,
+  onPreview,
   onPublish,
   onDelete,
   isPublishing,
@@ -148,6 +149,7 @@ function DraftCard({
 }: {
   draft: Post;
   onEdit: () => void;
+  onPreview: () => void;
   onPublish: () => void;
   onDelete: () => void;
   isPublishing: boolean;
@@ -202,9 +204,21 @@ function DraftCard({
             variant="outline"
             onClick={onEdit}
             className="gap-1.5"
+            data-ocid="drafts.edit_button"
           >
             <PenSquare className="h-3.5 w-3.5" />
             Redigera
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onPreview}
+            disabled={isPublishing || isDeleting}
+            className="gap-1.5"
+            data-ocid="drafts.secondary_button"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Förhandsgranska
           </Button>
           <Button
             size="sm"
@@ -308,7 +322,7 @@ export default function MyDraftsPage() {
   const { data: notifications = [] } = useGetNotifications();
 
   const deleteDraftMutation = useDeleteDraft();
-  const updatePostMutation = useUpdatePost();
+  const publishDraftMutation = usePublishDraft();
 
   const [publishingId, setPublishingId] = useState<bigint | null>(null);
   const [deletingId, setDeletingId] = useState<bigint | null>(null);
@@ -339,8 +353,16 @@ export default function MyDraftsPage() {
     });
   }, [myPublished, unreadPostIds]);
 
-  const handleEdit = (post: Post) => {
-    navigate({ to: `/post/${post.id.toString()}/edit` });
+  const handleEdit = (post: Post, isDraft = false) => {
+    if (isDraft) {
+      navigate({ to: `/draft/${post.id.toString()}/edit` });
+    } else {
+      navigate({ to: `/post/${post.id.toString()}/edit` });
+    }
+  };
+
+  const handlePreview = (draft: Post) => {
+    navigate({ to: `/draft/${draft.id.toString()}/preview` });
   };
 
   const handleView = (post: Post) => {
@@ -350,17 +372,11 @@ export default function MyDraftsPage() {
   const handlePublish = async (draft: Post) => {
     setPublishingId(draft.id);
     try {
-      await updatePostMutation.mutateAsync({
-        id: draft.id,
-        title: draft.title,
-        content: draft.content,
-        author: draft.author,
-        published: true,
-        images: draft.images as Uint8Array[],
-      });
+      await publishDraftMutation.mutateAsync(draft.id);
       toast.success(`"${draft.title || "Utkastet"}" har publicerats!`);
-    } catch {
-      toast.error("Kunde inte publicera utkastet. Försök igen.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Okänt fel";
+      toast.error(`Kunde inte publicera utkastet: ${msg}`);
     } finally {
       setPublishingId(null);
     }
@@ -515,7 +531,8 @@ export default function MyDraftsPage() {
               <div key={draft.id.toString()} data-ocid={`drafts.item.${i + 1}`}>
                 <DraftCard
                   draft={draft}
-                  onEdit={() => handleEdit(draft)}
+                  onEdit={() => handleEdit(draft, true)}
+                  onPreview={() => handlePreview(draft)}
                   onPublish={() => handlePublish(draft)}
                   onDelete={() => handleDelete(draft)}
                   isPublishing={publishingId === draft.id}

@@ -10,6 +10,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import AdminPage from "./pages/AdminPage";
 import CreatePostPage from "./pages/CreatePostPage";
+import DraftPreviewPage from "./pages/DraftPreviewPage";
+import EditDraftPage from "./pages/EditDraftPage";
 import EditPostPage from "./pages/EditPostPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
@@ -106,6 +108,30 @@ const draftsRoute = createRoute({
   ),
 });
 
+const editDraftRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/draft/$id/edit",
+  component: () => (
+    <ProtectedRoute>
+      <Layout>
+        <EditDraftPage />
+      </Layout>
+    </ProtectedRoute>
+  ),
+});
+
+const draftPreviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/draft/$id/preview",
+  component: () => (
+    <ProtectedRoute>
+      <Layout>
+        <DraftPreviewPage />
+      </Layout>
+    </ProtectedRoute>
+  ),
+});
+
 const profileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/profile",
@@ -138,6 +164,8 @@ const routeTree = rootRoute.addChildren([
   createPostRoute,
   adminRoute,
   draftsRoute,
+  editDraftRoute,
+  draftPreviewRoute,
   profileRoute,
   usersRoute,
 ]);

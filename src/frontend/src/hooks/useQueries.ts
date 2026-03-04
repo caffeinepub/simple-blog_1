@@ -11,7 +11,7 @@ import type {
   ReactionCount,
   UserProfile,
 } from "../backend";
-import { DeleteCommentResult, PostStatus } from "../backend";
+import { DeleteCommentResult, PostStatus, UpdatePostResult } from "../backend";
 import { useActor } from "./useActor";
 import { useInternetIdentity } from "./useInternetIdentity";
 
@@ -282,6 +282,22 @@ export function useUpdateDraft() {
   });
 }
 
+export function useGetDraft(id: bigint) {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+
+  return useQuery<Post>({
+    queryKey: ["draft", id.toString()],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.getDraft(id);
+    },
+    enabled: !!actor && !isFetching && isAuthenticated,
+    retry: false,
+  });
+}
+
 export function useDeleteDraft() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -290,7 +306,7 @@ export function useDeleteDraft() {
     mutationFn: async (id: bigint) => {
       if (!actor) throw new Error("Actor not initialized");
       try {
-        await actor.deletePost(id);
+        await actor.deleteDraft(id);
       } catch (err: unknown) {
         // Surface the exact backend error message (e.g. Runtime.trap messages)
         if (err instanceof Error) {
@@ -302,6 +318,29 @@ export function useDeleteDraft() {
             : JSON.stringify(err) || "Okänt fel från servern";
         throw new Error(msg);
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myDrafts"] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+}
+
+export function usePublishDraft() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error("Actor not initialized");
+      const result = await actor.publishDraft(id);
+      if (result === UpdatePostResult.postNotFound) {
+        throw new Error("Utkastet hittades inte.");
+      }
+      if (result === UpdatePostResult.imageTooLarge) {
+        throw new Error("Bilden är för stor. Max 800 KB per bild tillåts.");
+      }
+      return id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myDrafts"] });

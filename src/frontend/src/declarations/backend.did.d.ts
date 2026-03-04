@@ -119,6 +119,10 @@ export interface _SERVICE {
   >,
   'deleteComment' : ActorMethod<[bigint], DeleteCommentResult>,
   /**
+   * / Delete a draft by ID (authenticated users only, owner of draft only)
+   */
+  'deleteDraft' : ActorMethod<[bigint], undefined>,
+  /**
    * / Delete a post (owner of post or admin)
    */
   'deletePost' : ActorMethod<[bigint], undefined>,
@@ -157,6 +161,10 @@ export interface _SERVICE {
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCommentsForPost' : ActorMethod<[bigint], GetCommentsResult>,
+  /**
+   * / Get a specific draft by ID (authenticated users only, owner of draft only)
+   */
+  'getDraft' : ActorMethod<[bigint], Post>,
   /**
    * / Get list of users the caller follows (authenticated users only)
    */
@@ -206,6 +214,10 @@ export interface _SERVICE {
    * / Called by admin to promote a principal to user role
    */
   'promoteUser' : ActorMethod<[Principal], undefined>,
+  /**
+   * / Publish a draft (authenticated users only, owner of draft only)
+   */
+  'publishDraft' : ActorMethod<[bigint], UpdatePostResult>,
   /**
    * / Remove an admin (owner only). The owner cannot be removed.
    */

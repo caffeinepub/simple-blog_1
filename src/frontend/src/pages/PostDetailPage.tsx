@@ -239,7 +239,7 @@ export default function PostDetailPage() {
           {/* Truncated content with gradient fade */}
           <div className="relative mb-0">
             <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
-              <div className="whitespace-pre-wrap leading-relaxed text-foreground opacity-90">
+              <div className="rich-content leading-relaxed text-foreground opacity-90">
                 {previewText}
               </div>
             </div>
@@ -414,9 +414,11 @@ export default function PostDetailPage() {
         )}
 
         <div className="prose prose-lg prose-slate dark:prose-invert max-w-none mb-10">
-          <div className="whitespace-pre-wrap leading-relaxed text-foreground opacity-90">
-            {post.content}
-          </div>
+          <div
+            className="rich-content leading-relaxed text-foreground opacity-90"
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: controlled rich text from Quill editor
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
         </div>
 
         {/* Reaction buttons */}

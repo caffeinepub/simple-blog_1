@@ -17,11 +17,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
 import {
   AlertCircle,
   ArrowLeft,
+  Eye,
   FileText,
   Image as ImageIcon,
   Loader2,
@@ -31,6 +31,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { UserProfile } from "../backend";
+import RichTextEditor from "../components/RichTextEditor";
 import {
   type Category,
   categories,
@@ -92,10 +93,15 @@ export default function CreatePostPage() {
     clearImages,
   } = useImageUpload();
 
+  const isContentEmpty = (html: string) => {
+    const stripped = html.replace(/<[^>]*>/g, "").trim();
+    return stripped.length === 0;
+  };
+
   const validateForm = () => {
     const newErrors: { title?: string; content?: string; author?: string } = {};
     if (!title.trim()) newErrors.title = "Titel krävs";
-    if (!content.trim()) newErrors.content = "Innehåll krävs";
+    if (isContentEmpty(content)) newErrors.content = "Innehåll krävs";
     if (!author.trim()) newErrors.author = "Författarnamn krävs";
     setFieldErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -129,7 +135,7 @@ export default function CreatePostPage() {
 
       await createPostMutation.mutateAsync({
         title: title.trim(),
-        content: content.trim(),
+        content: content,
         author: trimmedAuthor,
         published,
         images: imageBlobs,
@@ -155,14 +161,14 @@ export default function CreatePostPage() {
         await updateDraftMutation.mutateAsync({
           id: currentDraftIdRef.current,
           title: title.trim() || "(Utan titel)",
-          content: content.trim(),
+          content: content,
           author: author.trim(),
           images: imageBlobs,
         });
       } else {
         const newId = await saveDraftMutation.mutateAsync({
           title: title.trim() || "(Utan titel)",
-          content: content.trim(),
+          content: content,
           author: author.trim(),
           images: imageBlobs,
         });
@@ -180,6 +186,38 @@ export default function CreatePostPage() {
       console.error("Failed to save draft:", err);
       const errMsg = err instanceof Error ? err.message : "Okänt fel";
       toast.error(`Kunde inte spara utkastet: ${errMsg}`);
+    }
+  };
+
+  const handlePreview = async () => {
+    try {
+      const imageBlobs = await convertToBlobs();
+      let draftId = currentDraftIdRef.current;
+      if (draftId === null) {
+        const newId = await saveDraftMutation.mutateAsync({
+          title: title.trim() || "(Utan titel)",
+          content: content,
+          author: author.trim(),
+          images: imageBlobs,
+        });
+        currentDraftIdRef.current = newId;
+        draftId = newId;
+      } else {
+        await updateDraftMutation.mutateAsync({
+          id: draftId,
+          title: title.trim() || "(Utan titel)",
+          content: content,
+          author: author.trim(),
+          images: imageBlobs,
+        });
+      }
+      navigate({ to: `/draft/${draftId.toString()}/preview` });
+    } catch (err) {
+      console.error("Failed to save draft for preview:", err);
+      const errMsg = err instanceof Error ? err.message : "Okänt fel";
+      toast.error(
+        `Kunde inte spara utkastet för förhandsgranskning: ${errMsg}`,
+      );
     }
   };
 
@@ -224,32 +262,59 @@ export default function CreatePostPage() {
                 Dela dina tankar och berättelser med gemenskapen
               </CardDescription>
             </div>
-            {/* Save as draft button at the top */}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleSaveAsDraft}
-              disabled={
-                createPostMutation.isPending ||
-                isProcessing ||
-                hasSizeError ||
-                isSavingDraft
-              }
-              className="shrink-0 gap-2"
-              data-ocid="create_post.save_draft_top.button"
-            >
-              {isSavingDraft ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Sparar...
-                </>
-              ) : (
-                <>
-                  <FileText className="h-4 w-4" />
-                  Spara som utkast
-                </>
-              )}
-            </Button>
+            {/* Top action buttons */}
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePreview}
+                disabled={
+                  createPostMutation.isPending ||
+                  isProcessing ||
+                  hasSizeError ||
+                  isSavingDraft
+                }
+                className="gap-2"
+                data-ocid="create_post.preview_top.secondary_button"
+              >
+                {isSavingDraft ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sparar...
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    Förhandsgranska
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSaveAsDraft}
+                disabled={
+                  createPostMutation.isPending ||
+                  isProcessing ||
+                  hasSizeError ||
+                  isSavingDraft
+                }
+                className="gap-2"
+                data-ocid="create_post.save_draft_top.button"
+              >
+                {isSavingDraft ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sparar...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4" />
+                    Spara som utkast
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -354,13 +419,12 @@ export default function CreatePostPage() {
               <Label htmlFor="content" className="text-sm font-medium">
                 Innehåll
               </Label>
-              <Textarea
-                id="content"
+              <RichTextEditor
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={setContent}
                 placeholder="Skriv din berättelse..."
-                rows={12}
-                className={`resize-none ${fieldErrors.content ? "border-destructive" : ""}`}
+                hasError={!!fieldErrors.content}
+                data-ocid="create_post.content.editor"
               />
               {fieldErrors.content && (
                 <p className="text-sm text-destructive">
@@ -509,6 +573,31 @@ export default function CreatePostPage() {
                   </>
                 ) : (
                   "Skapa inlägg"
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePreview}
+                disabled={
+                  createPostMutation.isPending ||
+                  isProcessing ||
+                  hasSizeError ||
+                  isSavingDraft
+                }
+                className="flex-1 sm:flex-none gap-2"
+                data-ocid="create_post.preview_bottom.secondary_button"
+              >
+                {isSavingDraft ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sparar...
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    Förhandsgranska
+                  </>
                 )}
               </Button>
               <Button
