@@ -9,7 +9,6 @@ import SearchPanel, {
   type SearchFilters,
   isFilterActive,
 } from "../components/SearchPanel";
-import SunMoonWidget from "../components/SunMoonWidget";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useGetAllPublishedPosts,
@@ -260,11 +259,6 @@ function MyFeedTab() {
 export default function HomePage() {
   return (
     <div className="container max-w-5xl mx-auto px-4 sm:px-6 py-10 md:py-16">
-      {/* Date / Solar / Lunar bar above the heading */}
-      <div className="mb-6">
-        <SunMoonWidget standalone />
-      </div>
-
       {/* Hero heading */}
       <div className="mb-8 md:mb-10 text-center">
         <h2 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4 tracking-tight">

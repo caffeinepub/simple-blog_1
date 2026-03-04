@@ -14,7 +14,6 @@ import type { ReactNode } from "react";
 import { ADMIN_PRINCIPAL_ID } from "../config/constants";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import NotificationBell from "./NotificationBell";
-import SunMoonWidget from "./SunMoonWidget";
 
 interface LayoutProps {
   children?: ReactNode;
@@ -32,23 +31,31 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative">
+      {/* Soft transparent icon overlay - full page background */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none"
+        aria-hidden="true"
+        style={{
+          backgroundImage: "url('/assets/uploads/Ikon-2.jpg')",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center center",
+          backgroundSize: "70vmin",
+          opacity: 0.07,
+        }}
+      />
       {/* Header */}
-      <header className="border-b border-border/60 bg-card/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
-        {/* Date / Solar / Lunar bar */}
-        <SunMoonWidget />
+      <header className="border-b border-border/60 bg-card/80 backdrop-blur-md sticky top-0 z-50 shadow-sm relative">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            {/* Logo */}
+            {/* Logo - text only */}
             <Link
               to="/"
               className="flex items-center hover:opacity-80 transition-opacity"
             >
-              <img
-                src="/assets/uploads/Ikon-2.jpg"
-                alt="HKLO"
-                className="h-12 w-auto object-contain"
-              />
+              <span className="text-xl font-bold font-serif tracking-wide">
+                HKLO
+              </span>
             </Link>
 
             {/* Navigation */}
@@ -121,12 +128,12 @@ export default function Layout({ children }: LayoutProps) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 bg-background/85 backdrop-blur-sm">
+      <main className="flex-1 bg-background/85 backdrop-blur-sm relative z-10">
         {children || <Outlet />}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/60 bg-card/80 backdrop-blur-md py-8 mt-12">
+      <footer className="border-t border-border/60 bg-card/80 backdrop-blur-md py-8 mt-12 relative z-10">
         <div className="container mx-auto px-4">
           <div className="text-center text-sm text-muted-foreground">
             <p>
