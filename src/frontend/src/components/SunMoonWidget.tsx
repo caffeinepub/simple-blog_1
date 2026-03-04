@@ -72,7 +72,14 @@ function formatDate(date: Date): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function SunMoonWidget() {
+interface SunMoonWidgetProps {
+  /** When true, renders as a standalone section (no border-b, slightly larger) */
+  standalone?: boolean;
+}
+
+export default function SunMoonWidget({
+  standalone = false,
+}: SunMoonWidgetProps) {
   const [now, setNow] = useState(() => new Date());
 
   // Refresh every minute so phases stay current
@@ -85,24 +92,65 @@ export default function SunMoonWidget() {
   const lunar = getLunarPhase(now);
   const dateStr = formatDate(now);
 
-  return (
-    <div className="flex items-center justify-between w-full px-4 py-1 text-xs text-muted-foreground border-b border-border/40 bg-card/30">
-      {/* Left: date + solar phase */}
-      <div className="flex flex-col leading-tight min-w-0">
-        <span className="font-medium text-foreground/80 truncate">
+  if (standalone) {
+    return (
+      <div className="flex items-center justify-center gap-4 w-full py-2 text-sm text-foreground/70 bg-card/60 backdrop-blur-sm rounded-lg border border-border/30 shadow-sm">
+        {/* Icon */}
+        <img
+          src="/assets/uploads/Ikon-2.jpg"
+          alt="HKLO"
+          className="h-8 w-auto object-contain rounded-sm flex-shrink-0"
+        />
+
+        {/* Date */}
+        <span className="font-semibold text-foreground/90 whitespace-nowrap">
           {dateStr}
         </span>
-        <span className="flex items-center gap-1 mt-0.5">
+
+        <span className="text-border/60">·</span>
+
+        {/* Solar phase */}
+        <span className="flex items-center gap-1 whitespace-nowrap">
           <span>{solar.emoji}</span>
           <span>{solar.label}</span>
         </span>
-      </div>
 
-      {/* Right: lunar phase */}
-      <div className="flex flex-col items-end leading-tight">
-        <span className="text-base leading-none">{lunar.emoji}</span>
-        <span className="mt-0.5 whitespace-nowrap">{lunar.label}</span>
+        <span className="text-border/60">·</span>
+
+        {/* Lunar phase */}
+        <span className="flex items-center gap-1 whitespace-nowrap">
+          <span>{lunar.emoji}</span>
+          <span>{lunar.label}</span>
+        </span>
       </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3 w-full px-4 py-1 text-xs text-muted-foreground border-b border-border/40 bg-card/30">
+      {/* Icon */}
+      <img
+        src="/assets/uploads/Ikon-2.jpg"
+        alt="HKLO"
+        className="h-6 w-auto object-contain rounded-sm flex-shrink-0"
+      />
+
+      {/* Date */}
+      <span className="font-medium text-foreground/80 whitespace-nowrap">
+        {dateStr}
+      </span>
+
+      {/* Solar phase */}
+      <span className="flex items-center gap-1 whitespace-nowrap">
+        <span>{solar.emoji}</span>
+        <span>{solar.label}</span>
+      </span>
+
+      {/* Lunar phase */}
+      <span className="flex items-center gap-1 whitespace-nowrap">
+        <span>{lunar.emoji}</span>
+        <span>{lunar.label}</span>
+      </span>
     </div>
   );
 }

@@ -84,8 +84,18 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* Background: ikon.jpg stretched to fill the viewport */
+    background-image: url("/assets/uploads/Ikon-2.jpg");
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    /* Overlay so text stays readable */
+    background-color: oklch(0.15 0.015 60 / 0.7);
+    background-blend-mode: overlay;
+    min-height: 100vh;
   }
 
   /* Editorial typography enhancements */

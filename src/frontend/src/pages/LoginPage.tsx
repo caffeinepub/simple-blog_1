@@ -37,7 +37,7 @@ export default function LoginPage() {
   // Show loading state while initializing
   if (isInitializing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background/85 backdrop-blur-sm">
         <div className="text-center">
           <div className="animate-spin text-4xl mb-4">⏳</div>
           <p className="text-muted-foreground">{t.loginInitializing}</p>
@@ -47,7 +47,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background/85 backdrop-blur-sm px-4">
       <div className="w-full max-w-md space-y-8">
         {/* Language Selector — above HKLO heading */}
         <div className="flex justify-center">

@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link, Outlet } from "@tanstack/react-router";
 import {
-  BookOpen,
   FileText,
   Home,
   LogIn,
@@ -33,9 +32,9 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-border/60 bg-card/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         {/* Date / Solar / Lunar bar */}
         <SunMoonWidget />
         <div className="container mx-auto px-4 py-4">
@@ -43,12 +42,13 @@ export default function Layout({ children }: LayoutProps) {
             {/* Logo */}
             <Link
               to="/"
-              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              className="flex items-center hover:opacity-80 transition-opacity"
             >
-              <BookOpen className="h-8 w-8 text-primary" />
-              <h1 className="text-3xl font-serif font-bold text-foreground tracking-tight">
-                HKLO
-              </h1>
+              <img
+                src="/assets/uploads/Ikon-2.jpg"
+                alt="HKLO"
+                className="h-12 w-auto object-contain"
+              />
             </Link>
 
             {/* Navigation */}
@@ -121,10 +121,12 @@ export default function Layout({ children }: LayoutProps) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1">{children || <Outlet />}</main>
+      <main className="flex-1 bg-background/85 backdrop-blur-sm">
+        {children || <Outlet />}
+      </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card/30 py-8 mt-12">
+      <footer className="border-t border-border/60 bg-card/80 backdrop-blur-md py-8 mt-12">
         <div className="container mx-auto px-4">
           <div className="text-center text-sm text-muted-foreground">
             <p>
