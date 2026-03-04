@@ -23,13 +23,8 @@ import {
   ArrowLeft,
   Globe,
   Loader2,
-  Mail,
-  MapPin,
   PenSquare,
-  Phone,
   Save,
-  Search,
-  ShieldAlert,
   User,
   Users,
 } from "lucide-react";
@@ -39,10 +34,8 @@ import type { UserProfile } from "../backend";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
-  useGetAllProfiles,
   useGetCallerUserProfile,
   useGetFollowerCount,
-  useIsCallerAdmin,
   useSaveCallerUserProfile,
   useSetPreferredLanguage,
 } from "../hooks/useQueries";
@@ -326,150 +319,6 @@ function ProfileForm() {
   );
 }
 
-// ─── User Search (Admin only) ─────────────────────────────────────────────────
-
-function UserSearch({ isAdmin }: { isAdmin: boolean }) {
-  const { data: profiles, isLoading, isError } = useGetAllProfiles();
-  const [searchTerm, setSearchTerm] = useState("");
-
-  if (!isAdmin) {
-    return (
-      <Card className="border-border/40 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-xl font-serif flex items-center gap-2">
-            <Users className="h-5 w-5 text-muted-foreground" />
-            Sök användare
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/40 text-muted-foreground">
-            <ShieldAlert className="h-5 w-5 shrink-0" />
-            <p className="text-sm">
-              Sökning bland användarprofiler är endast tillgänglig för
-              administratörer.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const term = searchTerm.trim().toLowerCase();
-  const filtered = (profiles ?? []).filter((p) => {
-    if (!term) return true;
-    return (
-      p.name.toLowerCase().includes(term) ||
-      p.email.toLowerCase().includes(term) ||
-      p.phone.toLowerCase().includes(term) ||
-      p.country.toLowerCase().includes(term)
-    );
-  });
-
-  return (
-    <Card className="border-border/40 shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-xl font-serif flex items-center gap-2">
-          <Users className="h-5 w-5 text-muted-foreground" />
-          Sök användare
-        </CardTitle>
-        <CardDescription>
-          Sök bland alla registrerade användarprofiler.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Search input */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Sök på namn, e-post, telefon eller land…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
-        {/* Loading */}
-        {isLoading && (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="p-4 rounded-lg border border-border/40 space-y-2"
-              >
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-48" />
-                <Skeleton className="h-3 w-24" />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Error */}
-        {isError && (
-          <p className="text-sm text-destructive text-center py-4">
-            Kunde inte hämta användarprofiler.
-          </p>
-        )}
-
-        {/* Results */}
-        {!isLoading &&
-          !isError &&
-          (filtered.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">
-                {term
-                  ? "Inga användare hittades."
-                  : "Inga användarprofiler registrerade ännu."}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filtered.map((p, idx) => {
-                const key = idx;
-                return <ProfileResultCard key={key} profile={p} />;
-              })}
-              <p className="text-xs text-muted-foreground text-right pt-1">
-                {filtered.length} av {(profiles ?? []).length} profiler visas
-              </p>
-            </div>
-          ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ProfileResultCard({ profile }: { profile: UserProfile }) {
-  return (
-    <div className="p-4 rounded-lg border border-border/40 bg-card hover:bg-muted/20 transition-colors space-y-2">
-      <div className="flex items-center gap-2">
-        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          <User className="h-4 w-4 text-primary" />
-        </div>
-        <span className="font-medium text-sm">
-          {profile.name || (
-            <span className="text-muted-foreground italic">Inget namn</span>
-          )}
-        </span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pl-10">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Mail className="h-3 w-3 shrink-0" />
-          <span className="truncate">{profile.email || "—"}</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Phone className="h-3 w-3 shrink-0" />
-          <span>{profile.phone || "—"}</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <MapPin className="h-3 w-3 shrink-0" />
-          <span>{profile.country || "—"}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Follower Count ───────────────────────────────────────────────────────────
 
 function FollowerCountCard() {
@@ -516,7 +365,6 @@ function FollowerCountCard() {
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { data: isAdmin } = useIsCallerAdmin();
   const { data: profile, isFetched } = useGetCallerUserProfile();
   const { setLanguage } = useLanguage();
 
@@ -546,7 +394,6 @@ export default function ProfilePage() {
       <div className="space-y-6">
         <ProfileForm />
         <FollowerCountCard />
-        <UserSearch isAdmin={!!isAdmin} />
       </div>
     </main>
   );

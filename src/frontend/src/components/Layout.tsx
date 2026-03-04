@@ -15,6 +15,7 @@ import type { ReactNode } from "react";
 import { ADMIN_PRINCIPAL_ID } from "../config/constants";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import NotificationBell from "./NotificationBell";
+import SunMoonWidget from "./SunMoonWidget";
 
 interface LayoutProps {
   children?: ReactNode;
@@ -35,6 +36,8 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        {/* Date / Solar / Lunar bar */}
+        <SunMoonWidget />
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
