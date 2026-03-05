@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   UserCircle,
   Users,
+  Users2,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { ADMIN_PRINCIPAL_ID } from "../config/constants";
@@ -32,18 +33,6 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col relative">
-      {/* Soft transparent icon overlay - full page background */}
-      <div
-        className="fixed inset-0 z-0 pointer-events-none"
-        aria-hidden="true"
-        style={{
-          backgroundImage: "url('/assets/uploads/Ikon-2.jpg')",
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "center center",
-          backgroundSize: "70vmin",
-          opacity: 0.07,
-        }}
-      />
       {/* Header */}
       <header className="border-b border-border/60 bg-card/80 backdrop-blur-md sticky top-0 z-50 shadow-sm relative">
         <div className="container mx-auto px-4 py-4">
@@ -88,6 +77,16 @@ export default function Layout({ children }: LayoutProps) {
                     >
                       <Users className="h-4 w-4" />
                       Användare
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" asChild>
+                    <Link
+                      to="/groups"
+                      className="gap-2"
+                      data-ocid="nav.groups.link"
+                    >
+                      <Users2 className="h-4 w-4" />
+                      Grupper
                     </Link>
                   </Button>
                   <Button variant="ghost" asChild>

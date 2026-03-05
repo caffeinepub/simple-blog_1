@@ -13,6 +13,8 @@ import CreatePostPage from "./pages/CreatePostPage";
 import DraftPreviewPage from "./pages/DraftPreviewPage";
 import EditDraftPage from "./pages/EditDraftPage";
 import EditPostPage from "./pages/EditPostPage";
+import GroupDetailPage from "./pages/GroupDetailPage";
+import GroupsPage from "./pages/GroupsPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import MyDraftsPage from "./pages/MyDraftsPage";
@@ -156,6 +158,30 @@ const usersRoute = createRoute({
   ),
 });
 
+const groupsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/groups",
+  component: () => (
+    <ProtectedRoute>
+      <Layout>
+        <GroupsPage />
+      </Layout>
+    </ProtectedRoute>
+  ),
+});
+
+const groupDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/groups/$id",
+  component: () => (
+    <ProtectedRoute>
+      <Layout>
+        <GroupDetailPage />
+      </Layout>
+    </ProtectedRoute>
+  ),
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   indexRoute,
@@ -168,6 +194,8 @@ const routeTree = rootRoute.addChildren([
   draftPreviewRoute,
   profileRoute,
   usersRoute,
+  groupsRoute,
+  groupDetailRoute,
 ]);
 
 const router = createRouter({

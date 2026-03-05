@@ -1,60 +1,55 @@
-# HKLO Blog
+# HKLO Blog Platform
 
 ## Current State
-
-HKLO is a full-stack multi-author blog platform with:
-- Internet Identity login/logout
-- Blog post creation (with category/title suggestions, alias, images, autosave drafts)
-- Post detail view with share, like/dislike (reaction buttons with animation), and edit/delete for post owner
-- My Drafts page listing draft posts with publish/edit/delete
-- Profile page with alias, language selector (46 countries/flags), follower count
-- Admin panel (admin linked to hardcoded principal `ci3hz-xset5-ahrcc-nhtdc-kfnzc-34wqe-e2yzj-qk2gl-ygiwy-oc5j5-2ae`)
-- Users page for following/unfollowing authors
-- Home page with "Alla inlägg" and "Mitt flöde" tabs + search panel
-- Navigation: Hem, Skapa inlägg, Mina utkast, Användare, Profil, Admin (if admin), Logga ut
-
-**Missing (last build attempt failed):**
-- Comment system on posts
-- Notifications when a comment is posted on your post
-- "Mina utkast" renamed to "Mina inlägg och utkast" in nav, page now shows both published posts AND drafts, with posts that have notifications sorted to the top
+Full-featured Swedish blog platform with:
+- Internet Identity authentication
+- Multi-author blog posts with rich text editor
+- Draft/publish workflow with preview
+- Image uploads in posts and comments
+- Follow system (follow/unfollow users, follower counts)
+- Like/dislike reactions with animations
+- Comments with emoji picker and image uploads
+- Notifications for post owners when comments are added
+- Admin panel (hardcoded principal for admin access)
+- User profiles with alias
+- Share functionality (copy link)
+- Search on home page (category, title, alias, content, date range)
+- Language selector on login page and profile
+- "My posts and drafts" page
 
 ## Requested Changes (Diff)
 
 ### Add
-
-- **Comment model** in backend: commentId, postId, authorPrincipal, authorAlias, content, images (multiple), createdAt, isDeleted
-- **Backend functions**: addComment, editComment, deleteComment, getCommentsForPost, getNotifications, markNotificationRead, clearAllNotifications
-- **Notification model**: notificationId, recipientPrincipal, postId, postTitle, commenterAlias, createdAt, isRead
-- **Comments section** on PostDetailPage (authenticated users only): list of comments with author alias, date, images, emoji; comment form with text, emoji picker (full with categories+search), image upload (multiple, inline display)
-- **Comment owner controls**: edit button and delete button visible only to comment author
-- **Notification badge** on navigation — icon with unread count badge, clicking opens a notification dropdown/popover listing recent notifications (e.g. "X kommenterade ditt inlägg 'Titel'"), with mark-all-read and link to post
-- **"Mina inlägg och utkast" page** — rename nav item from "Mina utkast" to "Mina inlägg och utkast"; show both published posts by the current user AND their drafts; posts/drafts with unread notifications sorted to the top with a visual indicator
+- Group data types in Motoko backend: `Group`, `GroupMember`, `GroupRole`
+- Group CRUD: createGroup, getGroup, getAllGroups, getMyGroups, deleteGroup
+- Group membership: joinGroup, leaveGroup, inviteToGroup, getGroupMembers
+- Group admin role within group: makeGroupModerator, removeGroupModerator
+- Group posts: createGroupPost, getGroupPosts (posts can optionally also appear in main feed)
+- Frontend: Groups page (accessible from navigation via "Grupper")
+- Frontend: Create group form (name, description, visibility: public/private)
+- Frontend: Group detail page with member list, invite by alias search, post list
+- Frontend: Group management for owners (edit, delete group, manage members)
+- Frontend: Group selector in create/edit post form (optional: attach post to a group)
+- Frontend: "Mitt flöde" tab on home page shows group posts if opted in
 
 ### Modify
-
-- Nav label: "Mina utkast" → "Mina inlägg och utkast"
-- MyDraftsPage: renamed to show both published posts (owned by caller) and drafts; add notification badge on posts with new comments; sort notified posts to top
-- PostDetailPage: add comments section below reactions
+- Navigation: Add "Grupper" link
+- App.tsx: Add /groups and /groups/:id routes
+- UsersPage: Add user's own groups list section
+- CreatePostPage / EditPostPage: Add optional group selector
+- backend.d.ts: Add group-related type definitions
 
 ### Remove
-
-Nothing removed.
+- Nothing removed
 
 ## Implementation Plan
-
-1. **Backend**: Add Comment and Notification types, stable storage maps, and the following new functions:
-   - `addComment(postId, content, authorAlias, images)` → commentId; creates Notification for post owner if commenter ≠ owner
-   - `editComment(commentId, content, images)` → result (only owner)
-   - `deleteComment(commentId)` → result (only owner)
-   - `getCommentsForPost(postId)` → Array<Comment>
-   - `getNotifications()` → Array<Notification> for caller
-   - `markNotificationRead(notificationId)` → void
-   - `clearAllNotifications()` → void
-   - `getUnreadNotificationCount()` → Nat
-
-2. **Frontend**:
-   - Add `useComments`, `useAddComment`, `useEditComment`, `useDeleteComment`, `useGetNotifications`, `useMarkNotificationRead`, `useClearAllNotifications`, `useGetUnreadNotificationCount` hooks
-   - Build `CommentsSection.tsx` component used in PostDetailPage
-   - Build `EmojiPicker.tsx` component (full emoji picker with categories + search using emoji-mart or similar)
-   - Build `NotificationBell.tsx` for nav — shows unread count badge, popover with notification list
-   - Rename nav item and update MyDraftsPage to show published + drafts with notification sorting
+1. Add Group types and state to main.mo backend
+2. Add group functions: createGroup, getGroup, getAllGroups, getMyGroups, deleteGroup, joinGroup, leaveGroup, inviteToGroup, getGroupMembers, makeGroupModerator, removeGroupModerator, createGroupPost, getGroupPosts
+3. Regenerate backend.d.ts to include group types
+4. Add group hooks to useQueries.ts
+5. Create GroupsPage.tsx (list all public groups + user's groups)
+6. Create GroupDetailPage.tsx (view group, members, posts, invite by alias)
+7. Add routes in App.tsx for /groups and /groups/:id
+8. Add "Grupper" nav link in Layout.tsx
+9. Add optional group selector in CreatePostPage and EditPostPage
+10. Build and verify
