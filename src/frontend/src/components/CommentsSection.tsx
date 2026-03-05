@@ -733,11 +733,23 @@ export default function CommentsSection({ postId }: CommentsSectionProps) {
       setNewComment("");
       clearImages();
     } catch (err) {
-      toast.error(
-        err instanceof Error
-          ? err.message
-          : "Kunde inte lägga till kommentaren.",
-      );
+      const rawMsg = err instanceof Error ? err.message : String(err);
+      // Backend traps with a Swedish moderation message — extract and surface it
+      const moderationPrefix =
+        "Kommentaren blockerades av innehållsmodereringen:";
+      if (rawMsg.includes(moderationPrefix)) {
+        const idx = rawMsg.indexOf(moderationPrefix);
+        const reason = rawMsg
+          .slice(idx + moderationPrefix.length)
+          .trim()
+          .replace(/\.$/, "");
+        toast.error(
+          `Kommentaren blockerades av innehållsmodereringen: ${reason}.`,
+          { duration: 8000 },
+        );
+      } else {
+        toast.error(rawMsg || "Kunde inte lägga till kommentaren.");
+      }
     }
   };
 

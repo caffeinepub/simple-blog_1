@@ -194,7 +194,15 @@ export default function EditDraftPage() {
     } catch (err) {
       console.error("Failed to publish draft:", err);
       const msg = err instanceof Error ? err.message : "Okänt fel";
-      setSubmitError(`Kunde inte publicera inlägget: ${msg}`);
+      if (msg.startsWith("__contentBlocked__:")) {
+        const reason = msg.replace("__contentBlocked__:", "");
+        toast.error(
+          `Inlägget blockerades av innehållsmodereringen: ${reason}. Vänligen ändra ditt innehåll.`,
+          { duration: 8000 },
+        );
+      } else {
+        setSubmitError(`Kunde inte publicera inlägget: ${msg}`);
+      }
     }
   };
 

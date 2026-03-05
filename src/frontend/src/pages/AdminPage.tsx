@@ -4,6 +4,7 @@ import { useState } from "react";
 import AllPostsSection from "../components/admin/AllPostsSection";
 import ManageAdminsSection from "../components/admin/ManageAdminsSection";
 import ManageAuthorsSection from "../components/admin/ManageAuthorsSection";
+import ModerationLogSection from "../components/admin/ModerationLogSection";
 import { useIsCallerAdmin } from "../hooks/useQueries";
 
 export default function AdminPage() {
@@ -63,6 +64,9 @@ export default function AdminPage() {
           <TabsTrigger value="posts">Alla inlägg</TabsTrigger>
           <TabsTrigger value="admins">Hantera admins</TabsTrigger>
           <TabsTrigger value="authors">Hantera författare</TabsTrigger>
+          <TabsTrigger value="moderation" data-ocid="moderation.tab">
+            Innehållsmoderering
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="posts">
@@ -75,6 +79,10 @@ export default function AdminPage() {
 
         <TabsContent value="authors">
           <ManageAuthorsSection />
+        </TabsContent>
+
+        <TabsContent value="moderation">
+          <ModerationLogSection />
         </TabsContent>
       </Tabs>
     </div>

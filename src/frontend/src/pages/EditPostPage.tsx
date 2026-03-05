@@ -237,9 +237,18 @@ export default function EditPostPage() {
       navigate({ to: `/post/${id}` });
     } catch (err) {
       console.error("Failed to update post:", err);
-      setSubmitError(
-        "Kunde inte uppdatera inlägget. Försök med en mindre bild eller försök igen.",
-      );
+      const errMsg = err instanceof Error ? err.message : "";
+      if (errMsg.startsWith("__contentBlocked__:")) {
+        const reason = errMsg.replace("__contentBlocked__:", "");
+        toast.error(
+          `Inlägget blockerades av innehållsmodereringen: ${reason}. Vänligen ändra ditt innehåll.`,
+          { duration: 8000 },
+        );
+      } else {
+        setSubmitError(
+          "Kunde inte uppdatera inlägget. Försök med en mindre bild eller försök igen.",
+        );
+      }
     }
   };
 

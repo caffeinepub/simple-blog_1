@@ -1,6 +1,15 @@
-// ─── Group Storage (localStorage-based) ──────────────────────────────────────
-// Groups are stored in localStorage since the backend does not have a groups API.
+// ─── Group Storage ────────────────────────────────────────────────────────────
+// Groups are cached in localStorage and synced with the backend canister.
+// Sync functions are async and accept the actor as a parameter.
 // Key: "hklo_groups"
+
+import { Principal } from "@dfinity/principal";
+import type {
+  Group as BackendGroup,
+  GroupMember as BackendGroupMember,
+  GroupPostEntry as BackendGroupPostEntry,
+  backendInterface,
+} from "../backend";
 
 const STORAGE_KEY = "hklo_groups";
 
@@ -48,7 +57,51 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-// ─── CRUD ─────────────────────────────────────────────────────────────────────
+// ─── Backend type converters ──────────────────────────────────────────────────
+
+function backendRoleToLocal(role: BackendGroupMember["role"]): GroupMemberRole {
+  if (role === "owner") return "owner";
+  if (role === "moderator") return "moderator";
+  return "member";
+}
+
+function backendVisibilityToLocal(
+  visibility: BackendGroup["visibility"],
+): GroupVisibility {
+  // The enum value for GroupVisibility.public_ is the string "public"
+  return (visibility as string) === "public" ? "public" : "private";
+}
+
+function backendGroupToLocal(
+  backendGroup: BackendGroup,
+  members: BackendGroupMember[],
+  posts: BackendGroupPostEntry[],
+): Group {
+  const localMembers: GroupMember[] = members.map((m) => ({
+    principal: m.userPrincipal.toString(),
+    alias: m.alias || m.userPrincipal.toString().slice(0, 8),
+    role: backendRoleToLocal(m.role),
+  }));
+
+  const postIds = posts.map((p) => p.postId);
+  const inMainFeedPostIds = posts
+    .filter((p) => p.inMainFeed)
+    .map((p) => p.postId);
+
+  return {
+    id: backendGroup.id,
+    name: backendGroup.name,
+    description: backendGroup.description,
+    visibility: backendVisibilityToLocal(backendGroup.visibility),
+    ownerId: backendGroup.ownerId.toString(),
+    members: localMembers,
+    postIds,
+    inMainFeedPostIds,
+    createdAt: Number(backendGroup.createdAt) / 1_000_000, // nanoseconds → ms
+  };
+}
+
+// ─── CRUD (sync localStorage) ─────────────────────────────────────────────────
 
 export function getAllGroups(): Group[] {
   return readAll();
@@ -214,4 +267,309 @@ export function getGroupRole(
   if (!group) return null;
   const member = group.members.find((m) => m.principal === principalStr);
   return member?.role ?? null;
+}
+
+// ─── Async backend-integrated functions ──────────────────────────────────────
+// All async functions accept the actor (backendInterface | null) as the first
+// parameter. If actor is null, they fall back to the sync localStorage version.
+
+/**
+ * Fetch all groups the caller belongs to (plus public groups) from the backend
+ * and merge them into the localStorage cache.
+ */
+export async function fetchAndSyncGroupsFromBackend(
+  actor: backendInterface | null,
+): Promise<void> {
+  if (!actor) return;
+
+  try {
+    // Fetch caller groups and public groups in parallel
+    const [callerGroups, publicGroupsList] = await Promise.all([
+      actor.getAllGroupsForCaller().catch(() => [] as BackendGroup[]),
+      (actor as any).getPublicGroups_().catch(() => [] as BackendGroup[]),
+    ]);
+
+    // Deduplicate by id
+    const seen = new Set<string>();
+    const allBackendGroups: BackendGroup[] = [];
+    for (const g of [...callerGroups, ...publicGroupsList]) {
+      if (!seen.has(g.id)) {
+        seen.add(g.id);
+        allBackendGroups.push(g);
+      }
+    }
+
+    if (allBackendGroups.length === 0) return;
+
+    // Fetch members and posts for each group in parallel
+    const enriched = await Promise.all(
+      allBackendGroups.map(async (bg) => {
+        const [members, posts] = await Promise.all([
+          (actor as any)
+            .getGroupMembers_(bg.id)
+            .catch(() => [] as BackendGroupMember[]),
+          (actor as any)
+            .getGroupPosts_(bg.id)
+            .catch(() => [] as BackendGroupPostEntry[]),
+        ]);
+        return backendGroupToLocal(bg, members, posts);
+      }),
+    );
+
+    // Merge with existing localStorage groups (backend is authoritative for
+    // groups that exist in backend; local-only groups are preserved)
+    const existing = readAll();
+    const backendIds = new Set(enriched.map((g) => g.id));
+
+    // Keep local groups that are not yet in backend (optimistic creates)
+    const localOnly = existing.filter(
+      (g) =>
+        !backendIds.has(g.id) &&
+        // Filter out groups with generated local IDs that look like "timestamp-random"
+        // but keep any that were created with backend IDs
+        !g.id.includes("-"),
+    );
+
+    writeAll([...enriched, ...localOnly]);
+  } catch {
+    // Silently fall back to localStorage — network or auth error
+  }
+}
+
+/**
+ * Create a group in the backend and cache it in localStorage.
+ */
+export async function createGroupAsync(
+  actor: backendInterface | null,
+  name: string,
+  description: string,
+  visibility: GroupVisibility,
+  ownerPrincipal: string,
+  ownerAlias: string,
+): Promise<Group> {
+  if (!actor) {
+    return createGroup(
+      name,
+      description,
+      visibility,
+      ownerPrincipal,
+      ownerAlias,
+    );
+  }
+
+  const backendId = await actor.createGroup(
+    name,
+    description,
+    visibility === "public",
+  );
+
+  // Build local representation
+  const group: Group = {
+    id: backendId,
+    name,
+    description,
+    visibility,
+    ownerId: ownerPrincipal,
+    members: [{ principal: ownerPrincipal, alias: ownerAlias, role: "owner" }],
+    postIds: [],
+    inMainFeedPostIds: [],
+    createdAt: Date.now(),
+  };
+
+  const all = readAll();
+  // Replace any optimistic local version, or just push
+  const idx = all.findIndex((g) => g.id === backendId);
+  if (idx !== -1) {
+    all[idx] = group;
+  } else {
+    all.push(group);
+  }
+  writeAll(all);
+  return group;
+}
+
+/**
+ * Delete a group in the backend and remove it from localStorage cache.
+ */
+export async function deleteGroupAsync(
+  actor: backendInterface | null,
+  id: string,
+): Promise<boolean> {
+  if (!actor) {
+    deleteGroup(id);
+    return true;
+  }
+
+  const success = await (actor as any).deleteGroup_(id);
+  if (success) {
+    deleteGroup(id);
+  }
+  return success;
+}
+
+/**
+ * Join a public group in the backend and update localStorage cache.
+ */
+export async function joinGroupAsync(
+  actor: backendInterface | null,
+  id: string,
+  principalStr: string,
+  alias: string,
+): Promise<boolean> {
+  if (!actor) {
+    joinGroup(id, principalStr, alias);
+    return true;
+  }
+
+  const success = await (actor as any).joinGroup_(id);
+  if (success) {
+    joinGroup(id, principalStr, alias);
+  }
+  return success;
+}
+
+/**
+ * Leave a group in the backend and update localStorage cache.
+ */
+export async function leaveGroupAsync(
+  actor: backendInterface | null,
+  id: string,
+  principalStr: string,
+): Promise<boolean> {
+  if (!actor) {
+    leaveGroup(id, principalStr);
+    return true;
+  }
+
+  const success = await (actor as any).leaveGroup_(id);
+  if (success) {
+    leaveGroup(id, principalStr);
+  }
+  return success;
+}
+
+/**
+ * Invite a user to a group via the backend and update localStorage cache.
+ */
+export async function inviteToGroupAsync(
+  actor: backendInterface | null,
+  id: string,
+  targetPrincipal: string,
+  targetAlias: string,
+): Promise<boolean> {
+  if (!actor) {
+    inviteToGroup(id, targetPrincipal, targetAlias);
+    return true;
+  }
+
+  const principal = Principal.fromText(targetPrincipal);
+  const success = await (actor as any).inviteToGroup_(id, principal);
+  if (success) {
+    inviteToGroup(id, targetPrincipal, targetAlias);
+  }
+  return success;
+}
+
+/**
+ * Promote a group member to moderator in the backend and update localStorage cache.
+ */
+export async function makeGroupModeratorAsync(
+  actor: backendInterface | null,
+  id: string,
+  targetPrincipal: string,
+): Promise<boolean> {
+  if (!actor) {
+    makeGroupModerator(id, targetPrincipal);
+    return true;
+  }
+
+  const principal = Principal.fromText(targetPrincipal);
+  const success = await (actor as any).setGroupModerator_(id, principal);
+  if (success) {
+    makeGroupModerator(id, targetPrincipal);
+  }
+  return success;
+}
+
+/**
+ * Remove moderator role from a group member in the backend and update localStorage cache.
+ */
+export async function removeGroupModeratorAsync(
+  actor: backendInterface | null,
+  id: string,
+  targetPrincipal: string,
+): Promise<boolean> {
+  if (!actor) {
+    removeGroupModerator(id, targetPrincipal);
+    return true;
+  }
+
+  const principal = Principal.fromText(targetPrincipal);
+  const success = await (actor as any).removeGroupModerator_(id, principal);
+  if (success) {
+    removeGroupModerator(id, targetPrincipal);
+  }
+  return success;
+}
+
+/**
+ * Remove a member from a group in the backend and update localStorage cache.
+ */
+export async function removeGroupMemberAsync(
+  actor: backendInterface | null,
+  id: string,
+  targetPrincipal: string,
+): Promise<boolean> {
+  if (!actor) {
+    removeGroupMember(id, targetPrincipal);
+    return true;
+  }
+
+  const principal = Principal.fromText(targetPrincipal);
+  const success = await (actor as any).removeGroupMember_(id, principal);
+  if (success) {
+    removeGroupMember(id, targetPrincipal);
+  }
+  return success;
+}
+
+/**
+ * Add a post to a group in the backend and update localStorage cache.
+ */
+export async function addPostToGroupAsync(
+  actor: backendInterface | null,
+  id: string,
+  postId: string,
+  inMainFeed: boolean,
+): Promise<boolean> {
+  if (!actor) {
+    addPostToGroup(id, postId, inMainFeed);
+    return true;
+  }
+
+  const success = await (actor as any).addPostToGroup_(id, postId, inMainFeed);
+  if (success) {
+    addPostToGroup(id, postId, inMainFeed);
+  }
+  return success;
+}
+
+/**
+ * Remove a post from a group in the backend and update localStorage cache.
+ */
+export async function removePostFromGroupAsync(
+  actor: backendInterface | null,
+  id: string,
+  postId: string,
+): Promise<boolean> {
+  if (!actor) {
+    removePostFromGroup(id, postId);
+    return true;
+  }
+
+  const success = await (actor as any).removePostFromGroup_(id, postId);
+  if (success) {
+    removePostFromGroup(id, postId);
+  }
+  return success;
 }

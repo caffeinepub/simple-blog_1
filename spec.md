@@ -1,55 +1,37 @@
-# HKLO Blog Platform
+# HKLO Blog
 
 ## Current State
-Full-featured Swedish blog platform with:
-- Internet Identity authentication
-- Multi-author blog posts with rich text editor
-- Draft/publish workflow with preview
-- Image uploads in posts and comments
-- Follow system (follow/unfollow users, follower counts)
-- Like/dislike reactions with animations
-- Comments with emoji picker and image uploads
-- Notifications for post owners when comments are added
-- Admin panel (hardcoded principal for admin access)
-- User profiles with alias
-- Share functionality (copy link)
-- Search on home page (category, title, alias, content, date range)
-- Language selector on login page and profile
-- "My posts and drafts" page
+A full-featured Swedish multi-author blog platform with: post creation/editing/drafts, rich text editor, comments with emoji/images, reactions (like/dislike), follow system, groups, profiles, notifications, search, admin panel, and share functionality. Backend is Motoko on ICP.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Group data types in Motoko backend: `Group`, `GroupMember`, `GroupRole`
-- Group CRUD: createGroup, getGroup, getAllGroups, getMyGroups, deleteGroup
-- Group membership: joinGroup, leaveGroup, inviteToGroup, getGroupMembers
-- Group admin role within group: makeGroupModerator, removeGroupModerator
-- Group posts: createGroupPost, getGroupPosts (posts can optionally also appear in main feed)
-- Frontend: Groups page (accessible from navigation via "Grupper")
-- Frontend: Create group form (name, description, visibility: public/private)
-- Frontend: Group detail page with member list, invite by alias search, post list
-- Frontend: Group management for owners (edit, delete group, manage members)
-- Frontend: Group selector in create/edit post form (optional: attach post to a group)
-- Frontend: "Mitt flöde" tab on home page shows group posts if opted in
+- Rule-based content moderation in Motoko backend: a `moderateContent` function that checks text against a blocklist of offensive/hateful/violent words in Swedish and English
+- Backend stores a `ModerationResult` type: `{ blocked: Bool; reason: Text }`
+- Moderation check runs before `createPost`, `publishDraft`, and `addComment` — if blocked, return a new result variant `#contentBlocked` with the reason
+- New backend type `CreatePostResult` extended with `#contentBlocked : Text`
+- New backend type `UpdatePostResult` extended with `#contentBlocked : Text`
+- Admin notification when content is blocked: a new `ModerationNotification` stored in backend with type, content snippet, author principal, and timestamp
+- New backend function `getModerationLog` (admin only) to retrieve blocked content log
+- Admin panel section "Innehållsmoderering" showing the moderation log
+- Frontend: when a post/comment is blocked, show a clear Swedish error message with the reason
 
 ### Modify
-- Navigation: Add "Grupper" link
-- App.tsx: Add /groups and /groups/:id routes
-- UsersPage: Add user's own groups list section
-- CreatePostPage / EditPostPage: Add optional group selector
-- backend.d.ts: Add group-related type definitions
+- `createPost`: run moderation on title + content before saving; return `#contentBlocked` if flagged
+- `publishDraft`: run moderation on title + content before publishing; return `#contentBlocked` if flagged
+- `addComment`: run moderation on content before saving; trap with descriptive message if flagged
+- `UpdatePostResult` and `CreatePostResult` types: add `#contentBlocked : Text` variant
+- Frontend `CreatePostPage`, `EditDraftPage`, `EditPostPage`, `CommentsSection`: handle `#contentBlocked` result and show user-friendly Swedish error toast
+- Admin panel: add moderation log tab
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-1. Add Group types and state to main.mo backend
-2. Add group functions: createGroup, getGroup, getAllGroups, getMyGroups, deleteGroup, joinGroup, leaveGroup, inviteToGroup, getGroupMembers, makeGroupModerator, removeGroupModerator, createGroupPost, getGroupPosts
-3. Regenerate backend.d.ts to include group types
-4. Add group hooks to useQueries.ts
-5. Create GroupsPage.tsx (list all public groups + user's groups)
-6. Create GroupDetailPage.tsx (view group, members, posts, invite by alias)
-7. Add routes in App.tsx for /groups and /groups/:id
-8. Add "Grupper" nav link in Layout.tsx
-9. Add optional group selector in CreatePostPage and EditPostPage
-10. Build and verify
+1. Add moderation blocklist and `checkContent` helper function in `main.mo`
+2. Add `ModerationLog` type and `moderationLog` map in backend state
+3. Add `#contentBlocked : Text` to `CreatePostResult` and `UpdatePostResult`
+4. Gate `createPost`, `publishDraft`, `addComment` with moderation check
+5. Add `getModerationLog` query function (admin only)
+6. Update frontend result handlers in CreatePostPage, EditDraftPage, EditPostPage, CommentsSection to show Swedish error for blocked content
+7. Add "Innehållsmoderering" tab in AdminPage showing the log

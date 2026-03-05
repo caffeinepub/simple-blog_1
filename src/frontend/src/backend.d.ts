@@ -7,6 +7,11 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface GroupPostEntry {
+    groupId: string;
+    inMainFeed: boolean;
+    postId: string;
+}
 export interface ReactionCount {
     likes: bigint;
     dislikes: bigint;
@@ -18,13 +23,43 @@ export type CreatePostResult = {
 } | {
     __kind__: "imageTooLarge";
     imageTooLarge: null;
+} | {
+    __kind__: "contentBlocked";
+    contentBlocked: string;
 };
+export interface GroupMember {
+    alias: string;
+    role: GroupMemberRole;
+    groupId: string;
+    userPrincipal: Principal;
+}
 export type GetCommentsResult = {
     __kind__: "ok";
     ok: Array<Comment>;
 } | {
     __kind__: "postNotFound";
     postNotFound: null;
+};
+export interface Group {
+    id: string;
+    ownerId: Principal;
+    name: string;
+    createdAt: Time;
+    description: string;
+    visibility: GroupVisibility;
+}
+export type UpdatePostResult = {
+    __kind__: "ok";
+    ok: null;
+} | {
+    __kind__: "postNotFound";
+    postNotFound: null;
+} | {
+    __kind__: "imageTooLarge";
+    imageTooLarge: null;
+} | {
+    __kind__: "contentBlocked";
+    contentBlocked: string;
 };
 export interface Comment {
     id: bigint;
@@ -66,6 +101,14 @@ export interface Notification {
     postId: bigint;
 }
 export type Image = Uint8Array;
+export interface ModerationLog {
+    id: bigint;
+    contentType: string;
+    createdAt: Time;
+    contentSnippet: string;
+    authorPrincipal: Principal;
+    reason: string;
+}
 export interface UserProfile {
     preferredLanguage: string;
     country: string;
@@ -78,15 +121,19 @@ export enum DeleteCommentResult {
     notFound = "notFound",
     notOwner = "notOwner"
 }
+export enum GroupMemberRole {
+    member = "member",
+    moderator = "moderator",
+    owner = "owner"
+}
+export enum GroupVisibility {
+    public_ = "public",
+    private_ = "private"
+}
 export enum PostStatus {
     published = "published",
     hidden = "hidden",
     draft = "draft"
-}
-export enum UpdatePostResult {
-    ok = "ok",
-    postNotFound = "postNotFound",
-    imageTooLarge = "imageTooLarge"
 }
 export enum UserRole {
     admin = "admin",
@@ -99,8 +146,10 @@ export interface backendInterface {
      */
     addAdmin(principal: Principal): Promise<void>;
     addComment(postId: bigint, content: string, authorAlias: string, images: Array<Uint8Array>): Promise<bigint>;
+    addPostToGroup(groupId: string, postId: string, inMainFeed: boolean): Promise<boolean>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     clearAllNotifications(): Promise<void>;
+    createGroup(name: string, description: string, isPublic: boolean): Promise<string>;
     /**
      * / Create a post (authenticated users only)
      */
@@ -110,6 +159,7 @@ export interface backendInterface {
      * / Delete a draft by ID (authenticated users only, owner of draft only)
      */
     deleteDraft(id: bigint): Promise<void>;
+    deleteGroup(id: string): Promise<boolean>;
     /**
      * / Delete a post (owner of post or admin)
      */
@@ -127,6 +177,7 @@ export interface backendInterface {
      * / Get all admins (owner only)
      */
     getAdmins(): Promise<Array<Principal>>;
+    getAllGroupsForCaller(): Promise<Array<Group>>;
     /**
      * / Get all posts regardless of status (admins only)
      */
@@ -158,6 +209,13 @@ export interface backendInterface {
      * / Get follower count for a user (public)
      */
     getFollowerCount(target: Principal): Promise<bigint>;
+    getGroupById(id: string): Promise<Group | null>;
+    getGroupMembers(groupId: string): Promise<Array<GroupMember>>;
+    getGroupPosts(groupId: string): Promise<Array<GroupPostEntry>>;
+    /**
+     * / Get moderation log (admins only)
+     */
+    getModerationLog(): Promise<Array<ModerationLog>>;
     /**
      * / Get all drafts belonging to the caller (authenticated users only)
      */
@@ -175,12 +233,14 @@ export interface backendInterface {
      * / Get the preferred language for the caller (authenticated users only)
      */
     getPreferredLanguage(): Promise<string>;
+    getPublicGroups(): Promise<Array<Group>>;
     /**
      * / Get all users who have a public profile (name only, must not be empty)
      */
     getPublicProfiles(): Promise<Array<PublicProfile>>;
     getUnreadNotificationCount(): Promise<bigint>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    inviteToGroup(groupId: string, targetPrincipal: Principal): Promise<boolean>;
     /**
      * / Check if a principal is an admin (any authenticated user can check their own status)
      */
@@ -190,6 +250,8 @@ export interface backendInterface {
      * / Check if user is following another user (authenticated users only)
      */
     isFollowing(target: Principal): Promise<boolean>;
+    joinGroup(groupId: string): Promise<boolean>;
+    leaveGroup(groupId: string): Promise<boolean>;
     /**
      * / Like a post (authenticated users only). Toggles like; removes dislike if present.
      */
@@ -211,11 +273,15 @@ export interface backendInterface {
      * / Remove all posts belonging to an author (admins only)
      */
     removeAuthor(principal: Principal): Promise<void>;
+    removeGroupMember(groupId: string, targetPrincipal: Principal): Promise<boolean>;
+    removeGroupModerator(groupId: string, targetPrincipal: Principal): Promise<boolean>;
+    removePostFromGroup(groupId: string, postId: string): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     /**
      * / Save a new draft (authenticated users only)
      */
     saveDraft(title: string, content: string, author: string, images: Array<Image>): Promise<bigint>;
+    setGroupModerator(groupId: string, targetPrincipal: Principal): Promise<boolean>;
     /**
      * / Set a new owner (owner only)
      */
@@ -232,6 +298,7 @@ export interface backendInterface {
      * / Update an existing draft (authenticated users only, owner of draft only)
      */
     updateDraft(id: bigint, title: string, content: string, author: string, images: Array<Image>): Promise<void>;
+    updateGroup(id: string, name: string, description: string, isPublic: boolean): Promise<boolean>;
     /**
      * / Update a post (owner of post or admin)
      */

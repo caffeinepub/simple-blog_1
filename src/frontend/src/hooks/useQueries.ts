@@ -5,6 +5,7 @@ import type {
   Comment,
   GetCommentsResult,
   Image,
+  ModerationLog,
   Notification,
   Post,
   PublicProfile,
@@ -76,6 +77,10 @@ export function useCreatePost() {
       if (createResult.__kind__ === "imageTooLarge") {
         throw new Error("Bilden är för stor. Max 800 KB per bild tillåts.");
       }
+      if (createResult.__kind__ === "contentBlocked") {
+        const reason = createResult.contentBlocked;
+        throw new Error(`__contentBlocked__:${reason}`);
+      }
 
       const postId = createResult.ok;
 
@@ -88,8 +93,11 @@ export function useCreatePost() {
           PostStatus.published,
           images,
         );
-        if (updateResult === "imageTooLarge") {
+        if (updateResult.__kind__ === "imageTooLarge") {
           throw new Error("Bilden är för stor. Max 800 KB per bild tillåts.");
+        }
+        if (updateResult.__kind__ === "contentBlocked") {
+          throw new Error(`__contentBlocked__:${updateResult.contentBlocked}`);
         }
       }
 
@@ -131,8 +139,11 @@ export function useUpdatePost() {
         status,
         images,
       );
-      if (result === "imageTooLarge") {
+      if (result.__kind__ === "imageTooLarge") {
         throw new Error("Bilden är för stor. Max 800 KB per bild tillåts.");
+      }
+      if (result.__kind__ === "contentBlocked") {
+        throw new Error(`__contentBlocked__:${result.contentBlocked}`);
       }
       return id;
     },
@@ -334,11 +345,14 @@ export function usePublishDraft() {
     mutationFn: async (id: bigint) => {
       if (!actor) throw new Error("Actor not initialized");
       const result = await actor.publishDraft(id);
-      if (result === UpdatePostResult.postNotFound) {
+      if (result.__kind__ === "postNotFound") {
         throw new Error("Utkastet hittades inte.");
       }
-      if (result === UpdatePostResult.imageTooLarge) {
+      if (result.__kind__ === "imageTooLarge") {
         throw new Error("Bilden är för stor. Max 800 KB per bild tillåts.");
+      }
+      if (result.__kind__ === "contentBlocked") {
+        throw new Error(`__contentBlocked__:${result.contentBlocked}`);
       }
       return id;
     },
@@ -563,8 +577,11 @@ export function useAdminUpdatePost() {
         status,
         images,
       );
-      if (result === "imageTooLarge") {
-        throw new Error("Bilden är för stor. Max 800 KB per bild tillåts.");
+      if (result.__kind__ === "imageTooLarge") {
+        throw new Error("Bilden är voor stor. Max 800 KB per bild tillåts.");
+      }
+      if (result.__kind__ === "contentBlocked") {
+        throw new Error(`__contentBlocked__:${result.contentBlocked}`);
       }
       return id;
     },
@@ -593,8 +610,11 @@ export function useAdminChangePostStatus() {
         status,
         post.images as Uint8Array[],
       );
-      if (result === "imageTooLarge") {
+      if (result.__kind__ === "imageTooLarge") {
         throw new Error("Bilden är för stor. Max 800 KB per bild tillåts.");
+      }
+      if (result.__kind__ === "contentBlocked") {
+        throw new Error(`__contentBlocked__:${result.contentBlocked}`);
       }
       return id;
     },
@@ -619,6 +639,22 @@ export function useAdminDeletePost() {
       queryClient.invalidateQueries({ queryKey: ["posts", "admin"] });
       queryClient.invalidateQueries({ queryKey: ["posts", "published"] });
     },
+  });
+}
+
+export function useGetModerationLog() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+
+  return useQuery<ModerationLog[]>({
+    queryKey: ["moderationLog"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getModerationLog();
+    },
+    enabled: !!actor && !isFetching && isAuthenticated,
+    staleTime: 30_000,
   });
 }
 

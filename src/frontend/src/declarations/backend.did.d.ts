@@ -22,7 +22,8 @@ export interface Comment {
   'images' : Array<Uint8Array>,
 }
 export type CreatePostResult = { 'ok' : bigint } |
-  { 'imageTooLarge' : null };
+  { 'imageTooLarge' : null } |
+  { 'contentBlocked' : string };
 export type DeleteCommentResult = { 'ok' : null } |
   { 'notFound' : null } |
   { 'notOwner' : null };
@@ -31,7 +32,39 @@ export type EditCommentResult = { 'ok' : null } |
   { 'notOwner' : null };
 export type GetCommentsResult = { 'ok' : Array<Comment> } |
   { 'postNotFound' : null };
+export interface Group {
+  'id' : string,
+  'ownerId' : Principal,
+  'name' : string,
+  'createdAt' : Time,
+  'description' : string,
+  'visibility' : GroupVisibility,
+}
+export interface GroupMember {
+  'alias' : string,
+  'role' : GroupMemberRole,
+  'groupId' : string,
+  'userPrincipal' : Principal,
+}
+export type GroupMemberRole = { 'member' : null } |
+  { 'moderator' : null } |
+  { 'owner' : null };
+export interface GroupPostEntry {
+  'groupId' : string,
+  'inMainFeed' : boolean,
+  'postId' : string,
+}
+export type GroupVisibility = { 'public' : null } |
+  { 'private' : null };
 export type Image = Uint8Array;
+export interface ModerationLog {
+  'id' : bigint,
+  'contentType' : string,
+  'createdAt' : Time,
+  'contentSnippet' : string,
+  'authorPrincipal' : Principal,
+  'reason' : string,
+}
 export interface Notification {
   'id' : bigint,
   'createdAt' : Time,
@@ -61,7 +94,8 @@ export interface ReactionCount { 'likes' : bigint, 'dislikes' : bigint }
 export type Time = bigint;
 export type UpdatePostResult = { 'ok' : null } |
   { 'postNotFound' : null } |
-  { 'imageTooLarge' : null };
+  { 'imageTooLarge' : null } |
+  { 'contentBlocked' : string };
 export interface UserProfile {
   'preferredLanguage' : string,
   'country' : string,
@@ -108,8 +142,10 @@ export interface _SERVICE {
     [bigint, string, string, Array<Uint8Array>],
     bigint
   >,
+  'addPostToGroup' : ActorMethod<[string, string, boolean], boolean>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'clearAllNotifications' : ActorMethod<[], undefined>,
+  'createGroup' : ActorMethod<[string, string, boolean], string>,
   /**
    * / Create a post (authenticated users only)
    */
@@ -122,6 +158,7 @@ export interface _SERVICE {
    * / Delete a draft by ID (authenticated users only, owner of draft only)
    */
   'deleteDraft' : ActorMethod<[bigint], undefined>,
+  'deleteGroup' : ActorMethod<[string], boolean>,
   /**
    * / Delete a post (owner of post or admin)
    */
@@ -142,6 +179,7 @@ export interface _SERVICE {
    * / Get all admins (owner only)
    */
   'getAdmins' : ActorMethod<[], Array<Principal>>,
+  'getAllGroupsForCaller' : ActorMethod<[], Array<Group>>,
   /**
    * / Get all posts regardless of status (admins only)
    */
@@ -173,6 +211,13 @@ export interface _SERVICE {
    * / Get follower count for a user (public)
    */
   'getFollowerCount' : ActorMethod<[Principal], bigint>,
+  'getGroupById' : ActorMethod<[string], [] | [Group]>,
+  'getGroupMembers' : ActorMethod<[string], Array<GroupMember>>,
+  'getGroupPosts' : ActorMethod<[string], Array<GroupPostEntry>>,
+  /**
+   * / Get moderation log (admins only)
+   */
+  'getModerationLog' : ActorMethod<[], Array<ModerationLog>>,
   /**
    * / Get all drafts belonging to the caller (authenticated users only)
    */
@@ -190,12 +235,14 @@ export interface _SERVICE {
    * / Get the preferred language for the caller (authenticated users only)
    */
   'getPreferredLanguage' : ActorMethod<[], string>,
+  'getPublicGroups' : ActorMethod<[], Array<Group>>,
   /**
    * / Get all users who have a public profile (name only, must not be empty)
    */
   'getPublicProfiles' : ActorMethod<[], Array<PublicProfile>>,
   'getUnreadNotificationCount' : ActorMethod<[], bigint>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'inviteToGroup' : ActorMethod<[string, Principal], boolean>,
   /**
    * / Check if a principal is an admin (any authenticated user can check their own status)
    */
@@ -205,6 +252,8 @@ export interface _SERVICE {
    * / Check if user is following another user (authenticated users only)
    */
   'isFollowing' : ActorMethod<[Principal], boolean>,
+  'joinGroup' : ActorMethod<[string], boolean>,
+  'leaveGroup' : ActorMethod<[string], boolean>,
   /**
    * / Like a post (authenticated users only). Toggles like; removes dislike if present.
    */
@@ -226,11 +275,15 @@ export interface _SERVICE {
    * / Remove all posts belonging to an author (admins only)
    */
   'removeAuthor' : ActorMethod<[Principal], undefined>,
+  'removeGroupMember' : ActorMethod<[string, Principal], boolean>,
+  'removeGroupModerator' : ActorMethod<[string, Principal], boolean>,
+  'removePostFromGroup' : ActorMethod<[string, string], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   /**
    * / Save a new draft (authenticated users only)
    */
   'saveDraft' : ActorMethod<[string, string, string, Array<Image>], bigint>,
+  'setGroupModerator' : ActorMethod<[string, Principal], boolean>,
   /**
    * / Set a new owner (owner only)
    */
@@ -250,6 +303,7 @@ export interface _SERVICE {
     [bigint, string, string, string, Array<Image>],
     undefined
   >,
+  'updateGroup' : ActorMethod<[string, string, string, boolean], boolean>,
   /**
    * / Update a post (owner of post or admin)
    */

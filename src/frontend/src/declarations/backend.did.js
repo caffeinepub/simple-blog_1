@@ -28,6 +28,7 @@ export const Image = IDL.Vec(IDL.Nat8);
 export const CreatePostResult = IDL.Variant({
   'ok' : IDL.Nat,
   'imageTooLarge' : IDL.Null,
+  'contentBlocked' : IDL.Text,
 });
 export const DeleteCommentResult = IDL.Variant({
   'ok' : IDL.Null,
@@ -39,12 +40,24 @@ export const EditCommentResult = IDL.Variant({
   'notFound' : IDL.Null,
   'notOwner' : IDL.Null,
 });
+export const Time = IDL.Int;
+export const GroupVisibility = IDL.Variant({
+  'public' : IDL.Null,
+  'private' : IDL.Null,
+});
+export const Group = IDL.Record({
+  'id' : IDL.Text,
+  'ownerId' : IDL.Principal,
+  'name' : IDL.Text,
+  'createdAt' : Time,
+  'description' : IDL.Text,
+  'visibility' : GroupVisibility,
+});
 export const PostStatus = IDL.Variant({
   'published' : IDL.Null,
   'hidden' : IDL.Null,
   'draft' : IDL.Null,
 });
-export const Time = IDL.Int;
 export const Post = IDL.Record({
   'id' : IDL.Nat,
   'status' : PostStatus,
@@ -82,6 +95,30 @@ export const GetCommentsResult = IDL.Variant({
   'ok' : IDL.Vec(Comment),
   'postNotFound' : IDL.Null,
 });
+export const GroupMemberRole = IDL.Variant({
+  'member' : IDL.Null,
+  'moderator' : IDL.Null,
+  'owner' : IDL.Null,
+});
+export const GroupMember = IDL.Record({
+  'alias' : IDL.Text,
+  'role' : GroupMemberRole,
+  'groupId' : IDL.Text,
+  'userPrincipal' : IDL.Principal,
+});
+export const GroupPostEntry = IDL.Record({
+  'groupId' : IDL.Text,
+  'inMainFeed' : IDL.Bool,
+  'postId' : IDL.Text,
+});
+export const ModerationLog = IDL.Record({
+  'id' : IDL.Nat,
+  'contentType' : IDL.Text,
+  'createdAt' : Time,
+  'contentSnippet' : IDL.Text,
+  'authorPrincipal' : IDL.Principal,
+  'reason' : IDL.Text,
+});
 export const Notification = IDL.Record({
   'id' : IDL.Nat,
   'createdAt' : Time,
@@ -103,6 +140,7 @@ export const UpdatePostResult = IDL.Variant({
   'ok' : IDL.Null,
   'postNotFound' : IDL.Null,
   'imageTooLarge' : IDL.Null,
+  'contentBlocked' : IDL.Text,
 });
 
 export const idlService = IDL.Service({
@@ -139,8 +177,10 @@ export const idlService = IDL.Service({
       [IDL.Nat],
       [],
     ),
+  'addPostToGroup' : IDL.Func([IDL.Text, IDL.Text, IDL.Bool], [IDL.Bool], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'clearAllNotifications' : IDL.Func([], [], []),
+  'createGroup' : IDL.Func([IDL.Text, IDL.Text, IDL.Bool], [IDL.Text], []),
   'createPost' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
       [CreatePostResult],
@@ -148,6 +188,7 @@ export const idlService = IDL.Service({
     ),
   'deleteComment' : IDL.Func([IDL.Nat], [DeleteCommentResult], []),
   'deleteDraft' : IDL.Func([IDL.Nat], [], []),
+  'deleteGroup' : IDL.Func([IDL.Text], [IDL.Bool], []),
   'deletePost' : IDL.Func([IDL.Nat], [], []),
   'dislikePost' : IDL.Func([IDL.Nat], [], []),
   'editComment' : IDL.Func(
@@ -157,6 +198,7 @@ export const idlService = IDL.Service({
     ),
   'followUser' : IDL.Func([IDL.Principal], [], []),
   'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
+  'getAllGroupsForCaller' : IDL.Func([], [IDL.Vec(Group)], ['query']),
   'getAllPostsAdmin' : IDL.Func([], [IDL.Vec(Post)], ['query']),
   'getAllProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
   'getAllPublishedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
@@ -167,11 +209,16 @@ export const idlService = IDL.Service({
   'getDraft' : IDL.Func([IDL.Nat], [Post], ['query']),
   'getFollowedUsers' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
   'getFollowerCount' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
+  'getGroupById' : IDL.Func([IDL.Text], [IDL.Opt(Group)], ['query']),
+  'getGroupMembers' : IDL.Func([IDL.Text], [IDL.Vec(GroupMember)], ['query']),
+  'getGroupPosts' : IDL.Func([IDL.Text], [IDL.Vec(GroupPostEntry)], ['query']),
+  'getModerationLog' : IDL.Func([], [IDL.Vec(ModerationLog)], ['query']),
   'getMyDrafts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
   'getNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
   'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
   'getPostReactions' : IDL.Func([IDL.Nat], [ReactionCount], ['query']),
   'getPreferredLanguage' : IDL.Func([], [IDL.Text], ['query']),
+  'getPublicGroups' : IDL.Func([], [IDL.Vec(Group)], ['query']),
   'getPublicProfiles' : IDL.Func([], [IDL.Vec(PublicProfile)], ['query']),
   'getUnreadNotificationCount' : IDL.Func([], [IDL.Nat], ['query']),
   'getUserProfile' : IDL.Func(
@@ -179,27 +226,39 @@ export const idlService = IDL.Service({
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
+  'inviteToGroup' : IDL.Func([IDL.Text, IDL.Principal], [IDL.Bool], []),
   'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isFollowing' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
+  'joinGroup' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'leaveGroup' : IDL.Func([IDL.Text], [IDL.Bool], []),
   'likePost' : IDL.Func([IDL.Nat], [], []),
   'markNotificationRead' : IDL.Func([IDL.Nat], [], []),
   'promoteUser' : IDL.Func([IDL.Principal], [], []),
   'publishDraft' : IDL.Func([IDL.Nat], [UpdatePostResult], []),
   'removeAdmin' : IDL.Func([IDL.Principal], [], []),
   'removeAuthor' : IDL.Func([IDL.Principal], [], []),
+  'removeGroupMember' : IDL.Func([IDL.Text, IDL.Principal], [IDL.Bool], []),
+  'removeGroupModerator' : IDL.Func([IDL.Text, IDL.Principal], [IDL.Bool], []),
+  'removePostFromGroup' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'saveDraft' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
       [IDL.Nat],
       [],
     ),
+  'setGroupModerator' : IDL.Func([IDL.Text, IDL.Principal], [IDL.Bool], []),
   'setOwner' : IDL.Func([IDL.Principal], [], []),
   'setPreferredLanguage' : IDL.Func([IDL.Text], [], []),
   'unfollowUser' : IDL.Func([IDL.Principal], [], []),
   'updateDraft' : IDL.Func(
       [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
       [],
+      [],
+    ),
+  'updateGroup' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Bool],
+      [IDL.Bool],
       [],
     ),
   'updatePost' : IDL.Func(
@@ -233,6 +292,7 @@ export const idlFactory = ({ IDL }) => {
   const CreatePostResult = IDL.Variant({
     'ok' : IDL.Nat,
     'imageTooLarge' : IDL.Null,
+    'contentBlocked' : IDL.Text,
   });
   const DeleteCommentResult = IDL.Variant({
     'ok' : IDL.Null,
@@ -244,12 +304,24 @@ export const idlFactory = ({ IDL }) => {
     'notFound' : IDL.Null,
     'notOwner' : IDL.Null,
   });
+  const Time = IDL.Int;
+  const GroupVisibility = IDL.Variant({
+    'public' : IDL.Null,
+    'private' : IDL.Null,
+  });
+  const Group = IDL.Record({
+    'id' : IDL.Text,
+    'ownerId' : IDL.Principal,
+    'name' : IDL.Text,
+    'createdAt' : Time,
+    'description' : IDL.Text,
+    'visibility' : GroupVisibility,
+  });
   const PostStatus = IDL.Variant({
     'published' : IDL.Null,
     'hidden' : IDL.Null,
     'draft' : IDL.Null,
   });
-  const Time = IDL.Int;
   const Post = IDL.Record({
     'id' : IDL.Nat,
     'status' : PostStatus,
@@ -287,6 +359,30 @@ export const idlFactory = ({ IDL }) => {
     'ok' : IDL.Vec(Comment),
     'postNotFound' : IDL.Null,
   });
+  const GroupMemberRole = IDL.Variant({
+    'member' : IDL.Null,
+    'moderator' : IDL.Null,
+    'owner' : IDL.Null,
+  });
+  const GroupMember = IDL.Record({
+    'alias' : IDL.Text,
+    'role' : GroupMemberRole,
+    'groupId' : IDL.Text,
+    'userPrincipal' : IDL.Principal,
+  });
+  const GroupPostEntry = IDL.Record({
+    'groupId' : IDL.Text,
+    'inMainFeed' : IDL.Bool,
+    'postId' : IDL.Text,
+  });
+  const ModerationLog = IDL.Record({
+    'id' : IDL.Nat,
+    'contentType' : IDL.Text,
+    'createdAt' : Time,
+    'contentSnippet' : IDL.Text,
+    'authorPrincipal' : IDL.Principal,
+    'reason' : IDL.Text,
+  });
   const Notification = IDL.Record({
     'id' : IDL.Nat,
     'createdAt' : Time,
@@ -305,6 +401,7 @@ export const idlFactory = ({ IDL }) => {
     'ok' : IDL.Null,
     'postNotFound' : IDL.Null,
     'imageTooLarge' : IDL.Null,
+    'contentBlocked' : IDL.Text,
   });
   
   return IDL.Service({
@@ -341,8 +438,10 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Nat],
         [],
       ),
+    'addPostToGroup' : IDL.Func([IDL.Text, IDL.Text, IDL.Bool], [IDL.Bool], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'clearAllNotifications' : IDL.Func([], [], []),
+    'createGroup' : IDL.Func([IDL.Text, IDL.Text, IDL.Bool], [IDL.Text], []),
     'createPost' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
         [CreatePostResult],
@@ -350,6 +449,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'deleteComment' : IDL.Func([IDL.Nat], [DeleteCommentResult], []),
     'deleteDraft' : IDL.Func([IDL.Nat], [], []),
+    'deleteGroup' : IDL.Func([IDL.Text], [IDL.Bool], []),
     'deletePost' : IDL.Func([IDL.Nat], [], []),
     'dislikePost' : IDL.Func([IDL.Nat], [], []),
     'editComment' : IDL.Func(
@@ -359,6 +459,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'followUser' : IDL.Func([IDL.Principal], [], []),
     'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
+    'getAllGroupsForCaller' : IDL.Func([], [IDL.Vec(Group)], ['query']),
     'getAllPostsAdmin' : IDL.Func([], [IDL.Vec(Post)], ['query']),
     'getAllProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
     'getAllPublishedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
@@ -369,11 +470,20 @@ export const idlFactory = ({ IDL }) => {
     'getDraft' : IDL.Func([IDL.Nat], [Post], ['query']),
     'getFollowedUsers' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'getFollowerCount' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
+    'getGroupById' : IDL.Func([IDL.Text], [IDL.Opt(Group)], ['query']),
+    'getGroupMembers' : IDL.Func([IDL.Text], [IDL.Vec(GroupMember)], ['query']),
+    'getGroupPosts' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(GroupPostEntry)],
+        ['query'],
+      ),
+    'getModerationLog' : IDL.Func([], [IDL.Vec(ModerationLog)], ['query']),
     'getMyDrafts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
     'getNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
     'getPost' : IDL.Func([IDL.Nat], [Post], ['query']),
     'getPostReactions' : IDL.Func([IDL.Nat], [ReactionCount], ['query']),
     'getPreferredLanguage' : IDL.Func([], [IDL.Text], ['query']),
+    'getPublicGroups' : IDL.Func([], [IDL.Vec(Group)], ['query']),
     'getPublicProfiles' : IDL.Func([], [IDL.Vec(PublicProfile)], ['query']),
     'getUnreadNotificationCount' : IDL.Func([], [IDL.Nat], ['query']),
     'getUserProfile' : IDL.Func(
@@ -381,27 +491,43 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
+    'inviteToGroup' : IDL.Func([IDL.Text, IDL.Principal], [IDL.Bool], []),
     'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isFollowing' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
+    'joinGroup' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'leaveGroup' : IDL.Func([IDL.Text], [IDL.Bool], []),
     'likePost' : IDL.Func([IDL.Nat], [], []),
     'markNotificationRead' : IDL.Func([IDL.Nat], [], []),
     'promoteUser' : IDL.Func([IDL.Principal], [], []),
     'publishDraft' : IDL.Func([IDL.Nat], [UpdatePostResult], []),
     'removeAdmin' : IDL.Func([IDL.Principal], [], []),
     'removeAuthor' : IDL.Func([IDL.Principal], [], []),
+    'removeGroupMember' : IDL.Func([IDL.Text, IDL.Principal], [IDL.Bool], []),
+    'removeGroupModerator' : IDL.Func(
+        [IDL.Text, IDL.Principal],
+        [IDL.Bool],
+        [],
+      ),
+    'removePostFromGroup' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'saveDraft' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
         [IDL.Nat],
         [],
       ),
+    'setGroupModerator' : IDL.Func([IDL.Text, IDL.Principal], [IDL.Bool], []),
     'setOwner' : IDL.Func([IDL.Principal], [], []),
     'setPreferredLanguage' : IDL.Func([IDL.Text], [], []),
     'unfollowUser' : IDL.Func([IDL.Principal], [], []),
     'updateDraft' : IDL.Func(
         [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Vec(Image)],
         [],
+        [],
+      ),
+    'updateGroup' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Bool],
+        [IDL.Bool],
         [],
       ),
     'updatePost' : IDL.Func(

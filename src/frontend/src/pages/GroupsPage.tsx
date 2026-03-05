@@ -1,3 +1,13 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,22 +28,33 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
-import { Globe, Lock, Plus, Trash2, Users2 } from "lucide-react";
-import { useState } from "react";
+import {
+  Globe,
+  Loader2,
+  Lock,
+  Plus,
+  RefreshCw,
+  Trash2,
+  Users2,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useGetCallerUserProfile } from "../hooks/useQueries";
 import {
   type Group,
-  createGroup,
-  deleteGroup,
+  createGroupAsync,
+  deleteGroupAsync,
+  fetchAndSyncGroupsFromBackend,
   getAllGroups,
   getPublicGroups,
   isGroupMember,
-  joinGroup,
+  joinGroupAsync,
 } from "../lib/groupStorage";
 
 // ─── Create Group Dialog ──────────────────────────────────────────────────────
@@ -42,34 +63,47 @@ function CreateGroupDialog({
   onCreated,
   currentPrincipal,
   currentAlias,
+  actor,
 }: {
   onCreated: () => void;
   currentPrincipal: string;
   currentAlias: string;
+  actor: ReturnType<typeof useActor>["actor"];
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
+  const [isPending, setIsPending] = useState(false);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!name.trim()) {
       toast.error("Gruppnamn krävs.");
       return;
     }
-    createGroup(
-      name.trim(),
-      description.trim(),
-      isPrivate ? "private" : "public",
-      currentPrincipal,
-      currentAlias || "Anonym",
-    );
-    toast.success(`Gruppen "${name.trim()}" skapades!`);
-    setName("");
-    setDescription("");
-    setIsPrivate(false);
-    setOpen(false);
-    onCreated();
+    setIsPending(true);
+    try {
+      await createGroupAsync(
+        actor,
+        name.trim(),
+        description.trim(),
+        isPrivate ? "private" : "public",
+        currentPrincipal,
+        currentAlias || "Anonym",
+      );
+      toast.success(`Gruppen "${name.trim()}" skapades!`);
+      setName("");
+      setDescription("");
+      setIsPrivate(false);
+      setOpen(false);
+      onCreated();
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Okänt fel vid skapande av grupp.";
+      toast.error(msg);
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -98,7 +132,8 @@ function CreateGroupDialog({
               placeholder="Ange ett gruppnamn..."
               value={name}
               onChange={(e) => setName(e.target.value)}
-              data-ocid="groups.create.name.input"
+              data-ocid="groups.create.input"
+              disabled={isPending}
             />
           </div>
 
@@ -111,6 +146,7 @@ function CreateGroupDialog({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               data-ocid="groups.create.description.textarea"
+              disabled={isPending}
             />
           </div>
 
@@ -136,7 +172,12 @@ function CreateGroupDialog({
                   : "Alla kan hitta och gå med i gruppen"}
               </p>
             </div>
-            <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
+            <Switch
+              checked={isPrivate}
+              onCheckedChange={setIsPrivate}
+              disabled={isPending}
+              data-ocid="groups.create.visibility.switch"
+            />
           </div>
         </div>
 
@@ -144,15 +185,24 @@ function CreateGroupDialog({
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
+            disabled={isPending}
             data-ocid="groups.create.cancel_button"
           >
             Avbryt
           </Button>
           <Button
             onClick={handleCreate}
+            disabled={isPending}
             data-ocid="groups.create.submit_button"
           >
-            Skapa grupp
+            {isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Skapar...
+              </>
+            ) : (
+              "Skapa grupp"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -167,101 +217,211 @@ function GroupCard({
   index,
   currentPrincipal,
   currentAlias,
+  actor,
   onRefresh,
 }: {
   group: Group;
   index: number;
   currentPrincipal: string;
   currentAlias: string;
+  actor: ReturnType<typeof useActor>["actor"];
   onRefresh: () => void;
 }) {
   const navigate = useNavigate();
   const isMember = isGroupMember(group.id, currentPrincipal);
   const isOwner = group.ownerId === currentPrincipal;
 
-  const handleJoin = () => {
-    joinGroup(group.id, currentPrincipal, currentAlias || "Anonym");
-    toast.success(`Du gick med i gruppen "${group.name}"!`);
-    onRefresh();
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  const handleJoin = async () => {
+    setJoiningId(group.id);
+    try {
+      const ok = await joinGroupAsync(
+        actor,
+        group.id,
+        currentPrincipal,
+        currentAlias || "Anonym",
+      );
+      if (ok) {
+        toast.success(`Du gick med i gruppen "${group.name}"!`);
+        onRefresh();
+      } else {
+        toast.error("Kunde inte gå med i gruppen.");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Okänt fel.";
+      toast.error(msg);
+    } finally {
+      setJoiningId(null);
+    }
   };
 
-  const handleDelete = () => {
-    deleteGroup(group.id);
-    toast.success(`Gruppen "${group.name}" raderades.`);
-    onRefresh();
+  const handleDelete = async () => {
+    setDeletingId(group.id);
+    try {
+      const ok = await deleteGroupAsync(actor, group.id);
+      if (ok) {
+        toast.success(`Gruppen "${group.name}" raderades.`);
+        onRefresh();
+      } else {
+        toast.error("Kunde inte radera gruppen.");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Okänt fel.";
+      toast.error(msg);
+    } finally {
+      setDeletingId(null);
+    }
   };
+
+  const isJoining = joiningId === group.id;
+  const isDeleting = deletingId === group.id;
 
   return (
-    <Card
-      className="border-border/40 hover:border-primary/30 transition-colors"
-      data-ocid={`groups.item.${index + 1}`}
-    >
+    <>
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent data-ocid={`groups.item.dialog.${index + 1}`}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Radera grupp?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Är du säker på att du vill radera gruppen{" "}
+              <strong>"{group.name}"</strong>? Denna åtgärd kan inte ångras.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              data-ocid={`groups.item.cancel_button.${index + 1}`}
+            >
+              Avbryt
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-ocid={`groups.item.confirm_button.${index + 1}`}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Raderar...
+                </>
+              ) : (
+                "Radera"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Card
+        className="border-border/40 hover:border-primary/30 transition-colors"
+        data-ocid={`groups.item.${index + 1}`}
+      >
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-base font-semibold truncate">
+                {group.name}
+              </CardTitle>
+              {group.description && (
+                <CardDescription className="mt-1 text-sm line-clamp-2">
+                  {group.description}
+                </CardDescription>
+              )}
+            </div>
+            <Badge
+              variant={group.visibility === "public" ? "secondary" : "outline"}
+              className="shrink-0 gap-1 text-xs"
+            >
+              {group.visibility === "public" ? (
+                <>
+                  <Globe className="h-3 w-3" /> Publik
+                </>
+              ) : (
+                <>
+                  <Lock className="h-3 w-3" /> Privat
+                </>
+              )}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Users2 className="h-4 w-4" />
+              <span>{group.members.length} medlemmar</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {isOwner && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+                  onClick={() => setConfirmDeleteOpen(true)}
+                  disabled={isDeleting}
+                  data-ocid={`groups.item.delete_button.${index + 1}`}
+                  title="Radera grupp"
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              )}
+              {isMember ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate({ to: `/groups/${group.id}` })}
+                  data-ocid={`groups.item.secondary_button.${index + 1}`}
+                >
+                  Visa grupp
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={handleJoin}
+                  disabled={isJoining}
+                  data-ocid={`groups.item.primary_button.${index + 1}`}
+                >
+                  {isJoining ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      Går med...
+                    </>
+                  ) : (
+                    "Gå med"
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+
+function GroupSkeleton() {
+  return (
+    <Card className="border-border/40" data-ocid="groups.loading_state">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <CardTitle className="text-base font-semibold truncate">
-              {group.name}
-            </CardTitle>
-            {group.description && (
-              <CardDescription className="mt-1 text-sm line-clamp-2">
-                {group.description}
-              </CardDescription>
-            )}
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-3 w-full" />
           </div>
-          <Badge
-            variant={group.visibility === "public" ? "secondary" : "outline"}
-            className="shrink-0 gap-1 text-xs"
-          >
-            {group.visibility === "public" ? (
-              <>
-                <Globe className="h-3 w-3" /> Publik
-              </>
-            ) : (
-              <>
-                <Lock className="h-3 w-3" /> Privat
-              </>
-            )}
-          </Badge>
+          <Skeleton className="h-5 w-16 rounded-full" />
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Users2 className="h-4 w-4" />
-            <span>{group.members.length} medlemmar</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {isOwner && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
-                onClick={handleDelete}
-                data-ocid={`groups.item.delete_button.${index + 1}`}
-                title="Radera grupp"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            )}
-            {isMember ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate({ to: `/groups/${group.id}` })}
-                data-ocid={`groups.item.view_button.${index + 1}`}
-              >
-                Visa grupp
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                onClick={handleJoin}
-                data-ocid={`groups.item.join_button.${index + 1}`}
-              >
-                Gå med
-              </Button>
-            )}
-          </div>
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-8 w-20 rounded-md" />
         </div>
       </CardContent>
     </Card>
@@ -273,12 +433,26 @@ function GroupCard({
 export default function GroupsPage() {
   const { identity } = useInternetIdentity();
   const { data: userProfile } = useGetCallerUserProfile();
+  const { actor, isFetching: actorFetching } = useActor();
   const currentPrincipal = identity?.getPrincipal().toString() ?? "";
   const currentAlias = userProfile?.name?.trim() ?? "";
 
   // Force re-render when groups change
   const [refreshTick, setRefreshTick] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
   const refresh = () => setRefreshTick((t) => t + 1);
+
+  // Sync from backend on mount and when actor becomes available
+  useEffect(() => {
+    if (!actor || actorFetching) return;
+    setIsSyncing(true);
+    fetchAndSyncGroupsFromBackend(actor)
+      .then(() => setRefreshTick((t) => t + 1))
+      .catch(() => {
+        // silently ignore sync errors
+      })
+      .finally(() => setIsSyncing(false));
+  }, [actor, actorFetching]);
 
   // Read groups fresh on each render/refresh
   const allGroups = getAllGroups();
@@ -291,6 +465,8 @@ export default function GroupsPage() {
 
   // Suppress lint warning about refreshTick — it drives re-reads
   void refreshTick;
+
+  const isLoading = actorFetching || isSyncing;
 
   return (
     <div className="container max-w-3xl mx-auto px-4 sm:px-6 py-10 md:py-16">
@@ -305,11 +481,23 @@ export default function GroupsPage() {
             användare.
           </p>
         </div>
-        <CreateGroupDialog
-          onCreated={refresh}
-          currentPrincipal={currentPrincipal}
-          currentAlias={currentAlias}
-        />
+        <div className="flex items-center gap-2">
+          {isLoading && (
+            <span
+              className="flex items-center gap-1.5 text-sm text-muted-foreground"
+              data-ocid="groups.loading_state"
+            >
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              Synkar...
+            </span>
+          )}
+          <CreateGroupDialog
+            onCreated={refresh}
+            currentPrincipal={currentPrincipal}
+            currentAlias={currentAlias}
+            actor={actor}
+          />
+        </div>
       </div>
 
       {/* My groups */}
@@ -322,7 +510,12 @@ export default function GroupsPage() {
           )}
         </h3>
 
-        {myGroups.length === 0 ? (
+        {isLoading && myGroups.length === 0 ? (
+          <div className="space-y-3">
+            <GroupSkeleton />
+            <GroupSkeleton />
+          </div>
+        ) : myGroups.length === 0 ? (
           <div
             className="text-center py-10 text-muted-foreground border-2 border-dashed border-border/40 rounded-xl"
             data-ocid="groups.my.empty_state"
@@ -342,6 +535,7 @@ export default function GroupsPage() {
                 index={idx}
                 currentPrincipal={currentPrincipal}
                 currentAlias={currentAlias}
+                actor={actor}
                 onRefresh={refresh}
               />
             ))}
@@ -359,7 +553,12 @@ export default function GroupsPage() {
           )}
         </h3>
 
-        {publicGroups.length === 0 ? (
+        {isLoading && publicGroups.length === 0 ? (
+          <div className="space-y-3">
+            <GroupSkeleton />
+            <GroupSkeleton />
+          </div>
+        ) : publicGroups.length === 0 ? (
           <div
             className="text-center py-10 text-muted-foreground border-2 border-dashed border-border/40 rounded-xl"
             data-ocid="groups.public.empty_state"
@@ -376,6 +575,7 @@ export default function GroupsPage() {
                 index={myGroups.length + idx}
                 currentPrincipal={currentPrincipal}
                 currentAlias={currentAlias}
+                actor={actor}
                 onRefresh={refresh}
               />
             ))}

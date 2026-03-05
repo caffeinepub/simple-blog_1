@@ -1,4 +1,14 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +37,9 @@ import {
   ArrowLeft,
   Crown,
   Globe,
+  Loader2,
   Lock,
+  RefreshCw,
   Search,
   Shield,
   ShieldOff,
@@ -38,9 +50,10 @@ import {
   UserPlus,
   Users2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Post, PublicProfile } from "../backend";
+import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useGetAllPublishedPosts,
@@ -50,17 +63,18 @@ import {
 import {
   type Group,
   type GroupMember,
-  addPostToGroup,
-  deleteGroup,
+  addPostToGroupAsync,
+  deleteGroupAsync,
+  fetchAndSyncGroupsFromBackend,
   getGroup,
   getGroupRole,
-  inviteToGroup,
+  inviteToGroupAsync,
   isGroupMember,
-  leaveGroup,
-  makeGroupModerator,
-  removeGroupMember,
-  removeGroupModerator,
-  removePostFromGroup,
+  leaveGroupAsync,
+  makeGroupModeratorAsync,
+  removeGroupMemberAsync,
+  removeGroupModeratorAsync,
+  removePostFromGroupAsync,
 } from "../lib/groupStorage";
 
 // ─── Role badge ───────────────────────────────────────────────────────────────
@@ -92,22 +106,41 @@ function GroupPostCard({
   inMainFeed,
   canManage,
   groupId,
+  actor,
   onRefresh,
 }: {
   post: Post;
   inMainFeed: boolean;
   canManage: boolean;
   groupId: string;
+  actor: ReturnType<typeof useActor>["actor"];
   onRefresh: () => void;
 }) {
   const navigate = useNavigate();
   const likeCount = Number(post.likedBy?.length ?? 0);
   const dislikeCount = Number(post.dislikedBy?.length ?? 0);
+  const [isRemoving, setIsRemoving] = useState(false);
 
-  const handleRemove = () => {
-    removePostFromGroup(groupId, post.id.toString());
-    toast.success("Inlägget togs bort från gruppen.");
-    onRefresh();
+  const handleRemove = async () => {
+    setIsRemoving(true);
+    try {
+      const ok = await removePostFromGroupAsync(
+        actor,
+        groupId,
+        post.id.toString(),
+      );
+      if (ok) {
+        toast.success("Inlägget togs bort från gruppen.");
+        onRefresh();
+      } else {
+        toast.error("Kunde inte ta bort inlägget från gruppen.");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Okänt fel.";
+      toast.error(msg);
+    } finally {
+      setIsRemoving(false);
+    }
   };
 
   return (
@@ -138,9 +171,14 @@ function GroupPostCard({
                 size="sm"
                 className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
                 onClick={handleRemove}
+                disabled={isRemoving}
                 title="Ta bort från grupp"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                {isRemoving ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
               </Button>
             )}
           </div>
@@ -168,16 +206,19 @@ function AddPostDialog({
   group,
   myPosts,
   currentPrincipal,
+  actor,
   onRefresh,
 }: {
   group: Group;
   myPosts: Post[];
   currentPrincipal: string;
+  actor: ReturnType<typeof useActor>["actor"];
   onRefresh: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState("");
   const [inMainFeed, setInMainFeed] = useState(false);
+  const [isPending, setIsPending] = useState(false);
 
   const availablePosts = myPosts.filter(
     (p) =>
@@ -185,17 +226,34 @@ function AddPostDialog({
       !group.postIds.includes(p.id.toString()),
   );
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!selectedPostId) {
       toast.error("Välj ett inlägg.");
       return;
     }
-    addPostToGroup(group.id, selectedPostId, inMainFeed);
-    toast.success("Inlägget lades till i gruppen!");
-    setSelectedPostId("");
-    setInMainFeed(false);
-    setOpen(false);
-    onRefresh();
+    setIsPending(true);
+    try {
+      const ok = await addPostToGroupAsync(
+        actor,
+        group.id,
+        selectedPostId,
+        inMainFeed,
+      );
+      if (ok) {
+        toast.success("Inlägget lades till i gruppen!");
+        setSelectedPostId("");
+        setInMainFeed(false);
+        setOpen(false);
+        onRefresh();
+      } else {
+        toast.error("Kunde inte lägga till inlägget.");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Okänt fel.";
+      toast.error(msg);
+    } finally {
+      setIsPending(false);
+    }
   };
 
   if (availablePosts.length === 0) return null;
@@ -207,6 +265,7 @@ function AddPostDialog({
         variant="outline"
         onClick={() => setOpen(true)}
         className="gap-2"
+        data-ocid="group_detail.posts.open_modal_button"
       >
         <UserPlus className="h-3.5 w-3.5" />
         Lägg till inlägg
@@ -226,6 +285,8 @@ function AddPostDialog({
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
                 value={selectedPostId}
                 onChange={(e) => setSelectedPostId(e.target.value)}
+                disabled={isPending}
+                data-ocid="group_detail.posts.select"
               >
                 <option value="">-- Välj ett inlägg --</option>
                 {availablePosts.map((p) => (
@@ -244,14 +305,37 @@ function AddPostDialog({
                   Inlägget syns även för alla i det vanliga flödet
                 </p>
               </div>
-              <Switch checked={inMainFeed} onCheckedChange={setInMainFeed} />
+              <Switch
+                checked={inMainFeed}
+                onCheckedChange={setInMainFeed}
+                disabled={isPending}
+                data-ocid="group_detail.posts.mainfeed.switch"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isPending}
+              data-ocid="group_detail.posts.cancel_button"
+            >
               Avbryt
             </Button>
-            <Button onClick={handleAdd}>Lägg till</Button>
+            <Button
+              onClick={handleAdd}
+              disabled={isPending}
+              data-ocid="group_detail.posts.submit_button"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Lägger till...
+                </>
+              ) : (
+                "Lägg till"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -259,18 +343,21 @@ function AddPostDialog({
   );
 }
 
-// ─── Invite member dialog ─────────────────────────────────────────────────────
+// ─── Invite member section ────────────────────────────────────────────────────
 
 function InviteMemberSection({
   group,
   publicProfiles,
+  actor,
   onRefresh,
 }: {
   group: Group;
   publicProfiles: PublicProfile[];
+  actor: ReturnType<typeof useActor>["actor"];
   onRefresh: () => void;
 }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [invitingId, setInvitingId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -282,11 +369,29 @@ function InviteMemberSection({
     );
   }, [searchTerm, publicProfiles, group.members]);
 
-  const handleInvite = (profile: PublicProfile) => {
-    inviteToGroup(group.id, profile.principal.toString(), profile.alias);
-    toast.success(`${profile.alias} bjöds in till gruppen!`);
-    setSearchTerm("");
-    onRefresh();
+  const handleInvite = async (profile: PublicProfile) => {
+    const principalStr = profile.principal.toString();
+    setInvitingId(principalStr);
+    try {
+      const ok = await inviteToGroupAsync(
+        actor,
+        group.id,
+        principalStr,
+        profile.alias,
+      );
+      if (ok) {
+        toast.success(`${profile.alias} bjöds in till gruppen!`);
+        setSearchTerm("");
+        onRefresh();
+      } else {
+        toast.error(`Kunde inte bjuda in ${profile.alias}.`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Okänt fel.";
+      toast.error(msg);
+    } finally {
+      setInvitingId(null);
+    }
   };
 
   return (
@@ -308,27 +413,37 @@ function InviteMemberSection({
       </div>
       {filtered.length > 0 && (
         <div className="mt-2 space-y-1.5 border border-border/40 rounded-lg overflow-hidden">
-          {filtered.slice(0, 8).map((profile) => (
-            <div
-              key={profile.principal.toString()}
-              className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/30 transition-colors"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-                  {profile.alias.charAt(0).toUpperCase()}
-                </div>
-                <span className="text-sm truncate">{profile.alias}</span>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs shrink-0"
-                onClick={() => handleInvite(profile)}
+          {filtered.slice(0, 8).map((profile) => {
+            const principalStr = profile.principal.toString();
+            const isInviting = invitingId === principalStr;
+            return (
+              <div
+                key={principalStr}
+                className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/30 transition-colors"
               >
-                Bjud in
-              </Button>
-            </div>
-          ))}
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                    {profile.alias.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm truncate">{profile.alias}</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs shrink-0"
+                  onClick={() => handleInvite(profile)}
+                  disabled={isInviting}
+                  data-ocid="group_detail.invite.button"
+                >
+                  {isInviting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    "Bjud in"
+                  )}
+                </Button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -344,12 +459,32 @@ export default function GroupDetailPage() {
   useGetCallerUserProfile();
   const { data: allPosts = [] } = useGetAllPublishedPosts();
   const { data: publicProfiles = [] } = useGetPublicProfiles();
+  const { actor, isFetching: actorFetching } = useActor();
 
   const currentPrincipal = identity?.getPrincipal().toString() ?? "";
 
   const [refreshTick, setRefreshTick] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [isDeletingGroup, setIsDeletingGroup] = useState(false);
+  const [confirmDeleteGroupOpen, setConfirmDeleteGroupOpen] = useState(false);
+  const [modActionId, setModActionId] = useState<string | null>(null);
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+
   const refresh = () => setRefreshTick((t) => t + 1);
   void refreshTick;
+
+  // Sync from backend on mount when actor becomes available
+  useEffect(() => {
+    if (!actor || actorFetching) return;
+    setIsSyncing(true);
+    fetchAndSyncGroupsFromBackend(actor)
+      .then(() => setRefreshTick((t) => t + 1))
+      .catch(() => {
+        // silently ignore sync errors
+      })
+      .finally(() => setIsSyncing(false));
+  }, [actor, actorFetching]);
 
   // Read group fresh on each render
   const group = getGroup(id);
@@ -362,19 +497,32 @@ export default function GroupDetailPage() {
   if (!group) {
     return (
       <div className="container max-w-2xl mx-auto px-4 py-16 text-center">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Gruppen hittades inte. Den kan ha blivit raderad.
-          </AlertDescription>
-        </Alert>
-        <Button
-          variant="ghost"
-          className="mt-6 gap-2"
-          onClick={() => navigate({ to: "/groups" })}
-        >
-          <ArrowLeft className="h-4 w-4" /> Tillbaka till grupper
-        </Button>
+        {isSyncing ? (
+          <div
+            className="flex flex-col items-center gap-4 text-muted-foreground"
+            data-ocid="group_detail.loading_state"
+          >
+            <RefreshCw className="h-8 w-8 animate-spin opacity-50" />
+            <p>Laddar gruppinformation...</p>
+          </div>
+        ) : (
+          <>
+            <Alert variant="destructive" data-ocid="group_detail.error_state">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Gruppen hittades inte. Den kan ha blivit raderad.
+              </AlertDescription>
+            </Alert>
+            <Button
+              variant="ghost"
+              className="mt-6 gap-2"
+              onClick={() => navigate({ to: "/groups" })}
+              data-ocid="group_detail.back.button"
+            >
+              <ArrowLeft className="h-4 w-4" /> Tillbaka till grupper
+            </Button>
+          </>
+        )}
       </div>
     );
   }
@@ -391,6 +539,7 @@ export default function GroupDetailPage() {
           variant="ghost"
           className="mt-6 gap-2"
           onClick={() => navigate({ to: "/groups" })}
+          data-ocid="group_detail.back.button"
         >
           <ArrowLeft className="h-4 w-4" /> Tillbaka till grupper
         </Button>
@@ -408,34 +557,94 @@ export default function GroupDetailPage() {
     (p) => p.ownerId.toString() === currentPrincipal,
   );
 
-  const handleLeave = () => {
-    leaveGroup(id, currentPrincipal);
-    toast.success(`Du lämnade gruppen "${group.name}".`);
-    navigate({ to: "/groups" });
+  const handleLeave = async () => {
+    setIsLeaving(true);
+    try {
+      const ok = await leaveGroupAsync(actor, id, currentPrincipal);
+      if (ok) {
+        toast.success(`Du lämnade gruppen "${group.name}".`);
+        navigate({ to: "/groups" });
+      } else {
+        toast.error("Kunde inte lämna gruppen.");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Okänt fel.";
+      toast.error(msg);
+    } finally {
+      setIsLeaving(false);
+    }
   };
 
-  const handleDeleteGroup = () => {
-    deleteGroup(id);
-    toast.success(`Gruppen "${group.name}" raderades.`);
-    navigate({ to: "/groups" });
+  const handleDeleteGroup = async () => {
+    setIsDeletingGroup(true);
+    try {
+      const ok = await deleteGroupAsync(actor, id);
+      if (ok) {
+        toast.success(`Gruppen "${group.name}" raderades.`);
+        navigate({ to: "/groups" });
+      } else {
+        toast.error("Kunde inte radera gruppen.");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Okänt fel.";
+      toast.error(msg);
+    } finally {
+      setIsDeletingGroup(false);
+    }
   };
 
-  const handleMakeMod = (principal: string, alias: string) => {
-    makeGroupModerator(id, principal);
-    toast.success(`${alias} är nu moderator.`);
-    refresh();
+  const handleMakeMod = async (principal: string, alias: string) => {
+    setModActionId(principal);
+    try {
+      const ok = await makeGroupModeratorAsync(actor, id, principal);
+      if (ok) {
+        toast.success(`${alias} är nu moderator.`);
+        refresh();
+      } else {
+        toast.error("Kunde inte ändra rollen.");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Okänt fel.";
+      toast.error(msg);
+    } finally {
+      setModActionId(null);
+    }
   };
 
-  const handleRemoveMod = (principal: string, alias: string) => {
-    removeGroupModerator(id, principal);
-    toast.success(`${alias} är inte längre moderator.`);
-    refresh();
+  const handleRemoveMod = async (principal: string, alias: string) => {
+    setModActionId(principal);
+    try {
+      const ok = await removeGroupModeratorAsync(actor, id, principal);
+      if (ok) {
+        toast.success(`${alias} är inte längre moderator.`);
+        refresh();
+      } else {
+        toast.error("Kunde inte ändra rollen.");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Okänt fel.";
+      toast.error(msg);
+    } finally {
+      setModActionId(null);
+    }
   };
 
-  const handleRemoveMember = (principal: string, alias: string) => {
-    removeGroupMember(id, principal);
-    toast.success(`${alias} togs bort från gruppen.`);
-    refresh();
+  const handleRemoveMember = async (principal: string, alias: string) => {
+    setRemovingMemberId(principal);
+    try {
+      const ok = await removeGroupMemberAsync(actor, id, principal);
+      if (ok) {
+        toast.success(`${alias} togs bort från gruppen.`);
+        refresh();
+      } else {
+        toast.error("Kunde inte ta bort medlemmen.");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Okänt fel.";
+      toast.error(msg);
+    } finally {
+      setRemovingMemberId(null);
+    }
   };
 
   return (
@@ -446,6 +655,7 @@ export default function GroupDetailPage() {
         size="sm"
         className="mb-6 gap-2 -ml-2 text-muted-foreground hover:text-foreground"
         onClick={() => navigate({ to: "/groups" })}
+        data-ocid="group_detail.back.button"
       >
         <ArrowLeft className="h-4 w-4" />
         Tillbaka till grupper
@@ -481,6 +691,9 @@ export default function GroupDetailPage() {
           <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
             <Users2 className="h-3.5 w-3.5" />
             {group.members.length} medlemmar
+            {isSyncing && (
+              <RefreshCw className="h-3 w-3 ml-1 animate-spin opacity-50" />
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -490,23 +703,69 @@ export default function GroupDetailPage() {
               size="sm"
               className="text-destructive hover:text-destructive gap-2"
               onClick={handleLeave}
+              disabled={isLeaving}
               data-ocid="group_detail.leave.button"
             >
-              <UserMinus className="h-4 w-4" />
-              Lämna grupp
+              {isLeaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UserMinus className="h-4 w-4" />
+              )}
+              {isLeaving ? "Lämnar..." : "Lämna grupp"}
             </Button>
           )}
           {isOwner && (
-            <Button
-              variant="destructive"
-              size="sm"
-              className="gap-2"
-              onClick={handleDeleteGroup}
-              data-ocid="group_detail.delete.button"
-            >
-              <Trash2 className="h-4 w-4" />
-              Radera grupp
-            </Button>
+            <>
+              <AlertDialog
+                open={confirmDeleteGroupOpen}
+                onOpenChange={setConfirmDeleteGroupOpen}
+              >
+                <AlertDialogContent data-ocid="group_detail.delete.dialog">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Radera grupp?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Är du säker på att du vill radera gruppen{" "}
+                      <strong>"{group.name}"</strong>? Alla medlemmar kommer
+                      förlora åtkomsten och åtgärden kan inte ångras.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel data-ocid="group_detail.delete.cancel_button">
+                      Avbryt
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteGroup}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      data-ocid="group_detail.delete.confirm_button"
+                    >
+                      {isDeletingGroup ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Raderar...
+                        </>
+                      ) : (
+                        "Radera grupp"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-2"
+                onClick={() => setConfirmDeleteGroupOpen(true)}
+                disabled={isDeletingGroup}
+                data-ocid="group_detail.delete.button"
+              >
+                {isDeletingGroup ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                {isDeletingGroup ? "Raderar..." : "Radera grupp"}
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -539,6 +798,7 @@ export default function GroupDetailPage() {
                 group={group}
                 myPosts={myPublishedPosts}
                 currentPrincipal={currentPrincipal}
+                actor={actor}
                 onRefresh={refresh}
               />
             )}
@@ -569,6 +829,7 @@ export default function GroupDetailPage() {
                     canManage || post.ownerId.toString() === currentPrincipal
                   }
                   groupId={id}
+                  actor={actor}
                   onRefresh={refresh}
                 />
               ))}
@@ -582,6 +843,8 @@ export default function GroupDetailPage() {
             {group.members.map((member) => {
               const isMe = member.principal === currentPrincipal;
               const memberIsOwner = member.role === "owner";
+              const isModActing = modActionId === member.principal;
+              const isRemovingMember = removingMemberId === member.principal;
               return (
                 <div
                   key={member.principal}
@@ -614,9 +877,15 @@ export default function GroupDetailPage() {
                             onClick={() =>
                               handleRemoveMod(member.principal, member.alias)
                             }
+                            disabled={isModActing}
                             title="Ta bort moderator"
+                            data-ocid="group_detail.members.toggle"
                           >
-                            <ShieldOff className="h-3.5 w-3.5" />
+                            {isModActing ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <ShieldOff className="h-3.5 w-3.5" />
+                            )}
                           </Button>
                         ) : isOwner ? (
                           <Button
@@ -626,9 +895,15 @@ export default function GroupDetailPage() {
                             onClick={() =>
                               handleMakeMod(member.principal, member.alias)
                             }
+                            disabled={isModActing}
                             title="Gör till moderator"
+                            data-ocid="group_detail.members.toggle"
                           >
-                            <Shield className="h-3.5 w-3.5" />
+                            {isModActing ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Shield className="h-3.5 w-3.5" />
+                            )}
                           </Button>
                         ) : null}
                         <Button
@@ -638,9 +913,15 @@ export default function GroupDetailPage() {
                           onClick={() =>
                             handleRemoveMember(member.principal, member.alias)
                           }
+                          disabled={isRemovingMember}
                           title="Ta bort från grupp"
+                          data-ocid="group_detail.members.delete_button"
                         >
-                          <UserMinus className="h-3.5 w-3.5" />
+                          {isRemovingMember ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <UserMinus className="h-3.5 w-3.5" />
+                          )}
                         </Button>
                       </>
                     )}
@@ -655,6 +936,7 @@ export default function GroupDetailPage() {
             <InviteMemberSection
               group={group}
               publicProfiles={publicProfiles}
+              actor={actor}
               onRefresh={refresh}
             />
           )}
