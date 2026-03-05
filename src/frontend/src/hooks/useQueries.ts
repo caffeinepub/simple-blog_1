@@ -13,6 +13,7 @@ import type {
   UserProfile,
 } from "../backend";
 import { DeleteCommentResult, PostStatus, UpdatePostResult } from "../backend";
+import { ADMIN_PRINCIPAL_ID } from "../config/constants";
 import { useActor } from "./useActor";
 import { useInternetIdentity } from "./useInternetIdentity";
 
@@ -456,22 +457,27 @@ export function useSetPreferredLanguage() {
 // ─── Admin Hooks ─────────────────────────────────────────────────────────────
 
 export function useIsCallerAdmin() {
-  const { actor, isFetching } = useActor();
+  const { actor } = useActor();
   const { identity } = useInternetIdentity();
 
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+  const principalStr = identity ? identity.getPrincipal().toString() : "";
 
   return useQuery<boolean>({
-    queryKey: ["isCallerAdmin", identity?.getPrincipal().toString()],
+    queryKey: ["isCallerAdmin", principalStr],
     queryFn: async () => {
+      // First check if caller is the hardcoded owner
+      if (principalStr === ADMIN_PRINCIPAL_ID) return true;
+      // Then check backend admin list
       if (!actor) return false;
       try {
-        return await actor.isCallerAdmin();
+        const callerPrincipal = identity!.getPrincipal();
+        return await actor.isAdmin(callerPrincipal);
       } catch {
         return false;
       }
     },
-    enabled: !!actor && !isFetching && isAuthenticated,
+    enabled: isAuthenticated,
     retry: false,
     staleTime: 0,
   });

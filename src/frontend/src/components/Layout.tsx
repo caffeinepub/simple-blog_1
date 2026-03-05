@@ -23,9 +23,8 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { clear, identity } = useInternetIdentity();
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
-  const isAdmin =
-    isAuthenticated &&
-    identity.getPrincipal().toString() === ADMIN_PRINCIPAL_ID;
+  const principalStr = identity ? identity.getPrincipal().toString() : "";
+  const isAdmin = isAuthenticated && principalStr === ADMIN_PRINCIPAL_ID;
 
   const handleLogout = () => {
     clear();
@@ -98,7 +97,11 @@ export default function Layout({ children }: LayoutProps) {
                   <NotificationBell />
                   {isAdmin && (
                     <Button variant="ghost" asChild>
-                      <Link to="/admin" className="gap-2">
+                      <Link
+                        to="/admin"
+                        className="gap-2"
+                        data-ocid="nav.admin.link"
+                      >
                         <ShieldCheck className="h-4 w-4" />
                         Admin
                       </Link>

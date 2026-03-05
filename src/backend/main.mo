@@ -1156,7 +1156,7 @@ actor {
     publicGroups.concat(memberGroups);
   };
 
-  public query ({ caller }) func getPublicGroups_() : async [Group] {
+  public query ({ caller }) func getPublicGroups() : async [Group] {
     groups_.values().toArray().filter(func(g) { g.visibility == #public_ });
   };
 
@@ -1185,7 +1185,7 @@ actor {
     };
   };
 
-  public shared ({ caller }) func deleteGroup_(id : Text) : async Bool {
+  public shared ({ caller }) func deleteGroup(id : Text) : async Bool {
     switch (groups_.get(id)) {
       case (null) { false };
       case (?group) {
@@ -1201,14 +1201,14 @@ actor {
     };
   };
 
-  public query ({ caller }) func getGroupMembers_(groupId : Text) : async [GroupMember] {
+  public query ({ caller }) func getGroupMembers(groupId : Text) : async [GroupMember] {
     switch (groupMembers_.get(groupId)) {
       case (null) { [] };
       case (?members) { members };
     };
   };
 
-  public shared ({ caller }) func joinGroup_(groupId : Text) : async Bool {
+  public shared ({ caller }) func joinGroup(groupId : Text) : async Bool {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can join groups");
     };
@@ -1238,7 +1238,7 @@ actor {
     };
   };
 
-  public shared ({ caller }) func inviteToGroup_(groupId : Text, targetPrincipal : Principal) : async Bool {
+  public shared ({ caller }) func inviteToGroup(groupId : Text, targetPrincipal : Principal) : async Bool {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can invite to groups");
     };
@@ -1268,7 +1268,7 @@ actor {
     };
   };
 
-  public shared ({ caller }) func leaveGroup_(groupId : Text) : async Bool {
+  public shared ({ caller }) func leaveGroup(groupId : Text) : async Bool {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can leave groups");
     };
@@ -1297,7 +1297,7 @@ actor {
     };
   };
 
-  public shared ({ caller }) func removeGroupMember_(groupId : Text, targetPrincipal : Principal) : async Bool {
+  public shared ({ caller }) func removeGroupMember(groupId : Text, targetPrincipal : Principal) : async Bool {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can remove group members");
     };
@@ -1318,7 +1318,7 @@ actor {
     };
   };
 
-  public shared ({ caller }) func setGroupModerator_(groupId : Text, targetPrincipal : Principal) : async Bool {
+  public shared ({ caller }) func setGroupModerator(groupId : Text, targetPrincipal : Principal) : async Bool {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can set moderators");
     };
@@ -1350,7 +1350,7 @@ actor {
     };
   };
 
-  public shared ({ caller }) func removeGroupModerator_(groupId : Text, targetPrincipal : Principal) : async Bool {
+  public shared ({ caller }) func removeGroupModerator(groupId : Text, targetPrincipal : Principal) : async Bool {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can remove moderators");
     };
@@ -1382,14 +1382,14 @@ actor {
     };
   };
 
-  public query ({ caller }) func getGroupPosts_(groupId : Text) : async [GroupPostEntry] {
+  public query ({ caller }) func getGroupPosts(groupId : Text) : async [GroupPostEntry] {
     switch (groupPosts_.get(groupId)) {
       case (null) { [] };
       case (?posts) { posts };
     };
   };
 
-  public shared ({ caller }) func addPostToGroup_(groupId : Text, postId : Text, inMainFeed : Bool) : async Bool {
+  public shared ({ caller }) func addPostToGroup(groupId : Text, postId : Text, inMainFeed : Bool) : async Bool {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can add posts to groups");
     };
@@ -1413,7 +1413,7 @@ actor {
     true;
   };
 
-  public shared ({ caller }) func removePostFromGroup_(groupId : Text, postId : Text) : async Bool {
+  public shared ({ caller }) func removePostFromGroup(groupId : Text, postId : Text) : async Bool {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only authenticated users can remove posts from groups");
     };

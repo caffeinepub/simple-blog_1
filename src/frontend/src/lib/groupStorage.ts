@@ -286,7 +286,7 @@ export async function fetchAndSyncGroupsFromBackend(
     // Fetch caller groups and public groups in parallel
     const [callerGroups, publicGroupsList] = await Promise.all([
       actor.getAllGroupsForCaller().catch(() => [] as BackendGroup[]),
-      (actor as any).getPublicGroups_().catch(() => [] as BackendGroup[]),
+      actor.getPublicGroups().catch(() => [] as BackendGroup[]),
     ]);
 
     // Deduplicate by id
@@ -305,12 +305,8 @@ export async function fetchAndSyncGroupsFromBackend(
     const enriched = await Promise.all(
       allBackendGroups.map(async (bg) => {
         const [members, posts] = await Promise.all([
-          (actor as any)
-            .getGroupMembers_(bg.id)
-            .catch(() => [] as BackendGroupMember[]),
-          (actor as any)
-            .getGroupPosts_(bg.id)
-            .catch(() => [] as BackendGroupPostEntry[]),
+          actor.getGroupMembers(bg.id).catch(() => [] as BackendGroupMember[]),
+          actor.getGroupPosts(bg.id).catch(() => [] as BackendGroupPostEntry[]),
         ]);
         return backendGroupToLocal(bg, members, posts);
       }),
@@ -400,7 +396,7 @@ export async function deleteGroupAsync(
     return true;
   }
 
-  const success = await (actor as any).deleteGroup_(id);
+  const success = await actor.deleteGroup(id);
   if (success) {
     deleteGroup(id);
   }
@@ -421,7 +417,7 @@ export async function joinGroupAsync(
     return true;
   }
 
-  const success = await (actor as any).joinGroup_(id);
+  const success = await actor.joinGroup(id);
   if (success) {
     joinGroup(id, principalStr, alias);
   }
@@ -441,7 +437,7 @@ export async function leaveGroupAsync(
     return true;
   }
 
-  const success = await (actor as any).leaveGroup_(id);
+  const success = await actor.leaveGroup(id);
   if (success) {
     leaveGroup(id, principalStr);
   }
@@ -463,7 +459,7 @@ export async function inviteToGroupAsync(
   }
 
   const principal = Principal.fromText(targetPrincipal);
-  const success = await (actor as any).inviteToGroup_(id, principal);
+  const success = await actor.inviteToGroup(id, principal);
   if (success) {
     inviteToGroup(id, targetPrincipal, targetAlias);
   }
@@ -484,7 +480,7 @@ export async function makeGroupModeratorAsync(
   }
 
   const principal = Principal.fromText(targetPrincipal);
-  const success = await (actor as any).setGroupModerator_(id, principal);
+  const success = await actor.setGroupModerator(id, principal);
   if (success) {
     makeGroupModerator(id, targetPrincipal);
   }
@@ -505,7 +501,7 @@ export async function removeGroupModeratorAsync(
   }
 
   const principal = Principal.fromText(targetPrincipal);
-  const success = await (actor as any).removeGroupModerator_(id, principal);
+  const success = await actor.removeGroupModerator(id, principal);
   if (success) {
     removeGroupModerator(id, targetPrincipal);
   }
@@ -526,7 +522,7 @@ export async function removeGroupMemberAsync(
   }
 
   const principal = Principal.fromText(targetPrincipal);
-  const success = await (actor as any).removeGroupMember_(id, principal);
+  const success = await actor.removeGroupMember(id, principal);
   if (success) {
     removeGroupMember(id, targetPrincipal);
   }
@@ -547,7 +543,7 @@ export async function addPostToGroupAsync(
     return true;
   }
 
-  const success = await (actor as any).addPostToGroup_(id, postId, inMainFeed);
+  const success = await actor.addPostToGroup(id, postId, inMainFeed);
   if (success) {
     addPostToGroup(id, postId, inMainFeed);
   }
@@ -567,7 +563,7 @@ export async function removePostFromGroupAsync(
     return true;
   }
 
-  const success = await (actor as any).removePostFromGroup_(id, postId);
+  const success = await actor.removePostFromGroup(id, postId);
   if (success) {
     removePostFromGroup(id, postId);
   }
