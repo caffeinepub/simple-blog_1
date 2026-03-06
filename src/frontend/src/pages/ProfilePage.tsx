@@ -21,10 +21,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  Check,
+  Copy,
   Globe,
   Loader2,
   PenSquare,
   Save,
+  ShieldCheck,
   User,
   Users,
 } from "lucide-react";
@@ -319,6 +322,82 @@ function ProfileForm() {
   );
 }
 
+// ─── Principal ID Card ────────────────────────────────────────────────────────
+
+function PrincipalIdCard() {
+  const { identity } = useInternetIdentity();
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+  const [copied, setCopied] = useState(false);
+
+  if (!isAuthenticated) return null;
+
+  const principalId = identity.getPrincipal().toText();
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(principalId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+    }
+  };
+
+  return (
+    <Card
+      className="border-border/40 shadow-sm"
+      data-ocid="profile.principal.card"
+    >
+      <CardHeader className="pb-3">
+        <CardTitle className="text-xl font-serif flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-muted-foreground" />
+          Ditt Principal ID
+        </CardTitle>
+        <CardDescription>
+          Ditt unika identitets-ID på Internet Computer. Används för att
+          verifiera att du loggar in med rätt konto.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-2 p-3 rounded-md bg-muted/40 border border-border/30">
+          <code
+            className="flex-1 text-xs font-mono break-all text-foreground"
+            data-ocid="profile.principal.panel"
+          >
+            {principalId}
+          </code>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleCopy}
+            className="shrink-0 h-8 w-8"
+            title="Kopiera Principal ID"
+            data-ocid="profile.principal.button"
+          >
+            {copied ? (
+              <Check className="h-4 w-4 text-green-600" />
+            ) : (
+              <Copy className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Jämför detta ID med det som visas på{" "}
+          <a
+            href="https://nns.ic0.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground transition-colors"
+          >
+            nns.ic0.app
+          </a>{" "}
+          för att bekräfta att du använder rätt Internet Identity.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Follower Count ───────────────────────────────────────────────────────────
 
 function FollowerCountCard() {
@@ -393,6 +472,7 @@ export default function ProfilePage() {
 
       <div className="space-y-6">
         <ProfileForm />
+        <PrincipalIdCard />
         <FollowerCountCard />
       </div>
     </main>
