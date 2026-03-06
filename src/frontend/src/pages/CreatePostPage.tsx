@@ -83,10 +83,15 @@ export default function CreatePostPage() {
   const saveProfileMutation = useSaveCallerUserProfile();
 
   // Load the user's profile alias
-  const { data: userProfile, isFetched: profileFetched } =
-    useGetCallerUserProfile();
+  const {
+    data: userProfile,
+    isFetched: profileFetched,
+    isLoading: profileLoading,
+  } = useGetCallerUserProfile();
   const profileAlias = userProfile?.name?.trim() ?? "";
-  const hasProfileAlias = profileAlias.length > 0;
+  // Only treat alias as "found" if profile has actually loaded AND alias is non-empty
+  // If actor is null / profile is still loading, fall back to manual input
+  const hasProfileAlias = profileFetched && profileAlias.length > 0;
 
   // Pre-fill author from profile alias once profile loads
   useEffect(() => {
@@ -350,10 +355,10 @@ export default function CreatePostPage() {
   const isSavingDraft =
     saveDraftMutation.isPending || updateDraftMutation.isPending;
 
-  // Actor loading state — true while fetching, false once done (success or failure)
+  // Actor loading state — true only while actively fetching
   const isActorLoading = actorFetching;
-  // Actor failed to initialize — only show warning, do NOT block buttons
-  const isActorFailed = !actorFetching && !actor;
+  // Never show a "failed" banner — if actor is null after loading, we let the
+  // individual action handlers surface the error when the user actually clicks.
 
   return (
     <div className="container max-w-3xl mx-auto px-6 py-16">
@@ -371,22 +376,6 @@ export default function CreatePostPage() {
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-border/40 bg-muted/30 px-4 py-2.5 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin shrink-0" />
           Ansluter till nätverket...
-        </div>
-      )}
-      {isActorFailed && (
-        <div className="mb-4 flex items-center justify-between gap-2 rounded-lg border border-amber-400/40 bg-amber-50/60 px-4 py-2.5 text-sm text-amber-800">
-          <span>
-            Nätverksanslutning begränsad. Du kan ändå försöka publicera — om det
-            misslyckas, ladda om sidan.
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.location.reload()}
-            className="shrink-0 border-amber-400/40 text-amber-800 hover:bg-amber-100/60"
-          >
-            Ladda om
-          </Button>
         </div>
       )}
 
@@ -532,6 +521,10 @@ export default function CreatePostPage() {
                   data-ocid="create_post.author.display"
                 >
                   {profileAlias}
+                </p>
+              ) : profileLoading ? (
+                <p className="text-sm py-2 px-3 rounded-md bg-muted/40 min-h-[2.5rem] flex items-center text-muted-foreground">
+                  Hämtar alias...
                 </p>
               ) : (
                 <>

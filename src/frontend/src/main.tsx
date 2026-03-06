@@ -14,7 +14,16 @@ declare global {
   }
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Retry once after 1 second instead of 3 retries with exponential backoff
+      // This prevents the actor query from hanging for 30+ seconds on network hiccups
+      retry: 1,
+      retryDelay: 1000,
+    },
+  },
+});
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
