@@ -34,29 +34,25 @@ export default function ShareModal({
       label: "E-post",
       icon: <Mail className="h-5 w-5" />,
       href: `mailto:?subject=${encodedTitle}&body=${encodedTitle}%0A%0A${encodedUrl}`,
-      color:
-        "hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/30 dark:hover:text-amber-400",
+      color: "hover:bg-primary/8 hover:text-primary hover:border-primary/30",
     },
     {
       label: "WhatsApp",
       icon: <SiWhatsapp className="h-5 w-5" />,
       href: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`,
-      color:
-        "hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-950/30 dark:hover:text-green-400",
+      color: "hover:bg-accent/10 hover:text-accent hover:border-accent/30",
     },
     {
       label: "X (Twitter)",
       icon: <SiX className="h-5 w-5" />,
       href: `https://x.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`,
-      color:
-        "hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100",
+      color: "hover:bg-secondary hover:text-foreground",
     },
     {
       label: "Facebook",
       icon: <SiFacebook className="h-5 w-5" />,
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-      color:
-        "hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950/30 dark:hover:text-blue-400",
+      color: "hover:bg-accent/10 hover:text-accent hover:border-accent/30",
     },
   ];
 
@@ -113,7 +109,7 @@ export default function ShareModal({
             className="shrink-0 h-7 px-2 gap-1.5"
           >
             {copied ? (
-              <Check className="h-3.5 w-3.5 text-green-600" />
+              <Check className="h-3.5 w-3.5 text-primary" />
             ) : (
               <Copy className="h-3.5 w-3.5" />
             )}

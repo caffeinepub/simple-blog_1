@@ -59,7 +59,7 @@ function PublishedPostCard({
   return (
     <Card
       className={`border-border/40 shadow-sm hover:shadow-md transition-shadow ${
-        hasNotification ? "ring-1 ring-amber-400/60" : ""
+        hasNotification ? "ring-1 ring-primary/40" : ""
       }`}
     >
       <CardHeader className="pb-3">
@@ -68,7 +68,7 @@ function PublishedPostCard({
             <div className="flex items-center gap-2 mb-1">
               {hasNotification && (
                 <span
-                  className="flex items-center gap-1 text-xs text-amber-600 font-medium"
+                  className="flex items-center gap-1 text-xs text-primary font-medium"
                   data-ocid="published_post.notification_badge"
                 >
                   <Bell className="h-3 w-3" />
@@ -86,7 +86,7 @@ function PublishedPostCard({
             <div className="flex items-center gap-2 mt-1.5">
               <Badge
                 variant="default"
-                className="text-xs bg-emerald-600/15 text-emerald-700 border-emerald-200 hover:bg-emerald-600/20"
+                className="text-xs bg-primary/15 text-primary border-primary/25 hover:bg-primary/20"
               >
                 <Globe className="h-2.5 w-2.5 mr-1" />
                 Publicerad
@@ -94,7 +94,7 @@ function PublishedPostCard({
               <span className="text-xs text-muted-foreground">{dateStr}</span>
             </div>
           </div>
-          <Globe className="h-5 w-5 text-emerald-600/60 shrink-0 mt-0.5" />
+          <Globe className="h-5 w-5 text-primary/50 shrink-0 mt-0.5" />
         </div>
       </CardHeader>
 
@@ -422,7 +422,7 @@ export default function MyDraftsPage() {
       <section className="mb-12" data-ocid="published_posts.section">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-serif font-semibold tracking-tight flex items-center gap-2">
-            <Globe className="h-5 w-5 text-emerald-600" />
+            <Globe className="h-5 w-5 text-primary" />
             Publicerade inlägg
             {sortedPublished.length > 0 && (
               <span className="text-base font-normal text-muted-foreground">
@@ -430,7 +430,7 @@ export default function MyDraftsPage() {
               </span>
             )}
             {unreadPostIds.size > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-medium ml-1">
+              <span className="inline-flex items-center gap-1 text-xs text-primary font-medium ml-1">
                 <Bell className="h-3.5 w-3.5" />
                 {unreadPostIds.size} ny{unreadPostIds.size === 1 ? "" : "a"}
               </span>

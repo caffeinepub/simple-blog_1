@@ -116,7 +116,7 @@ export default function NotificationBell() {
           )}
           {unreadNum > 0 && (
             <span
-              className="absolute -top-1 -right-1 h-4.5 min-w-[1.125rem] px-0.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center leading-none"
+              className="absolute -top-1 -right-1 h-4.5 min-w-[1.125rem] px-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center leading-none"
               data-ocid="notification.bell.badge"
             >
               {unreadNum > 99 ? "99+" : unreadNum}

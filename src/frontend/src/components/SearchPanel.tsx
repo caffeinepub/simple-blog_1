@@ -92,7 +92,7 @@ export default function SearchPanel({
   return (
     <div
       data-ocid="home.search_panel"
-      className="rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm p-4 md:p-5 mb-8"
+      className="rounded-2xl border border-primary/10 bg-card/70 backdrop-blur-sm shadow-sm p-4 md:p-5 mb-8"
     >
       {/* Main search row */}
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:gap-3">

@@ -33,7 +33,13 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen flex flex-col relative">
       {/* Header */}
-      <header className="border-b border-border/60 bg-card/80 backdrop-blur-md sticky top-0 z-50 shadow-sm relative">
+      <header
+        className="border-b border-primary/10 bg-card/90 backdrop-blur-md sticky top-0 z-50 shadow-sm relative"
+        style={{
+          boxShadow:
+            "0 1px 0 0 oklch(0.72 0.18 72 / 0.08), 0 2px 8px -2px oklch(0.22 0.03 55 / 0.06)",
+        }}
+      >
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo - text only */}
@@ -41,7 +47,7 @@ export default function Layout({ children }: LayoutProps) {
               to="/"
               className="flex items-center hover:opacity-80 transition-opacity"
             >
-              <span className="text-xl font-bold font-serif tracking-wide">
+              <span className="text-xl font-bold font-serif tracking-wide text-primary">
                 HKLO
               </span>
             </Link>
@@ -135,7 +141,7 @@ export default function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/60 bg-card/80 backdrop-blur-md py-8 mt-12 relative z-10">
+      <footer className="border-t border-primary/10 bg-card/90 backdrop-blur-md py-8 mt-12 relative z-10">
         <div className="container mx-auto px-4">
           <div className="text-center text-sm text-muted-foreground">
             <p>

@@ -61,12 +61,12 @@ export default function DraftPreviewPage() {
       </Button>
 
       {/* Preview banner */}
-      <div className="mb-8 flex items-center gap-3 rounded-xl border border-amber-300/60 bg-amber-50/80 dark:bg-amber-950/30 dark:border-amber-700/50 px-5 py-3.5 shadow-sm">
-        <span className="flex items-center gap-1.5 rounded-full bg-amber-400/20 border border-amber-400/40 px-3 py-1 text-xs font-bold tracking-widest text-amber-700 dark:text-amber-400 uppercase">
+      <div className="mb-8 flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/6 px-5 py-3.5 shadow-sm">
+        <span className="flex items-center gap-1.5 rounded-full bg-primary/15 border border-primary/30 px-3 py-1 text-xs font-bold tracking-widest text-primary uppercase">
           <Eye className="h-3.5 w-3.5" />
           Förhandsgranskning
         </span>
-        <p className="text-sm text-amber-700/90 dark:text-amber-400/90">
+        <p className="text-sm text-foreground/70">
           Så här ser ditt inlägg ut för läsarna — detta är ett opublicerat
           utkast.
         </p>
@@ -108,7 +108,7 @@ export default function DraftPreviewPage() {
         )}
 
         {/* Content */}
-        <div className="prose prose-lg prose-slate dark:prose-invert max-w-none mb-10">
+        <div className="prose prose-lg prose-stone dark:prose-invert max-w-none mb-10">
           {draft.content ? (
             <div
               className="rich-content leading-relaxed text-foreground opacity-90"

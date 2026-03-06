@@ -75,6 +75,7 @@ import {
   removeGroupMemberAsync,
   removeGroupModeratorAsync,
   removePostFromGroupAsync,
+  updateGroupVisibilityAsync,
 } from "../lib/groupStorage";
 
 // ─── Role badge ───────────────────────────────────────────────────────────────
@@ -187,11 +188,11 @@ function GroupPostCard({
       <CardContent>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <ThumbsUp className="h-3.5 w-3.5 text-amber-500" />
+            <ThumbsUp className="h-3.5 w-3.5 text-primary" />
             {likeCount}
           </span>
           <span className="flex items-center gap-1">
-            <ThumbsDown className="h-3.5 w-3.5 text-purple-500" />
+            <ThumbsDown className="h-3.5 w-3.5 text-accent" />
             {dislikeCount}
           </span>
         </div>
@@ -470,6 +471,7 @@ export default function GroupDetailPage() {
   const [confirmDeleteGroupOpen, setConfirmDeleteGroupOpen] = useState(false);
   const [modActionId, setModActionId] = useState<string | null>(null);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
 
   const refresh = () => setRefreshTick((t) => t + 1);
   void refreshTick;
@@ -629,6 +631,30 @@ export default function GroupDetailPage() {
     }
   };
 
+  const handleToggleVisibility = async () => {
+    if (!group) return;
+    const newVisibility = group.visibility === "public" ? "private" : "public";
+    setIsTogglingVisibility(true);
+    try {
+      const ok = await updateGroupVisibilityAsync(actor, id, newVisibility);
+      if (ok) {
+        toast.success(
+          newVisibility === "public"
+            ? `Gruppen "${group.name}" är nu publik.`
+            : `Gruppen "${group.name}" är nu privat.`,
+        );
+        refresh();
+      } else {
+        toast.error("Kunde inte ändra gruppens synlighet.");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Okänt fel.";
+      toast.error(msg);
+    } finally {
+      setIsTogglingVisibility(false);
+    }
+  };
+
   const handleRemoveMember = async (principal: string, alias: string) => {
     setRemovingMemberId(principal);
     try {
@@ -716,6 +742,32 @@ export default function GroupDetailPage() {
           )}
           {isOwner && (
             <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={handleToggleVisibility}
+                disabled={isTogglingVisibility}
+                data-ocid="group_detail.visibility.toggle"
+                title={
+                  group.visibility === "public"
+                    ? "Gör gruppen privat"
+                    : "Gör gruppen publik"
+                }
+              >
+                {isTogglingVisibility ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : group.visibility === "public" ? (
+                  <Lock className="h-4 w-4" />
+                ) : (
+                  <Globe className="h-4 w-4" />
+                )}
+                {isTogglingVisibility
+                  ? "Ändrar..."
+                  : group.visibility === "public"
+                    ? "Gör privat"
+                    : "Gör publik"}
+              </Button>
               <AlertDialog
                 open={confirmDeleteGroupOpen}
                 onOpenChange={setConfirmDeleteGroupOpen}

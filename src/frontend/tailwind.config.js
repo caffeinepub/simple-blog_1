@@ -17,22 +17,17 @@ export default {
         extend: {
             fontFamily: {
                 sans: [
+                    'Figtree',
                     'ui-sans-serif',
                     'system-ui',
                     '-apple-system',
-                    'BlinkMacSystemFont',
-                    '"Segoe UI"',
-                    'Roboto',
-                    '"Helvetica Neue"',
-                    'Arial',
                     'sans-serif'
                 ],
                 serif: [
+                    'Playfair Display',
                     'ui-serif',
                     'Georgia',
                     'Cambria',
-                    '"Times New Roman"',
-                    'Times',
                     'serif'
                 ],
             },
@@ -115,6 +110,26 @@ export default {
                     css: {
                         maxWidth: 'none',
                         lineHeight: '1.75',
+                        '--tw-prose-headings': 'oklch(0.22 0.03 55)',
+                        '--tw-prose-body': 'oklch(0.28 0.03 55)',
+                        '--tw-prose-links': 'oklch(0.72 0.18 72)',
+                        '--tw-prose-bold': 'oklch(0.22 0.03 55)',
+                        '--tw-prose-quotes': 'oklch(0.5 0.025 60)',
+                        '--tw-prose-quote-borders': 'oklch(0.72 0.18 72 / 0.4)',
+                        '--tw-prose-code': 'oklch(0.28 0.03 55)',
+                        '--tw-prose-pre-bg': 'oklch(0.94 0.02 80)',
+                    }
+                },
+                invert: {
+                    css: {
+                        '--tw-prose-headings': 'oklch(0.95 0.015 80)',
+                        '--tw-prose-body': 'oklch(0.88 0.018 75)',
+                        '--tw-prose-links': 'oklch(0.78 0.19 72)',
+                        '--tw-prose-bold': 'oklch(0.95 0.015 80)',
+                        '--tw-prose-quotes': 'oklch(0.62 0.02 70)',
+                        '--tw-prose-quote-borders': 'oklch(0.78 0.19 72 / 0.4)',
+                        '--tw-prose-code': 'oklch(0.88 0.018 75)',
+                        '--tw-prose-pre-bg': 'oklch(0.27 0.025 58)',
                     }
                 }
             }

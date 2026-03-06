@@ -267,8 +267,8 @@ export default function ReactionButtons({ post }: ReactionButtonsProps) {
             border transition-all duration-200 select-none
             ${
               hasLiked
-                ? "bg-amber-100 border-amber-300 text-amber-700 dark:bg-amber-900/40 dark:border-amber-600 dark:text-amber-300 shadow-sm"
-                : "bg-card border-border/50 text-muted-foreground hover:border-amber-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                ? "bg-primary/15 border-primary/40 text-primary shadow-sm"
+                : "bg-card border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/8"
             }
             disabled:opacity-60 disabled:cursor-not-allowed
           `}
@@ -304,8 +304,8 @@ export default function ReactionButtons({ post }: ReactionButtonsProps) {
             border transition-all duration-200 select-none
             ${
               hasDisliked
-                ? "bg-indigo-100 border-indigo-300 text-indigo-700 dark:bg-indigo-900/40 dark:border-indigo-600 dark:text-indigo-300 shadow-sm"
-                : "bg-card border-border/50 text-muted-foreground hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
+                ? "bg-accent/15 border-accent/40 text-accent shadow-sm"
+                : "bg-card border-border/50 text-muted-foreground hover:border-accent/40 hover:text-accent hover:bg-accent/8"
             }
             disabled:opacity-60 disabled:cursor-not-allowed
           `}

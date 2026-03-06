@@ -569,3 +569,43 @@ export async function removePostFromGroupAsync(
   }
   return success;
 }
+
+/**
+ * Update the visibility of a group (public ↔ private) in the backend
+ * and sync the change to localStorage cache.
+ */
+export function updateGroupVisibilityLocal(
+  id: string,
+  visibility: GroupVisibility,
+): void {
+  const all = readAll();
+  const idx = all.findIndex((g) => g.id === id);
+  if (idx === -1) return;
+  all[idx].visibility = visibility;
+  writeAll(all);
+}
+
+export async function updateGroupVisibilityAsync(
+  actor: backendInterface | null,
+  id: string,
+  newVisibility: GroupVisibility,
+): Promise<boolean> {
+  const group = getGroup(id);
+  if (!group) return false;
+
+  if (!actor) {
+    updateGroupVisibilityLocal(id, newVisibility);
+    return true;
+  }
+
+  const success = await actor.updateGroup(
+    id,
+    group.name,
+    group.description,
+    newVisibility === "public",
+  );
+  if (success) {
+    updateGroupVisibilityLocal(id, newVisibility);
+  }
+  return success;
+}

@@ -238,7 +238,7 @@ export default function PostDetailPage() {
 
           {/* Truncated content with gradient fade */}
           <div className="relative mb-0">
-            <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
+            <div className="prose prose-lg prose-stone dark:prose-invert max-w-none">
               <div className="rich-content leading-relaxed text-foreground opacity-90">
                 {previewText}
               </div>
@@ -413,7 +413,7 @@ export default function PostDetailPage() {
           <ImageGallery images={post.images} />
         )}
 
-        <div className="prose prose-lg prose-slate dark:prose-invert max-w-none mb-10">
+        <div className="prose prose-lg prose-stone dark:prose-invert max-w-none mb-10">
           <div
             className="rich-content leading-relaxed text-foreground opacity-90"
             // biome-ignore lint/security/noDangerouslySetInnerHtml: controlled rich text from Quill editor

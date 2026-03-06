@@ -260,10 +260,13 @@ export default function HomePage() {
   return (
     <div className="container max-w-5xl mx-auto px-4 sm:px-6 py-10 md:py-16">
       {/* Hero heading */}
-      <div className="mb-8 md:mb-10 text-center">
-        <h2 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4 tracking-tight">
+      <div className="mb-10 md:mb-12 text-center">
+        <h2 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-3 tracking-tight">
           Senaste berättelserna
         </h2>
+        <div className="flex justify-center mb-4">
+          <div className="h-1 w-16 rounded-full bg-primary opacity-70" />
+        </div>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           Tankar, idéer och berättelser från vår gemenskap av skribenter
         </p>

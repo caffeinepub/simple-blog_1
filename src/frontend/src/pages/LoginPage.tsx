@@ -57,10 +57,15 @@ export default function LoginPage() {
         {/* Logo and Title */}
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-3">
-            <BookOpen className="h-12 w-12 text-primary" />
-            <h1 className="text-5xl font-serif font-bold text-foreground tracking-tight">
+            <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+              <BookOpen className="h-10 w-10 text-primary" />
+            </div>
+            <h1 className="text-5xl font-serif font-bold text-primary tracking-tight">
               HKLO
             </h1>
+          </div>
+          <div className="flex justify-center">
+            <div className="h-0.5 w-12 rounded-full bg-primary/50" />
           </div>
           <p className="text-muted-foreground text-center text-lg">
             {t.loginSubtitle}
@@ -68,7 +73,13 @@ export default function LoginPage() {
         </div>
 
         {/* Login Card */}
-        <Card className="border-border/50 shadow-lg">
+        <Card
+          className="border-primary/15 shadow-lg"
+          style={{
+            boxShadow:
+              "0 4px 24px oklch(0.72 0.18 72 / 0.08), 0 1px 4px oklch(0.22 0.03 55 / 0.06)",
+          }}
+        >
           <CardHeader className="space-y-2">
             <CardTitle className="text-2xl font-serif text-center">
               {t.loginWelcome}

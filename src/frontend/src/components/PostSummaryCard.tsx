@@ -120,7 +120,7 @@ export default function PostSummaryCard({ post }: PostSummaryCardProps) {
               {category && (
                 <Badge
                   variant="secondary"
-                  className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 mt-0.5"
+                  className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 mt-0.5 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15"
                 >
                   {category}
                 </Badge>
@@ -157,14 +157,14 @@ export default function PostSummaryCard({ post }: PostSummaryCardProps) {
               {/* Reaction counts (read-only) */}
               <div className="flex items-center gap-2">
                 <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/30 dark:border-amber-600/50 dark:text-amber-300"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border bg-primary/10 border-primary/30 text-primary"
                   title="Gillar"
                 >
                   <ThumbsUp className="h-3.5 w-3.5" fill="currentColor" />
                   {likeCount}
                 </span>
                 <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-600/50 dark:text-indigo-300"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border bg-accent/15 border-accent/30 text-accent"
                   title="Ogillningar"
                 >
                   <ThumbsDown className="h-3.5 w-3.5" fill="currentColor" />

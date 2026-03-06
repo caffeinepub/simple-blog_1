@@ -71,7 +71,7 @@ export default function PostCard({ post }: PostCardProps) {
 
   return (
     <>
-      <Card className="group hover:shadow-md transition-all duration-300 border-border/40 overflow-hidden">
+      <Card className="group hover:shadow-lg transition-all duration-300 border-border/40 hover:border-primary/20 overflow-hidden">
         {hasThumbnail && (
           <Link
             to="/post/$id"
