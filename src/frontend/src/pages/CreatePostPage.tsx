@@ -31,13 +31,16 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { UserProfile } from "../backend";
+import GroupSelector from "../components/GroupSelector";
 import RichTextEditor from "../components/RichTextEditor";
 import {
   type Category,
   categories,
   titleSuggestions,
 } from "../data/titleSuggestions";
+import { useActor } from "../hooks/useActor";
 import { useImageUpload } from "../hooks/useImageUpload";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useCreatePost,
   useGetCallerUserProfile,
@@ -45,15 +48,22 @@ import {
   useSaveDraft,
   useUpdateDraft,
 } from "../hooks/useQueries";
+import { addPostToGroupAsync } from "../lib/groupStorage";
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
+  const { identity } = useInternetIdentity();
+  const { actor } = useActor();
+  const principalStr = identity?.getPrincipal().toString() ?? "";
+
   const [category, setCategory] = useState<Category | "">("");
   const [suggestedTitle, setSuggestedTitle] = useState("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [author, setAuthor] = useState("");
   const [published, setPublished] = useState(false);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [groupInMainFeed, setGroupInMainFeed] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
     content?: string;
@@ -107,6 +117,15 @@ export default function CreatePostPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleGroupSelectionChange = (ids: string[], inMainFeed: boolean) => {
+    setSelectedGroupIds(ids);
+    setGroupInMainFeed(inMainFeed);
+    // Auto-disable public publish when groups are selected
+    if (ids.length > 0) {
+      setPublished(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
@@ -133,13 +152,25 @@ export default function CreatePostPage() {
         }
       }
 
-      await createPostMutation.mutateAsync({
+      const postId = await createPostMutation.mutateAsync({
         title: title.trim(),
         content: content,
         author: trimmedAuthor,
         published,
         images: imageBlobs,
       });
+
+      // Add post to selected groups after creation
+      if (selectedGroupIds.length > 0 && postId !== undefined) {
+        const postIdStr =
+          typeof postId === "bigint" ? postId.toString() : String(postId);
+        await Promise.all(
+          selectedGroupIds.map((groupId) =>
+            addPostToGroupAsync(actor, groupId, postIdStr, groupInMainFeed),
+          ),
+        );
+      }
+
       clearImages();
       navigate({ to: "/" });
     } catch (err) {
@@ -567,6 +598,15 @@ export default function CreatePostPage() {
                 onCheckedChange={setPublished}
               />
             </div>
+
+            {/* Group selector */}
+            {principalStr && (
+              <GroupSelector
+                principalStr={principalStr}
+                selectedGroupIds={selectedGroupIds}
+                onSelectionChange={handleGroupSelectionChange}
+              />
+            )}
 
             {submitError && (
               <Alert variant="destructive">

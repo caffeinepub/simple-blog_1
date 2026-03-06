@@ -28,12 +28,14 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import GroupSelector from "../components/GroupSelector";
 import RichTextEditor from "../components/RichTextEditor";
 import {
   type Category,
   categories,
   titleSuggestions,
 } from "../data/titleSuggestions";
+import { useActor } from "../hooks/useActor";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
@@ -42,11 +44,14 @@ import {
   usePublishDraft,
   useUpdateDraft,
 } from "../hooks/useQueries";
+import { addPostToGroupAsync } from "../lib/groupStorage";
 
 export default function EditDraftPage() {
   const { id } = useParams({ from: "/draft/$id/edit" });
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
+  const { actor } = useActor();
+  const principalStr = identity?.getPrincipal().toString() ?? "";
   const { data: draft, isLoading: isLoadingDraft } = useGetDraft(BigInt(id));
   const updateDraftMutation = useUpdateDraft();
   const publishDraftMutation = usePublishDraft();
@@ -62,6 +67,8 @@ export default function EditDraftPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [author, setAuthor] = useState("");
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [groupInMainFeed, setGroupInMainFeed] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
     content?: string;
@@ -126,6 +133,11 @@ export default function EditDraftPage() {
     profileAlias,
   ]);
 
+  const handleGroupSelectionChange = (ids: string[], inMainFeed: boolean) => {
+    setSelectedGroupIds(ids);
+    setGroupInMainFeed(inMainFeed);
+  };
+
   const isContentEmpty = (html: string) => {
     const stripped = html.replace(/<[^>]*>/g, "").trim();
     return stripped.length === 0;
@@ -187,7 +199,21 @@ export default function EditDraftPage() {
       });
 
       // Then publish
-      await publishDraftMutation.mutateAsync(draft.id);
+      const publishedId = await publishDraftMutation.mutateAsync(draft.id);
+
+      // Add post to selected groups after publishing
+      if (selectedGroupIds.length > 0 && publishedId !== undefined) {
+        const postIdStr =
+          typeof publishedId === "bigint"
+            ? publishedId.toString()
+            : String(publishedId);
+        await Promise.all(
+          selectedGroupIds.map((groupId) =>
+            addPostToGroupAsync(actor, groupId, postIdStr, groupInMainFeed),
+          ),
+        );
+      }
+
       toast.success(`"${title.trim()}" har publicerats!`);
       clearImages();
       navigate({ to: "/" });
@@ -537,6 +563,15 @@ export default function EditDraftPage() {
                   )}
               </div>
             </div>
+
+            {/* Group selector */}
+            {principalStr && (
+              <GroupSelector
+                principalStr={principalStr}
+                selectedGroupIds={selectedGroupIds}
+                onSelectionChange={handleGroupSelectionChange}
+              />
+            )}
 
             {submitError && (
               <Alert variant="destructive" data-ocid="edit_draft.error_state">

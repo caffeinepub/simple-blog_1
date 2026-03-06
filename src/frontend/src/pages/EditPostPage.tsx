@@ -29,6 +29,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PostStatus } from "../backend";
+import GroupSelector from "../components/GroupSelector";
 import RichTextEditor from "../components/RichTextEditor";
 import UnpublishDialog from "../components/UnpublishDialog";
 import {
@@ -36,6 +37,7 @@ import {
   categories,
   titleSuggestions,
 } from "../data/titleSuggestions";
+import { useActor } from "../hooks/useActor";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
@@ -44,11 +46,18 @@ import {
   useGetPost,
   useUpdatePost,
 } from "../hooks/useQueries";
+import {
+  addPostToGroupAsync,
+  getAllGroups,
+  removePostFromGroupAsync,
+} from "../lib/groupStorage";
 
 export default function EditPostPage() {
   const { id } = useParams({ from: "/post/$id/edit" });
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
+  const { actor } = useActor();
+  const principalStr = identity?.getPrincipal().toString() ?? "";
   const { data: post, isLoading: isLoadingPost } = useGetPost(BigInt(id));
   const updatePostMutation = useUpdatePost();
   const deletePostMutation = useDeletePost();
@@ -65,6 +74,8 @@ export default function EditPostPage() {
   const [content, setContent] = useState("");
   const [author, setAuthor] = useState("");
   const [published, setPublished] = useState(false);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [groupInMainFeed, setGroupInMainFeed] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
     content?: string;
@@ -141,6 +152,26 @@ export default function EditPostPage() {
     hasProfileAlias,
     profileAlias,
   ]);
+
+  // Pre-populate group selections based on existing post group memberships
+  useEffect(() => {
+    if (!post) return;
+    const postIdStr = post.id.toString();
+    const allGroups = getAllGroups();
+    const preSelected = allGroups
+      .filter((g) => g.postIds.includes(postIdStr))
+      .map((g) => g.id);
+    setSelectedGroupIds(preSelected);
+  }, [post]);
+
+  const handleGroupSelectionChange = (ids: string[], inMainFeed: boolean) => {
+    setSelectedGroupIds(ids);
+    setGroupInMainFeed(inMainFeed);
+    // Auto-disable public publish when groups are selected (without triggering dialog)
+    if (ids.length > 0) {
+      setPublished(false);
+    }
+  };
 
   const handlePublishedToggle = (newValue: boolean) => {
     // If turning OFF and the post is currently published, show the dialog
@@ -231,6 +262,29 @@ export default function EditPostPage() {
         published,
         images: allImages,
       });
+
+      // Sync group memberships: add newly selected, remove deselected
+      const postIdStr = post.id.toString();
+      const allGroups = getAllGroups();
+      const previouslySelectedIds = allGroups
+        .filter((g) => g.postIds.includes(postIdStr))
+        .map((g) => g.id);
+
+      const toAdd = selectedGroupIds.filter(
+        (gid) => !previouslySelectedIds.includes(gid),
+      );
+      const toRemove = previouslySelectedIds.filter(
+        (gid) => !selectedGroupIds.includes(gid),
+      );
+
+      await Promise.all([
+        ...toAdd.map((gid) =>
+          addPostToGroupAsync(actor, gid, postIdStr, groupInMainFeed),
+        ),
+        ...toRemove.map((gid) =>
+          removePostFromGroupAsync(actor, gid, postIdStr),
+        ),
+      ]);
 
       toast.success("Inlägget har uppdaterats");
       clearImages();
@@ -608,6 +662,15 @@ export default function EditPostPage() {
                   onCheckedChange={handlePublishedToggle}
                 />
               </div>
+
+              {/* Group selector */}
+              {principalStr && (
+                <GroupSelector
+                  principalStr={principalStr}
+                  selectedGroupIds={selectedGroupIds}
+                  onSelectionChange={handleGroupSelectionChange}
+                />
+              )}
 
               {submitError && (
                 <Alert variant="destructive">
