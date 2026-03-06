@@ -68,6 +68,13 @@ export function useCreatePost() {
     }) => {
       if (!actor) throw new Error("Actor not initialized");
 
+      if (!published) {
+        // Save as draft when publish toggle is off
+        const draftId = await actor.saveDraft(title, content, author, images);
+        return draftId;
+      }
+
+      // Create and publish
       const createResult = await actor.createPost(
         title,
         content,
@@ -83,29 +90,11 @@ export function useCreatePost() {
         throw new Error(`__contentBlocked__:${reason}`);
       }
 
-      const postId = createResult.ok;
-
-      if (published) {
-        const updateResult = await actor.updatePost(
-          postId,
-          title,
-          content,
-          author,
-          PostStatus.published,
-          images,
-        );
-        if (updateResult.__kind__ === "imageTooLarge") {
-          throw new Error("Bilden är för stor. Max 800 KB per bild tillåts.");
-        }
-        if (updateResult.__kind__ === "contentBlocked") {
-          throw new Error(`__contentBlocked__:${updateResult.contentBlocked}`);
-        }
-      }
-
-      return postId;
+      return createResult.ok;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["myDrafts"] });
     },
   });
 }

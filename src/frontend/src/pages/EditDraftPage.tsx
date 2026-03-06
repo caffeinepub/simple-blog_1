@@ -153,7 +153,7 @@ export default function EditDraftPage() {
       await updateDraftMutation.mutateAsync({
         id: draft.id,
         title: title.trim(),
-        content: content.trim(),
+        content: content,
         author: author.trim(),
         images: allImages,
       });
@@ -181,7 +181,7 @@ export default function EditDraftPage() {
       await updateDraftMutation.mutateAsync({
         id: draft.id,
         title: title.trim(),
-        content: content.trim(),
+        content: content,
         author: author.trim(),
         images: allImages,
       });

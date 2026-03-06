@@ -3,81 +3,340 @@
 @tailwind utilities;
 
 @layer base {
-    :root {
-        --radius: 0.625rem;
-        --background: 1 0 0;
-        --foreground: 0.145 0 0;
-        --card: 1 0 0;
-        --card-foreground: 0.145 0 0;
-        --popover: 1 0 0;
-        --popover-foreground: 0.145 0 0;
-        --primary: 0.205 0 0;
-        --primary-foreground: 0.985 0 0;
-        --secondary: 0.97 0 0;
-        --secondary-foreground: 0.205 0 0;
-        --muted: 0.97 0 0;
-        --muted-foreground: 0.556 0 0;
-        --accent: 0.97 0 0;
-        --accent-foreground: 0.205 0 0;
-        --destructive: 0.577 0.245 27.325;
-        --destructive-foreground: 0.985 0 0;
-        --border: 0.922 0 0;
-        --input: 0.922 0 0;
-        --ring: 0.708 0 0;
-        --chart-1: 0.646 0.222 41.116;
-        --chart-2: 0.6 0.118 184.704;
-        --chart-3: 0.398 0.07 227.392;
-        --chart-4: 0.828 0.189 84.429;
-        --chart-5: 0.769 0.188 70.08;
-        --sidebar: 0.985 0 0;
-        --sidebar-foreground: 0.145 0 0;
-        --sidebar-primary: 0.205 0 0;
-        --sidebar-primary-foreground: 0.985 0 0;
-        --sidebar-accent: 0.97 0 0;
-        --sidebar-accent-foreground: 0.205 0 0;
-        --sidebar-border: 0.922 0 0;
-        --sidebar-ring: 0.708 0 0;
-    }
+  :root {
+    --radius: 0.625rem;
 
-    .dark {
-        --background: 0.145 0 0;
-        --foreground: 0.985 0 0;
-        --card: 0.205 0 0;
-        --card-foreground: 0.985 0 0;
-        --popover: 0.269 0 0;
-        --popover-foreground: 0.985 0 0;
-        --primary: 0.922 0 0;
-        --primary-foreground: 0.205 0 0;
-        --secondary: 0.269 0 0;
-        --secondary-foreground: 0.985 0 0;
-        --muted: 0.269 0 0;
-        --muted-foreground: 0.708 0 0;
-        --accent: 0.371 0 0;
-        --accent-foreground: 0.985 0 0;
-        --destructive: 0.704 0.191 22.216;
-        --destructive-foreground: 0.205 0 0;
-        --border: 1 0 0 / 10%;
-        --input: 1 0 0 / 15%;
-        --ring: 0.556 0 0;
-        --chart-1: 0.488 0.243 264.376;
-        --chart-2: 0.696 0.17 162.48;
-        --chart-3: 0.769 0.188 70.08;
-        --chart-4: 0.627 0.265 303.9;
-        --chart-5: 0.645 0.246 16.439;
-        --sidebar: 0.205 0 0;
-        --sidebar-foreground: 0.985 0 0;
-        --sidebar-primary: 0.488 0.243 264.376;
-        --sidebar-primary-foreground: 0.985 0 0;
-        --sidebar-accent: 0.269 0 0;
-        --sidebar-accent-foreground: 0.985 0 0;
-        --sidebar-border: 1 0 0 / 10%;
-        --sidebar-ring: 0.439 0 0;
-    }
+    /* ── Golden Hour 2026 palette – Light mode ────────────────────
+       Inspired by the last light of day: warm amber gold as hero,
+       terracotta as grounding secondary, deep teal as cool accent,
+       creamy parchment backgrounds, soft plum for subtle highlights.
+    ─────────────────────────────────────────────────────────────── */
 
-    * {
-        @apply border-border;
-    }
-    body {
-        @apply bg-background text-foreground;
-    }
+    /* Parchment / warm cream background */
+    --background: 0.97 0.018 82;
+    --foreground: 0.22 0.03 55;
+
+    /* Card: slightly warmer cream */
+    --card: 0.99 0.012 78;
+    --card-foreground: 0.22 0.03 55;
+
+    --popover: 0.99 0.012 78;
+    --popover-foreground: 0.22 0.03 55;
+
+    /* Primary: Golden amber – the hero colour, sun-soaked warmth */
+    --primary: 0.72 0.18 72;
+    --primary-foreground: 0.18 0.04 55;
+
+    /* Secondary: soft warm sand / cream – nertonad bakgrundston */
+    --secondary: 0.92 0.03 80;
+    --secondary-foreground: 0.28 0.04 55;
+
+    /* Muted: very light parchment tint */
+    --muted: 0.94 0.02 80;
+    --muted-foreground: 0.5 0.025 60;
+
+    /* Accent: deep teal – cool contrast to the warm amber */
+    --accent: 0.52 0.1 195;
+    --accent-foreground: 0.97 0.01 195;
+
+    /* Destructive: terracotta-red */
+    --destructive: 0.56 0.2 28;
+    --destructive-foreground: 0.98 0.005 60;
+
+    /* Borders and inputs: warm parchment edge */
+    --border: 0.88 0.03 78;
+    --input: 0.88 0.03 78;
+    --ring: 0.72 0.18 72;
+
+    /* Chart palette: amber, terracotta, teal, plum, cinnamon */
+    --chart-1: 0.72 0.18 72;
+    --chart-2: 0.62 0.14 42;
+    --chart-3: 0.52 0.1 195;
+    --chart-4: 0.62 0.1 295;
+    --chart-5: 0.58 0.16 35;
+
+    /* Sidebar (matches card styling) */
+    --sidebar: 0.99 0.012 78;
+    --sidebar-foreground: 0.22 0.03 55;
+    --sidebar-primary: 0.72 0.18 72;
+    --sidebar-primary-foreground: 0.18 0.04 55;
+    --sidebar-accent: 0.52 0.1 195;
+    --sidebar-accent-foreground: 0.97 0.01 195;
+    --sidebar-border: 0.88 0.03 78;
+    --sidebar-ring: 0.72 0.18 72;
+  }
+
+  .dark {
+    /* ── Golden Hour 2026 palette – Dark mode ─────────────────────
+       Rich amber glows against deep warm-brown/charcoal shadows.
+       Teal accents remain vibrant; cream text on dark amber dusk.
+    ─────────────────────────────────────────────────────────────── */
+
+    /* Deep warm charcoal – like dusk sky */
+    --background: 0.16 0.025 55;
+    --foreground: 0.95 0.015 80;
+
+    /* Card: slightly lighter warm dark */
+    --card: 0.21 0.028 55;
+    --card-foreground: 0.95 0.015 80;
+
+    --popover: 0.19 0.028 55;
+    --popover-foreground: 0.95 0.015 80;
+
+    /* Primary: warm golden amber – glows in the dark */
+    --primary: 0.78 0.19 72;
+    --primary-foreground: 0.16 0.025 55;
+
+    /* Secondary: muted warm brown */
+    --secondary: 0.28 0.028 58;
+    --secondary-foreground: 0.95 0.015 80;
+
+    /* Muted: subtle warm dark */
+    --muted: 0.27 0.025 58;
+    --muted-foreground: 0.62 0.02 70;
+
+    /* Accent: bright teal – stands out against warm dark bg */
+    --accent: 0.62 0.12 195;
+    --accent-foreground: 0.16 0.025 55;
+
+    /* Destructive: terracotta */
+    --destructive: 0.62 0.2 28;
+    --destructive-foreground: 0.16 0.025 55;
+
+    /* Borders and inputs */
+    --border: 0.32 0.028 58;
+    --input: 0.32 0.028 58;
+    --ring: 0.78 0.19 72;
+
+    /* Chart palette dark */
+    --chart-1: 0.78 0.19 72;
+    --chart-2: 0.68 0.16 42;
+    --chart-3: 0.62 0.12 195;
+    --chart-4: 0.68 0.12 295;
+    --chart-5: 0.65 0.18 35;
+
+    /* Sidebar dark (matches dark card styling) */
+    --sidebar: 0.21 0.028 55;
+    --sidebar-foreground: 0.95 0.015 80;
+    --sidebar-primary: 0.78 0.19 72;
+    --sidebar-primary-foreground: 0.16 0.025 55;
+    --sidebar-accent: 0.62 0.12 195;
+    --sidebar-accent-foreground: 0.16 0.025 55;
+    --sidebar-border: 0.32 0.028 58;
+    --sidebar-ring: 0.78 0.19 72;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    min-height: 100vh;
+  }
+
+  /* Golden Hour typography */
+  @font-face {
+    font-family: "Playfair Display";
+    src: url("/assets/fonts/PlayfairDisplay[wght].woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Playfair Display";
+    src: url("/assets/fonts/PlayfairDisplay-Italic[wght].woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: italic;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Figtree";
+    src: url("/assets/fonts/Figtree[wght].woff2") format("woff2");
+    font-weight: 300 900;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Playfair Display", ui-serif, Georgia, serif;
+    font-feature-settings: "liga" 1, "dlig" 1;
+  }
+
+  body {
+    font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+/* ── Quill rich text editor styles ───────────────────────────── */
+.rich-text-editor-wrapper .ql-toolbar {
+  border-radius: 0.5rem 0.5rem 0 0;
+  border-color: oklch(var(--border));
+  background: oklch(var(--muted) / 0.4);
+  flex-wrap: wrap;
+}
+
+.rich-text-editor-wrapper .ql-container {
+  border-radius: 0 0 0.5rem 0.5rem;
+  border-color: oklch(var(--border));
+  background: oklch(var(--background));
+  font-family: inherit;
+  font-size: 1rem;
+  min-height: 200px;
+}
+
+.rich-text-editor-wrapper .ql-editor {
+  min-height: 200px;
+  color: oklch(var(--foreground));
+  line-height: 1.7;
+}
+
+.rich-text-editor-wrapper .ql-editor.ql-blank::before {
+  color: oklch(var(--muted-foreground));
+  font-style: normal;
+}
+
+.rich-text-editor-wrapper .ql-snow .ql-stroke {
+  stroke: oklch(var(--foreground));
+}
+
+.rich-text-editor-wrapper .ql-snow .ql-fill {
+  fill: oklch(var(--foreground));
+}
+
+.rich-text-editor-wrapper .ql-snow .ql-picker {
+  color: oklch(var(--foreground));
+}
+
+.rich-text-editor-wrapper .ql-snow .ql-picker-options {
+  background: oklch(var(--popover));
+  border-color: oklch(var(--border));
+  color: oklch(var(--foreground));
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.rich-text-editor-wrapper .ql-snow.ql-toolbar button:hover,
+.rich-text-editor-wrapper .ql-snow.ql-toolbar button.ql-active {
+  color: oklch(var(--primary));
+}
+
+.rich-text-editor-wrapper .ql-snow.ql-toolbar button:hover .ql-stroke,
+.rich-text-editor-wrapper .ql-snow.ql-toolbar button.ql-active .ql-stroke {
+  stroke: oklch(var(--primary));
+}
+
+.rich-text-editor-wrapper .ql-snow.ql-toolbar button:hover .ql-fill,
+.rich-text-editor-wrapper .ql-snow.ql-toolbar button.ql-active .ql-fill {
+  fill: oklch(var(--primary));
+}
+
+/* Rendered rich content in posts */
+.rich-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 1rem 0 0.5rem;
+  font-family: "Playfair Display", ui-serif, Georgia, serif;
+}
+.rich-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.875rem 0 0.5rem;
+  font-family: "Playfair Display", ui-serif, Georgia, serif;
+}
+.rich-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.4rem;
+  font-family: "Playfair Display", ui-serif, Georgia, serif;
+}
+.rich-content p {
+  margin: 0.5rem 0;
+  line-height: 1.75;
+}
+.rich-content strong {
+  font-weight: 700;
+}
+.rich-content em {
+  font-style: italic;
+}
+.rich-content u {
+  text-decoration: underline;
+}
+.rich-content s {
+  text-decoration: line-through;
+}
+.rich-content ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+.rich-content ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+.rich-content li {
+  margin: 0.25rem 0;
+}
+.rich-content blockquote {
+  border-left: 4px solid oklch(var(--primary) / 0.4);
+  padding-left: 1rem;
+  margin: 0.75rem 0;
+  color: oklch(var(--muted-foreground));
+  font-style: italic;
+  background: oklch(var(--primary) / 0.04);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+.rich-content pre {
+  background: oklch(var(--muted));
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  font-family: monospace;
+  font-size: 0.875rem;
+}
+.rich-content a {
+  color: oklch(var(--primary));
+  text-decoration: underline;
+}
+.rich-content .ql-align-center {
+  text-align: center;
+}
+.rich-content .ql-align-right {
+  text-align: right;
+}
+.rich-content .ql-align-justify {
+  text-align: justify;
+}
+
+/* ── Navigation active-link glow ─────────────────────────────── */
+/* TanStack Router sets aria-current="page" on active links */
+nav a[aria-current="page"] {
+  color: oklch(var(--primary));
+  background-color: oklch(var(--primary) / 0.08);
+}
+
+/* ── Golden Hour accent utilities ─────────────────────────────── */
+
+/* Amber glow ring for notification states */
+.ring-amber-glow {
+  box-shadow: 0 0 0 2px oklch(0.72 0.18 72 / 0.35);
+}
+
+/* Warm section divider */
+.divider-warm::after {
+  content: "";
+  display: block;
+  width: 3rem;
+  height: 3px;
+  background: oklch(var(--primary));
+  border-radius: 2px;
+  margin-top: 0.5rem;
 }

@@ -160,25 +160,32 @@ export default function CreatePostPage() {
   };
 
   const handleSaveAsDraft = async () => {
-    if (!title.trim() && !content.trim() && !author.trim()) {
+    // Use profile alias if available, otherwise use what's typed
+    const effectiveAuthor = hasProfileAlias ? profileAlias : author.trim();
+    const contentIsEmpty = isContentEmpty(content);
+
+    if (!title.trim() && contentIsEmpty && !effectiveAuthor) {
       toast.error("Fyll i minst ett fält innan du sparar som utkast.");
       return;
     }
     try {
       const imageBlobs = await convertToBlobs();
+      const draftTitle = title.trim() || "(Utan titel)";
+      const draftAuthor = effectiveAuthor || "(Okänd)";
+
       if (currentDraftIdRef.current !== null) {
         await updateDraftMutation.mutateAsync({
           id: currentDraftIdRef.current,
-          title: title.trim() || "(Utan titel)",
+          title: draftTitle,
           content: content,
-          author: author.trim(),
+          author: draftAuthor,
           images: imageBlobs,
         });
       } else {
         const newId = await saveDraftMutation.mutateAsync({
-          title: title.trim() || "(Utan titel)",
+          title: draftTitle,
           content: content,
-          author: author.trim(),
+          author: draftAuthor,
           images: imageBlobs,
         });
         currentDraftIdRef.current = newId;
@@ -193,8 +200,12 @@ export default function CreatePostPage() {
       navigate({ to: "/drafts" });
     } catch (err) {
       console.error("Failed to save draft:", err);
-      const errMsg = err instanceof Error ? err.message : "Okänt fel";
-      toast.error(`Kunde inte spara utkastet: ${errMsg}`);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      // Extract backend error message if available
+      const cleanMsg = errMsg.includes(":")
+        ? errMsg.split(":").slice(-1)[0].trim()
+        : errMsg;
+      toast.error(`Kunde inte spara utkastet: ${cleanMsg}`);
     }
   };
 
