@@ -219,16 +219,17 @@ export default function CreatePostPage() {
           author: draftAuthor,
           images: imageBlobs,
         });
+        if (newId === undefined || newId === null) {
+          throw new Error("Backend returnerade inget utkast-ID.");
+        }
         currentDraftIdRef.current = newId;
       }
-      clearImages();
       toast.success(
         "Utkastet har sparats! Du hittar det under Mina inlägg och utkast.",
         {
           duration: 4000,
         },
       );
-      navigate({ to: "/drafts" });
     } catch (err) {
       console.error("Failed to save draft:", err);
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -251,6 +252,9 @@ export default function CreatePostPage() {
           author: author.trim(),
           images: imageBlobs,
         });
+        if (newId === undefined || newId === null) {
+          throw new Error("Backend returnerade inget utkast-ID.");
+        }
         currentDraftIdRef.current = newId;
         draftId = newId;
       } else {
@@ -629,10 +633,10 @@ export default function CreatePostPage() {
                 {createPostMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Skapar...
+                    Publicerar...
                   </>
                 ) : (
-                  "Skapa inlägg"
+                  "Publicera"
                 )}
               </Button>
               <Button
