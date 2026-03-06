@@ -66,11 +66,22 @@ export function useCreatePost() {
       published: boolean;
       images?: Uint8Array[];
     }) => {
-      if (!actor) throw new Error("Actor not initialized");
+      if (!actor) throw new Error("Anslutningen är inte klar. Försök igen.");
+
+      if (!author || !author.trim()) {
+        throw new Error(
+          "Alias saknas. Fyll i ett alias eller spara ett i din profil.",
+        );
+      }
 
       if (!published) {
         // Save as draft when publish toggle is off
-        const draftId = await actor.saveDraft(title, content, author, images);
+        const draftId = await actor.saveDraft(
+          title,
+          content,
+          author.trim(),
+          images,
+        );
         return draftId;
       }
 
@@ -78,12 +89,14 @@ export function useCreatePost() {
       const createResult = await actor.createPost(
         title,
         content,
-        author,
+        author.trim(),
         images,
       );
 
       if (createResult.__kind__ === "imageTooLarge") {
-        throw new Error("Bilden är för stor. Max 800 KB per bild tillåts.");
+        throw new Error(
+          "Bilden är för stor efter komprimering. Max 800 KB per bild tillåts. Försök med en annan bild.",
+        );
       }
       if (createResult.__kind__ === "contentBlocked") {
         const reason = createResult.contentBlocked;
@@ -246,8 +259,10 @@ export function useSaveDraft() {
       author: string;
       images?: Uint8Array[];
     }) => {
-      if (!actor) throw new Error("Actor not initialized");
-      return actor.saveDraft(title, content, author, images);
+      if (!actor)
+        throw new Error("Anslutningen är inte klar. Försök igen om en stund.");
+      const safeAuthor = author?.trim() ? author.trim() : "(Okänd)";
+      return actor.saveDraft(title, content, safeAuthor, images);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myDrafts"] });
@@ -273,8 +288,10 @@ export function useUpdateDraft() {
       author: string;
       images?: Uint8Array[];
     }) => {
-      if (!actor) throw new Error("Actor not initialized");
-      await actor.updateDraft(id, title, content, author, images);
+      if (!actor)
+        throw new Error("Anslutningen är inte klar. Försök igen om en stund.");
+      const safeAuthor = author?.trim() ? author.trim() : "(Okänd)";
+      await actor.updateDraft(id, title, content, safeAuthor, images);
       return id;
     },
     onSuccess: () => {

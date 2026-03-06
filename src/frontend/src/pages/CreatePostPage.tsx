@@ -53,7 +53,7 @@ import { addPostToGroupAsync } from "../lib/groupStorage";
 export default function CreatePostPage() {
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
-  const { actor } = useActor();
+  const { actor, isFetching: actorFetching } = useActor();
   const principalStr = identity?.getPrincipal().toString() ?? "";
 
   const [category, setCategory] = useState<Category | "">("");
@@ -112,7 +112,13 @@ export default function CreatePostPage() {
     const newErrors: { title?: string; content?: string; author?: string } = {};
     if (!title.trim()) newErrors.title = "Titel krävs";
     if (isContentEmpty(content)) newErrors.content = "Innehåll krävs";
-    if (!author.trim()) newErrors.author = "Författarnamn krävs";
+    // Author is valid if: profile alias exists OR user has typed something
+    const effectiveAuthorForValidation = hasProfileAlias
+      ? profileAlias
+      : author.trim();
+    if (!effectiveAuthorForValidation)
+      newErrors.author =
+        "Alias krävs — fyll i ett alias eller spara ett i din profil";
     setFieldErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -132,9 +138,18 @@ export default function CreatePostPage() {
     if (!validateForm()) return;
     if (hasSizeError) return;
 
+    // Guard: actor must be ready before submitting
+    if (!actor) {
+      setSubmitError(
+        "Anslutningen är inte klar än. Vänta ett ögonblick och försök igen.",
+      );
+      return;
+    }
+
     try {
       const imageBlobs = await convertToBlobs();
-      const trimmedAuthor = author.trim();
+      // Use profile alias if available — author state is empty when profile alias is shown
+      const trimmedAuthor = hasProfileAlias ? profileAlias : author.trim();
 
       // If the user has no saved alias yet, save it to their profile now
       if (!hasProfileAlias && trimmedAuthor) {
@@ -199,6 +214,15 @@ export default function CreatePostPage() {
       toast.error("Fyll i minst ett fält innan du sparar som utkast.");
       return;
     }
+
+    // Guard: actor must be ready
+    if (!actor) {
+      toast.error(
+        "Anslutningen är inte klar än. Vänta ett ögonblick och försök igen.",
+      );
+      return;
+    }
+
     try {
       const imageBlobs = await convertToBlobs();
       const draftTitle = title.trim() || "(Utan titel)";
@@ -226,30 +250,42 @@ export default function CreatePostPage() {
       }
       toast.success(
         "Utkastet har sparats! Du hittar det under Mina inlägg och utkast.",
-        {
-          duration: 4000,
-        },
+        { duration: 4000 },
       );
     } catch (err) {
       console.error("Failed to save draft:", err);
       const errMsg = err instanceof Error ? err.message : String(err);
-      // Extract backend error message if available
-      const cleanMsg = errMsg.includes(":")
-        ? errMsg.split(":").slice(-1)[0].trim()
-        : errMsg;
-      toast.error(`Kunde inte spara utkastet: ${cleanMsg}`);
+      // Show the full backend error message — never hide what went wrong
+      const cleanMsg = errMsg.includes("Reject")
+        ? errMsg.split("Reject").slice(-1)[0].trim()
+        : errMsg.includes(":")
+          ? errMsg.split(":").slice(-1)[0].trim()
+          : errMsg;
+      toast.error(`Kunde inte spara utkastet: ${cleanMsg}`, { duration: 8000 });
     }
   };
 
   const handlePreview = async () => {
+    // Use profile alias if available — author state is empty when profile alias is shown
+    const effectiveAuthor = hasProfileAlias ? profileAlias : author.trim();
+
+    if (!effectiveAuthor) {
+      toast.error(
+        "Fyll i ett alias innan du förhandsgranskar. Gå till Profil och spara ett alias, eller skriv in ett i fältet Ditt alias.",
+      );
+      return;
+    }
+
     try {
       const imageBlobs = await convertToBlobs();
+      const draftTitle = title.trim() || "(Utan titel)";
       let draftId = currentDraftIdRef.current;
+
       if (draftId === null) {
         const newId = await saveDraftMutation.mutateAsync({
-          title: title.trim() || "(Utan titel)",
+          title: draftTitle,
           content: content,
-          author: author.trim(),
+          author: effectiveAuthor,
           images: imageBlobs,
         });
         if (newId === undefined || newId === null) {
@@ -260,9 +296,9 @@ export default function CreatePostPage() {
       } else {
         await updateDraftMutation.mutateAsync({
           id: draftId,
-          title: title.trim() || "(Utan titel)",
+          title: draftTitle,
           content: content,
-          author: author.trim(),
+          author: effectiveAuthor,
           images: imageBlobs,
         });
       }
@@ -294,6 +330,11 @@ export default function CreatePostPage() {
   const isSavingDraft =
     saveDraftMutation.isPending || updateDraftMutation.isPending;
 
+  // Actor loading state — true while fetching, false once done (success or failure)
+  const isActorLoading = actorFetching;
+  // Actor failed to initialize — only show warning, do NOT block buttons
+  const isActorFailed = !actorFetching && !actor;
+
   return (
     <div className="container max-w-3xl mx-auto px-6 py-16">
       <Button
@@ -305,6 +346,29 @@ export default function CreatePostPage() {
         <ArrowLeft className="h-4 w-4 mr-2" />
         Tillbaka till hem
       </Button>
+
+      {isActorLoading && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-border/40 bg-muted/30 px-4 py-2.5 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+          Ansluter till nätverket...
+        </div>
+      )}
+      {isActorFailed && (
+        <div className="mb-4 flex items-center justify-between gap-2 rounded-lg border border-amber-400/40 bg-amber-50/60 px-4 py-2.5 text-sm text-amber-800">
+          <span>
+            Nätverksanslutning begränsad. Du kan ändå försöka publicera — om det
+            misslyckas, ladda om sidan.
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.location.reload()}
+            className="shrink-0 border-amber-400/40 text-amber-800 hover:bg-amber-100/60"
+          >
+            Ladda om
+          </Button>
+        </div>
+      )}
 
       <Card className="border-border/40 shadow-sm">
         <CardHeader className="space-y-1 pb-6">
