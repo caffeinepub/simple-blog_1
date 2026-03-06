@@ -638,9 +638,15 @@ function CommentRow({ comment, isOwn, postId }: CommentRowProps) {
 
 interface CommentsSectionProps {
   postId: bigint;
+  commentsLocked?: boolean;
+  commentsHidden?: boolean;
 }
 
-export default function CommentsSection({ postId }: CommentsSectionProps) {
+export default function CommentsSection({
+  postId,
+  commentsLocked = false,
+  commentsHidden = false,
+}: CommentsSectionProps) {
   const { identity } = useInternetIdentity();
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
   const callerPrincipal = identity?.getPrincipal().toString() ?? "";
@@ -755,6 +761,9 @@ export default function CommentsSection({ postId }: CommentsSectionProps) {
 
   if (!isAuthenticated) return null;
 
+  // If comments are fully hidden, render nothing
+  if (commentsHidden) return null;
+
   return (
     <section
       className="mt-10 pt-8 border-t border-border/30"
@@ -808,157 +817,166 @@ export default function CommentsSection({ postId }: CommentsSectionProps) {
         </div>
       )}
 
-      {/* Add comment form */}
-      <div
-        className="rounded-xl border border-border/40 bg-card/60 p-4"
-        data-ocid="comments.add.panel"
-      >
-        <h3 className="text-sm font-semibold mb-3 text-foreground">
-          Lägg till kommentar
-        </h3>
+      {/* Add comment form or locked notice */}
+      {commentsLocked ? (
+        <div
+          className="rounded-xl border border-border/40 bg-muted/30 p-4 text-center text-sm text-muted-foreground"
+          data-ocid="comments.locked.panel"
+        >
+          Kommentarer är stängda
+        </div>
+      ) : (
+        <div
+          className="rounded-xl border border-border/40 bg-card/60 p-4"
+          data-ocid="comments.add.panel"
+        >
+          <h3 className="text-sm font-semibold mb-3 text-foreground">
+            Lägg till kommentar
+          </h3>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Alias field if no profile alias */}
-          {profileFetched && !hasProfileAlias && (
-            <div className="space-y-1">
-              <Label
-                htmlFor="comment-alias"
-                className="text-xs text-muted-foreground"
-              >
-                Ditt alias
-              </Label>
-              <Input
-                id="comment-alias"
-                value={authorAlias}
-                onChange={(e) => setAuthorAlias(e.target.value)}
-                placeholder="skriv in ett påhittat alias namn"
-                className="text-sm h-8"
-                data-ocid="comments.add.input"
-              />
-            </div>
-          )}
-
-          {hasProfileAlias && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
-                {profileAlias.charAt(0).toUpperCase()}
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {/* Alias field if no profile alias */}
+            {profileFetched && !hasProfileAlias && (
+              <div className="space-y-1">
+                <Label
+                  htmlFor="comment-alias"
+                  className="text-xs text-muted-foreground"
+                >
+                  Ditt alias
+                </Label>
+                <Input
+                  id="comment-alias"
+                  value={authorAlias}
+                  onChange={(e) => setAuthorAlias(e.target.value)}
+                  placeholder="skriv in ett påhittat alias namn"
+                  className="text-sm h-8"
+                  data-ocid="comments.add.input"
+                />
               </div>
-              <span>
-                Kommenterar som <strong>{profileAlias}</strong>
-              </span>
-            </div>
-          )}
+            )}
 
-          {/* Textarea with emoji picker */}
-          <div className="relative">
-            <Textarea
-              ref={textareaRef}
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Skriv en kommentar..."
-              rows={3}
-              className="text-sm resize-none pr-10"
-              data-ocid="comments.add.textarea"
-            />
-            <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 bottom-2 h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                  data-ocid="comments.emoji.toggle"
-                >
-                  <Smile className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="p-2 w-auto shadow-xl"
-                align="end"
-                data-ocid="comments.emoji.popover"
-              >
-                <EmojiPicker onSelect={insertEmoji} />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Image preview */}
-          {images.length > 0 && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {images.map((img, index) => (
-                <div
-                  key={img.preview}
-                  className="relative aspect-square rounded-md overflow-hidden border border-border/30 group/img"
-                >
-                  <img
-                    src={img.preview}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+            {hasProfileAlias && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
+                  {profileAlias.charAt(0).toUpperCase()}
                 </div>
-              ))}
-            </div>
-          )}
+                <span>
+                  Kommenterar som <strong>{profileAlias}</strong>
+                </span>
+              </div>
+            )}
 
-          {imageError && (
-            <p className="text-xs text-destructive">{imageError}</p>
-          )}
-
-          {/* Toolbar + submit */}
-          <div className="flex items-center justify-between gap-2">
-            <label
-              className="cursor-pointer"
-              data-ocid="comments.add.upload_button"
-            >
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/webp"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  addImages(e.target.files);
-                  e.target.value = "";
-                }}
-                disabled={isProcessing}
+            {/* Textarea with emoji picker */}
+            <div className="relative">
+              <Textarea
+                ref={textareaRef}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Skriv en kommentar..."
+                rows={3}
+                className="text-sm resize-none pr-10"
+                data-ocid="comments.add.textarea"
               />
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-muted-foreground border border-border/40 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
-                {isProcessing ? (
+              <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 bottom-2 h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                    data-ocid="comments.emoji.toggle"
+                  >
+                    <Smile className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="p-2 w-auto shadow-xl"
+                  align="end"
+                  data-ocid="comments.emoji.popover"
+                >
+                  <EmojiPicker onSelect={insertEmoji} />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Image preview */}
+            {images.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {images.map((img, index) => (
+                  <div
+                    key={img.preview}
+                    className="relative aspect-square rounded-md overflow-hidden border border-border/30 group/img"
+                  >
+                    <img
+                      src={img.preview}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {imageError && (
+              <p className="text-xs text-destructive">{imageError}</p>
+            )}
+
+            {/* Toolbar + submit */}
+            <div className="flex items-center justify-between gap-2">
+              <label
+                className="cursor-pointer"
+                data-ocid="comments.add.upload_button"
+              >
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    addImages(e.target.files);
+                    e.target.value = "";
+                  }}
+                  disabled={isProcessing}
+                />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-muted-foreground border border-border/40 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
+                  {isProcessing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  Bilder
+                </span>
+              </label>
+
+              <Button
+                type="submit"
+                size="sm"
+                disabled={
+                  addCommentMutation.isPending ||
+                  !newComment.trim() ||
+                  isProcessing
+                }
+                className="gap-1.5"
+                data-ocid="comments.add.submit_button"
+              >
+                {addCommentMutation.isPending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Upload className="h-3.5 w-3.5" />
+                  <MessageCircle className="h-3.5 w-3.5" />
                 )}
-                Bilder
-              </span>
-            </label>
-
-            <Button
-              type="submit"
-              size="sm"
-              disabled={
-                addCommentMutation.isPending ||
-                !newComment.trim() ||
-                isProcessing
-              }
-              className="gap-1.5"
-              data-ocid="comments.add.submit_button"
-            >
-              {addCommentMutation.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <MessageCircle className="h-3.5 w-3.5" />
-              )}
-              Kommentera
-            </Button>
-          </div>
-        </form>
-      </div>
+                Kommentera
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
     </section>
   );
 }

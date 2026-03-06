@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import {
   AlertCircle,
@@ -44,6 +45,10 @@ import {
   usePublishDraft,
   useUpdateDraft,
 } from "../hooks/useQueries";
+import {
+  getCommentSettings,
+  saveCommentSettings,
+} from "../lib/commentSettings";
 import { addPostToGroupAsync } from "../lib/groupStorage";
 
 export default function EditDraftPage() {
@@ -69,6 +74,8 @@ export default function EditDraftPage() {
   const [author, setAuthor] = useState("");
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [groupInMainFeed, setGroupInMainFeed] = useState(false);
+  const [commentsLocked, setCommentsLocked] = useState(false);
+  const [commentsHidden, setCommentsHidden] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
     content?: string;
@@ -123,6 +130,10 @@ export default function EditDraftPage() {
       setContent(draft.content);
       setAuthor(hasProfileAlias ? profileAlias : draft.author);
       setExistingImages((draft.images as Uint8Array[]) || []);
+      // Load comment settings for the draft
+      const commentSettings = getCommentSettings(draft.id.toString());
+      setCommentsLocked(commentSettings.locked);
+      setCommentsHidden(commentSettings.hidden);
     }
   }, [
     draft,
@@ -170,6 +181,12 @@ export default function EditDraftPage() {
         images: allImages,
       });
 
+      // Save comment settings for the draft
+      saveCommentSettings(draft.id.toString(), {
+        locked: commentsLocked,
+        hidden: commentsHidden,
+      });
+
       toast.success("Utkastet har sparats.");
       clearImages();
       navigate({ to: "/drafts" });
@@ -200,6 +217,16 @@ export default function EditDraftPage() {
 
       // Then publish
       const publishedId = await publishDraftMutation.mutateAsync(draft.id);
+
+      // Copy comment settings from draft to published post
+      if (publishedId !== undefined) {
+        const publishedIdStr =
+          typeof publishedId === "bigint"
+            ? publishedId.toString()
+            : String(publishedId);
+        const draftSettings = getCommentSettings(draft.id.toString());
+        saveCommentSettings(publishedIdStr, draftSettings);
+      }
 
       // Add post to selected groups after publishing
       if (selectedGroupIds.length > 0 && publishedId !== undefined) {
@@ -572,6 +599,68 @@ export default function EditDraftPage() {
                 onSelectionChange={handleGroupSelectionChange}
               />
             )}
+
+            {/* Comment settings */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Kommentarsinställningar
+              </Label>
+              <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/40">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label
+                      htmlFor="comments-locked-draft"
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      Stäng kommentarer
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Förhindra nya kommentarer på detta inlägg
+                    </p>
+                  </div>
+                  <Switch
+                    id="comments-locked-draft"
+                    checked={commentsLocked}
+                    onCheckedChange={(val) => {
+                      setCommentsLocked(val);
+                      if (!val) setCommentsHidden(false);
+                    }}
+                    data-ocid="post.comments_locked.switch"
+                  />
+                </div>
+                {commentsLocked && (
+                  <div className="pt-2 border-t border-border/30 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Visa befintliga kommentarer?
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <input
+                          type="radio"
+                          name="comments-visibility-draft"
+                          checked={!commentsHidden}
+                          onChange={() => setCommentsHidden(false)}
+                          className="accent-primary"
+                          data-ocid="post.comments_show.radio"
+                        />
+                        Visa kommentarer (men inga nya kan postas)
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <input
+                          type="radio"
+                          name="comments-visibility-draft"
+                          checked={commentsHidden}
+                          onChange={() => setCommentsHidden(true)}
+                          className="accent-primary"
+                          data-ocid="post.comments_hide.radio"
+                        />
+                        Dölj alla kommentarer
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {submitError && (
               <Alert variant="destructive" data-ocid="edit_draft.error_state">

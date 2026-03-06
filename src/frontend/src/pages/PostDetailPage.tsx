@@ -36,6 +36,7 @@ import {
   useGetPost,
 } from "../hooks/useQueries";
 import { useShare } from "../hooks/useShare";
+import { getCommentSettings } from "../lib/commentSettings";
 import { truncateContent } from "../utils/contentTruncator";
 import { formatDate } from "../utils/dateFormatter";
 
@@ -427,7 +428,11 @@ export default function PostDetailPage() {
         </div>
 
         {/* Comments */}
-        <CommentsSection postId={post.id} />
+        <CommentsSection
+          postId={post.id}
+          commentsLocked={getCommentSettings(post.id.toString()).locked}
+          commentsHidden={getCommentSettings(post.id.toString()).hidden}
+        />
       </article>
 
       <ShareModal

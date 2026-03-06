@@ -48,6 +48,7 @@ import {
   useSaveDraft,
   useUpdateDraft,
 } from "../hooks/useQueries";
+import { saveCommentSettings } from "../lib/commentSettings";
 import { addPostToGroupAsync } from "../lib/groupStorage";
 
 export default function CreatePostPage() {
@@ -64,6 +65,8 @@ export default function CreatePostPage() {
   const [published, setPublished] = useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [groupInMainFeed, setGroupInMainFeed] = useState(false);
+  const [commentsLocked, setCommentsLocked] = useState(false);
+  const [commentsHidden, setCommentsHidden] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
     content?: string;
@@ -175,6 +178,16 @@ export default function CreatePostPage() {
         images: imageBlobs,
       });
 
+      // Save comment settings if comments are locked
+      if (commentsLocked && postId !== undefined) {
+        const postIdStr =
+          typeof postId === "bigint" ? postId.toString() : String(postId);
+        saveCommentSettings(postIdStr, {
+          locked: commentsLocked,
+          hidden: commentsHidden,
+        });
+      }
+
       // Add post to selected groups after creation
       if (selectedGroupIds.length > 0 && postId !== undefined) {
         const postIdStr =
@@ -247,6 +260,13 @@ export default function CreatePostPage() {
           throw new Error("Backend returnerade inget utkast-ID.");
         }
         currentDraftIdRef.current = newId;
+      }
+      // Save comment settings for the draft
+      if (commentsLocked && currentDraftIdRef.current !== null) {
+        saveCommentSettings(currentDraftIdRef.current.toString(), {
+          locked: commentsLocked,
+          hidden: commentsHidden,
+        });
       }
       toast.success(
         "Utkastet har sparats! Du hittar det under Mina inlägg och utkast.",
@@ -675,6 +695,68 @@ export default function CreatePostPage() {
                 onSelectionChange={handleGroupSelectionChange}
               />
             )}
+
+            {/* Comment settings */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Kommentarsinställningar
+              </Label>
+              <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/40">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label
+                      htmlFor="comments-locked-create"
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      Stäng kommentarer
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Förhindra nya kommentarer på detta inlägg
+                    </p>
+                  </div>
+                  <Switch
+                    id="comments-locked-create"
+                    checked={commentsLocked}
+                    onCheckedChange={(val) => {
+                      setCommentsLocked(val);
+                      if (!val) setCommentsHidden(false);
+                    }}
+                    data-ocid="post.comments_locked.switch"
+                  />
+                </div>
+                {commentsLocked && (
+                  <div className="pt-2 border-t border-border/30 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Visa befintliga kommentarer?
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <input
+                          type="radio"
+                          name="comments-visibility-create"
+                          checked={!commentsHidden}
+                          onChange={() => setCommentsHidden(false)}
+                          className="accent-primary"
+                          data-ocid="post.comments_show.radio"
+                        />
+                        Visa kommentarer (men inga nya kan postas)
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <input
+                          type="radio"
+                          name="comments-visibility-create"
+                          checked={commentsHidden}
+                          onChange={() => setCommentsHidden(true)}
+                          className="accent-primary"
+                          data-ocid="post.comments_hide.radio"
+                        />
+                        Dölj alla kommentarer
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {submitError && (
               <Alert variant="destructive">

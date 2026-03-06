@@ -47,6 +47,10 @@ import {
   useUpdatePost,
 } from "../hooks/useQueries";
 import {
+  getCommentSettings,
+  saveCommentSettings,
+} from "../lib/commentSettings";
+import {
   addPostToGroupAsync,
   getAllGroups,
   removePostFromGroupAsync,
@@ -76,6 +80,8 @@ export default function EditPostPage() {
   const [published, setPublished] = useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [groupInMainFeed, setGroupInMainFeed] = useState(false);
+  const [commentsLocked, setCommentsLocked] = useState(false);
+  const [commentsHidden, setCommentsHidden] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
     content?: string;
@@ -142,6 +148,10 @@ export default function EditPostPage() {
       setPublished(isPublished);
       wasPublishedRef.current = isPublished;
       setExistingImages((post.images as Uint8Array[]) || []);
+      // Load comment settings
+      const commentSettings = getCommentSettings(post.id.toString());
+      setCommentsLocked(commentSettings.locked);
+      setCommentsHidden(commentSettings.hidden);
     }
   }, [
     post,
@@ -285,6 +295,12 @@ export default function EditPostPage() {
           removePostFromGroupAsync(actor, gid, postIdStr),
         ),
       ]);
+
+      // Save comment settings
+      saveCommentSettings(post.id.toString(), {
+        locked: commentsLocked,
+        hidden: commentsHidden,
+      });
 
       toast.success("Inlägget har uppdaterats");
       clearImages();
@@ -671,6 +687,68 @@ export default function EditPostPage() {
                   onSelectionChange={handleGroupSelectionChange}
                 />
               )}
+
+              {/* Comment settings */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Kommentarsinställningar
+                </Label>
+                <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/40">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label
+                        htmlFor="comments-locked-edit"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Stäng kommentarer
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Förhindra nya kommentarer på detta inlägg
+                      </p>
+                    </div>
+                    <Switch
+                      id="comments-locked-edit"
+                      checked={commentsLocked}
+                      onCheckedChange={(val) => {
+                        setCommentsLocked(val);
+                        if (!val) setCommentsHidden(false);
+                      }}
+                      data-ocid="post.comments_locked.switch"
+                    />
+                  </div>
+                  {commentsLocked && (
+                    <div className="pt-2 border-t border-border/30 space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Visa befintliga kommentarer?
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        <label className="flex items-center gap-2 cursor-pointer text-sm">
+                          <input
+                            type="radio"
+                            name="comments-visibility-edit"
+                            checked={!commentsHidden}
+                            onChange={() => setCommentsHidden(false)}
+                            className="accent-primary"
+                            data-ocid="post.comments_show.radio"
+                          />
+                          Visa kommentarer (men inga nya kan postas)
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer text-sm">
+                          <input
+                            type="radio"
+                            name="comments-visibility-edit"
+                            checked={commentsHidden}
+                            onChange={() => setCommentsHidden(true)}
+                            className="accent-primary"
+                            data-ocid="post.comments_hide.radio"
+                          />
+                          Dölj alla kommentarer
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {submitError && (
                 <Alert variant="destructive">
