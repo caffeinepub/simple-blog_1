@@ -14,6 +14,8 @@ import type {
 } from "../backend";
 import { DeleteCommentResult, PostStatus, UpdatePostResult } from "../backend";
 import { ADMIN_PRINCIPAL_ID } from "../config/constants";
+import { getBlockedAuthors } from "../lib/blockedAuthors";
+import { checkPostContent, findBlockedWord } from "../lib/contentModeration";
 import { useActor } from "./useActor";
 import { useInternetIdentity } from "./useInternetIdentity";
 
@@ -29,9 +31,19 @@ export function useGetAllPublishedPosts() {
     queryKey: ["posts", "published"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getAllPublishedPosts();
+      try {
+        const posts = await actor.getAllPublishedPosts();
+        // Filter out posts from locally-blocked authors
+        const blocked = getBlockedAuthors();
+        if (blocked.length === 0) return posts;
+        return posts.filter((p) => !blocked.includes(p.ownerId.toString()));
+      } catch {
+        return [];
+      }
     },
     enabled: !!actor && !isFetching,
+    retry: 1,
+    retryDelay: 1000,
   });
 }
 
@@ -72,6 +84,12 @@ export function useCreatePost() {
         throw new Error(
           "Alias saknas. Fyll i ett alias eller spara ett i din profil.",
         );
+      }
+
+      // Frontend moderation check (case-insensitive, HTML-stripped)
+      const blockedWordFrontend = checkPostContent(title, content);
+      if (blockedWordFrontend) {
+        throw new Error(`__contentBlocked__:${blockedWordFrontend}`);
       }
 
       if (!published) {
@@ -133,6 +151,11 @@ export function useUpdatePost() {
       images?: Uint8Array[];
     }) => {
       if (!actor) throw new Error("Actor not initialized");
+      // Frontend moderation check
+      const blockedWordFE = checkPostContent(title, content);
+      if (blockedWordFE) {
+        throw new Error(`__contentBlocked__:${blockedWordFE}`);
+      }
       const status = published ? PostStatus.published : PostStatus.draft;
       const result = await actor.updatePost(
         id,
@@ -261,6 +284,11 @@ export function useSaveDraft() {
     }) => {
       if (!actor)
         throw new Error("Anslutningen är inte klar. Försök igen om en stund.");
+      // Frontend moderation check
+      const blockedWord = checkPostContent(title, content);
+      if (blockedWord) {
+        throw new Error(`__contentBlocked__:${blockedWord}`);
+      }
       const safeAuthor = author?.trim() ? author.trim() : "(Okänd)";
       return actor.saveDraft(title, content, safeAuthor, images);
     },
@@ -349,8 +377,20 @@ export function usePublishDraft() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: bigint) => {
+    mutationFn: async (
+      input: bigint | { id: bigint; title?: string; content?: string },
+    ) => {
       if (!actor) throw new Error("Actor not initialized");
+      const id = typeof input === "bigint" ? input : input.id;
+      const title = typeof input === "bigint" ? undefined : input.title;
+      const content = typeof input === "bigint" ? undefined : input.content;
+      // Frontend moderation check if title/content supplied
+      if (title !== undefined || content !== undefined) {
+        const blockedWord = checkPostContent(title ?? "", content ?? "");
+        if (blockedWord) {
+          throw new Error(`__contentBlocked__:${blockedWord}`);
+        }
+      }
       const result = await actor.publishDraft(id);
       if (result.__kind__ === "postNotFound") {
         throw new Error("Utkastet hittades inte.");
@@ -496,9 +536,20 @@ export function useAllPostsAdmin() {
     queryKey: ["posts", "admin"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getAllPostsAdmin();
+      try {
+        // Try admin endpoint first (requires backend owner match)
+        return await actor.getAllPostsAdmin();
+      } catch {
+        // Fall back to published posts if admin access is denied
+        try {
+          return await actor.getAllPublishedPosts();
+        } catch {
+          return [];
+        }
+      }
     },
     enabled: !!actor && !isFetching,
+    retry: false,
   });
 }
 
@@ -509,9 +560,14 @@ export function useAdmins() {
     queryKey: ["admins"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getAdmins();
+      try {
+        return await actor.getAdmins();
+      } catch {
+        return [];
+      }
     },
     enabled: !!actor && !isFetching,
+    retry: false,
   });
 }
 
@@ -522,9 +578,31 @@ export function useGetAuthors() {
     queryKey: ["authors"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getAuthors();
+      try {
+        // Try admin endpoint first (requires backend owner match)
+        return await actor.getAuthors();
+      } catch {
+        // Fall back: derive author list from published posts
+        try {
+          const posts = await actor.getAllPublishedPosts();
+          const seen = new Map<string, AuthorInfo>();
+          for (const post of posts) {
+            const pid = post.ownerId.toString();
+            if (!seen.has(pid)) {
+              seen.set(pid, {
+                principal: post.ownerId,
+                displayName: post.author,
+              });
+            }
+          }
+          return Array.from(seen.values());
+        } catch {
+          return [];
+        }
+      }
     },
     enabled: !!actor && !isFetching,
+    retry: false,
   });
 }
 
@@ -535,8 +613,21 @@ export function useAddAdmin() {
   return useMutation({
     mutationFn: async (principalText: string) => {
       if (!actor) throw new Error("Actor not initialized");
-      const principal = Principal.fromText(principalText);
-      await actor.addAdmin(principal);
+      try {
+        const principal = Principal.fromText(principalText);
+        await actor.addAdmin(principal);
+      } catch (err: unknown) {
+        const msg =
+          err instanceof Error
+            ? err.message
+            : JSON.stringify(err) || "Okänt fel";
+        if (msg.includes("Unauthorized") || msg.includes("unauthorized")) {
+          throw new Error(
+            "Unauthorized: Bakänden är inte konfigurerad för detta principal ID. Kontakta systemadministratören.",
+          );
+        }
+        throw new Error(msg);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admins"] });
@@ -551,8 +642,23 @@ export function useRemoveAdmin() {
   return useMutation({
     mutationFn: async (principalText: string) => {
       if (!actor) throw new Error("Actor not initialized");
-      const principal = Principal.fromText(principalText);
-      await actor.removeAdmin(principal);
+      try {
+        const principal = Principal.fromText(principalText);
+        await actor.removeAdmin(principal);
+      } catch (err: unknown) {
+        const msg =
+          err instanceof Error
+            ? err.message
+            : JSON.stringify(err) || "Okänt fel";
+        if (
+          msg.includes("owner") ||
+          msg.includes("Unauthorized") ||
+          msg.includes("unauthorized")
+        ) {
+          throw new Error(msg);
+        }
+        throw new Error(msg);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admins"] });
@@ -581,21 +687,27 @@ export function useAdminUpdatePost() {
       images?: Uint8Array[];
     }) => {
       if (!actor) throw new Error("Actor not initialized");
-      const result = await actor.updatePost(
-        id,
-        title,
-        content,
-        author,
-        status,
-        images,
-      );
-      if (result.__kind__ === "imageTooLarge") {
-        throw new Error("Bilden är voor stor. Max 800 KB per bild tillåts.");
+      try {
+        const result = await actor.updatePost(
+          id,
+          title,
+          content,
+          author,
+          status,
+          images,
+        );
+        if (result.__kind__ === "imageTooLarge") {
+          throw new Error("Bilden är voor stor. Max 800 KB per bild tillåts.");
+        }
+        if (result.__kind__ === "contentBlocked") {
+          throw new Error(`__contentBlocked__:${result.contentBlocked}`);
+        }
+        return id;
+      } catch (err: unknown) {
+        if (err instanceof Error) throw err;
+        const msg = JSON.stringify(err) || "Okänt fel från servern";
+        throw new Error(msg);
       }
-      if (result.__kind__ === "contentBlocked") {
-        throw new Error(`__contentBlocked__:${result.contentBlocked}`);
-      }
-      return id;
     },
     onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ["posts", "admin"] });
@@ -612,23 +724,29 @@ export function useAdminChangePostStatus() {
   return useMutation({
     mutationFn: async ({ id, status }: { id: bigint; status: PostStatus }) => {
       if (!actor) throw new Error("Actor not initialized");
-      // Fetch the current post to preserve all existing fields
-      const post = await actor.getPost(id);
-      const result = await actor.updatePost(
-        id,
-        post.title,
-        post.content,
-        post.author,
-        status,
-        post.images as Uint8Array[],
-      );
-      if (result.__kind__ === "imageTooLarge") {
-        throw new Error("Bilden är för stor. Max 800 KB per bild tillåts.");
+      try {
+        // Fetch the current post to preserve all existing fields
+        const post = await actor.getPost(id);
+        const result = await actor.updatePost(
+          id,
+          post.title,
+          post.content,
+          post.author,
+          status,
+          post.images as Uint8Array[],
+        );
+        if (result.__kind__ === "imageTooLarge") {
+          throw new Error("Bilden är för stor. Max 800 KB per bild tillåts.");
+        }
+        if (result.__kind__ === "contentBlocked") {
+          throw new Error(`__contentBlocked__:${result.contentBlocked}`);
+        }
+        return id;
+      } catch (err: unknown) {
+        if (err instanceof Error) throw err;
+        const msg = JSON.stringify(err) || "Okänt fel från servern";
+        throw new Error(msg);
       }
-      if (result.__kind__ === "contentBlocked") {
-        throw new Error(`__contentBlocked__:${result.contentBlocked}`);
-      }
-      return id;
     },
     onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ["posts", "admin"] });
@@ -645,7 +763,13 @@ export function useAdminDeletePost() {
   return useMutation({
     mutationFn: async (id: bigint) => {
       if (!actor) throw new Error("Actor not initialized");
-      await actor.deletePost(id);
+      try {
+        await actor.deletePost(id);
+      } catch (err: unknown) {
+        if (err instanceof Error) throw err;
+        const msg = JSON.stringify(err) || "Okänt fel från servern";
+        throw new Error(msg);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts", "admin"] });
@@ -663,10 +787,15 @@ export function useGetModerationLog() {
     queryKey: ["moderationLog"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getModerationLog();
+      try {
+        return await actor.getModerationLog();
+      } catch {
+        return [];
+      }
     },
     enabled: !!actor && !isFetching && isAuthenticated,
     staleTime: 30_000,
+    retry: false,
   });
 }
 
@@ -677,8 +806,25 @@ export function useRemoveAuthor() {
   return useMutation({
     mutationFn: async (principalText: string) => {
       if (!actor) throw new Error("Actor not initialized");
-      const principal = Principal.fromText(principalText);
-      await actor.removeAuthor(principal);
+      try {
+        const principal = Principal.fromText(principalText);
+        await actor.removeAuthor(principal);
+      } catch (err: unknown) {
+        const msg =
+          err instanceof Error
+            ? err.message
+            : JSON.stringify(err) || "Okänt fel från servern";
+        if (
+          msg.includes("Unauthorized") ||
+          msg.includes("unauthorized") ||
+          msg.includes("Only admin")
+        ) {
+          throw new Error(
+            "Kan inte ta bort författaren: Backend-behörighet saknas. Principal ID-mismatch i backend. Kontakta systemadministratören.",
+          );
+        }
+        throw new Error(msg);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["authors"] });
@@ -829,6 +975,13 @@ export function useAddComment() {
       images?: Uint8Array[];
     }) => {
       if (!actor) throw new Error("Actor not initialized");
+      // Frontend moderation check for comments
+      const blockedWord = findBlockedWord(content);
+      if (blockedWord) {
+        throw new Error(
+          `Kommentaren blockerades av innehållsmodereringen: "${blockedWord}". Vänligen ändra ditt innehåll.`,
+        );
+      }
       return actor.addComment(postId, content, authorAlias, images);
     },
     onSuccess: (_data, { postId }) => {

@@ -120,8 +120,11 @@ export default function AllPostsSection() {
       </div>
 
       {posts.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <p>Inga inlägg hittades.</p>
+        <div
+          className="text-center py-8 text-muted-foreground"
+          data-ocid="admin.posts.empty_state"
+        >
+          <p className="text-sm">Inga inlägg hittades.</p>
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden">

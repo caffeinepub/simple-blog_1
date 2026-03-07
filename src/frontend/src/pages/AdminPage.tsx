@@ -44,7 +44,7 @@ export default function AdminPage() {
   return (
     <div className="container mx-auto px-6 py-10 max-w-6xl">
       {/* Page Header */}
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-6">
         <div className="p-2 rounded-lg bg-primary/10">
           <ShieldCheck className="h-6 w-6 text-primary" />
         </div>

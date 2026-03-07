@@ -29,7 +29,12 @@ function shortenPrincipal(principal: { toString(): string }): string {
 }
 
 export default function ModerationLogSection() {
-  const { data: log = [], isLoading, isError } = useGetModerationLog();
+  const {
+    data: log = [],
+    isLoading,
+    isError,
+    isFetched,
+  } = useGetModerationLog();
 
   if (isLoading) {
     return (
@@ -55,7 +60,7 @@ export default function ModerationLogSection() {
     );
   }
 
-  if (log.length === 0) {
+  if (isFetched && log.length === 0) {
     return (
       <div
         className="flex flex-col items-center gap-3 py-20 text-center text-muted-foreground"

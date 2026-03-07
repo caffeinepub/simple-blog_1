@@ -83,7 +83,10 @@ export default function Layout({ children }: LayoutProps) {
               {isAuthenticated ? (
                 <>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link to="/" className="gap-1.5 text-sm">
+                    <Link
+                      to="/"
+                      className="gap-1.5 text-sm font-medium text-foreground hover:text-primary"
+                    >
                       <Home className="h-3.5 w-3.5" />
                       Hem
                     </Link>
@@ -91,7 +94,7 @@ export default function Layout({ children }: LayoutProps) {
                   <Button variant="ghost" size="sm" asChild>
                     <Link
                       to="/create"
-                      className="gap-1.5 text-sm"
+                      className="gap-1.5 text-sm font-medium text-foreground hover:text-primary"
                       data-ocid="nav.create.link"
                     >
                       <PenSquare className="h-3.5 w-3.5" />
@@ -101,7 +104,7 @@ export default function Layout({ children }: LayoutProps) {
                   <Button variant="ghost" size="sm" asChild>
                     <Link
                       to="/drafts"
-                      className="gap-1.5 text-sm"
+                      className="gap-1.5 text-sm font-medium text-foreground hover:text-primary"
                       data-ocid="nav.drafts.link"
                     >
                       <FileText className="h-3.5 w-3.5" />
@@ -111,7 +114,7 @@ export default function Layout({ children }: LayoutProps) {
                   <Button variant="ghost" size="sm" asChild>
                     <Link
                       to="/users"
-                      className="gap-1.5 text-sm"
+                      className="gap-1.5 text-sm font-medium text-foreground hover:text-primary"
                       data-ocid="nav.users.link"
                     >
                       <Users className="h-3.5 w-3.5" />
@@ -121,7 +124,7 @@ export default function Layout({ children }: LayoutProps) {
                   <Button variant="ghost" size="sm" asChild>
                     <Link
                       to="/groups"
-                      className="gap-1.5 text-sm"
+                      className="gap-1.5 text-sm font-medium text-foreground hover:text-primary"
                       data-ocid="nav.groups.link"
                     >
                       <Users2 className="h-3.5 w-3.5" />
@@ -131,7 +134,7 @@ export default function Layout({ children }: LayoutProps) {
                   <Button variant="ghost" size="sm" asChild>
                     <Link
                       to="/profile"
-                      className="gap-1.5 text-sm"
+                      className="gap-1.5 text-sm font-medium text-foreground hover:text-primary"
                       data-ocid="nav.profile.link"
                     >
                       <UserCircle className="h-3.5 w-3.5" />
@@ -143,7 +146,7 @@ export default function Layout({ children }: LayoutProps) {
                     <Button variant="ghost" size="sm" asChild>
                       <Link
                         to="/admin"
-                        className="gap-1.5 text-sm"
+                        className="gap-1.5 text-sm font-medium text-foreground hover:text-primary"
                         data-ocid="nav.admin.link"
                       >
                         <ShieldCheck className="h-3.5 w-3.5" />
@@ -214,7 +217,7 @@ export default function Layout({ children }: LayoutProps) {
                 </SheetTrigger>
                 <SheetContent
                   side="right"
-                  className="w-72 bg-card/98 backdrop-blur-md"
+                  className="w-72 bg-card backdrop-blur-none"
                   data-ocid="nav.mobile.sheet"
                 >
                   <SheetHeader className="mb-6 text-left">
@@ -230,7 +233,7 @@ export default function Layout({ children }: LayoutProps) {
                       <>
                         <Button
                           variant="ghost"
-                          className="justify-start gap-3 h-11"
+                          className="justify-start gap-3 h-11 text-foreground font-medium hover:text-primary hover:bg-primary/10"
                           asChild
                           onClick={closeMobile}
                         >
@@ -241,7 +244,7 @@ export default function Layout({ children }: LayoutProps) {
                         </Button>
                         <Button
                           variant="ghost"
-                          className="justify-start gap-3 h-11"
+                          className="justify-start gap-3 h-11 text-foreground font-medium hover:text-primary hover:bg-primary/10"
                           asChild
                           onClick={closeMobile}
                         >
@@ -252,7 +255,7 @@ export default function Layout({ children }: LayoutProps) {
                         </Button>
                         <Button
                           variant="ghost"
-                          className="justify-start gap-3 h-11"
+                          className="justify-start gap-3 h-11 text-foreground font-medium hover:text-primary hover:bg-primary/10"
                           asChild
                           onClick={closeMobile}
                         >
@@ -263,7 +266,7 @@ export default function Layout({ children }: LayoutProps) {
                         </Button>
                         <Button
                           variant="ghost"
-                          className="justify-start gap-3 h-11"
+                          className="justify-start gap-3 h-11 text-foreground font-medium hover:text-primary hover:bg-primary/10"
                           asChild
                           onClick={closeMobile}
                         >
@@ -274,7 +277,7 @@ export default function Layout({ children }: LayoutProps) {
                         </Button>
                         <Button
                           variant="ghost"
-                          className="justify-start gap-3 h-11"
+                          className="justify-start gap-3 h-11 text-foreground font-medium hover:text-primary hover:bg-primary/10"
                           asChild
                           onClick={closeMobile}
                         >
@@ -285,7 +288,7 @@ export default function Layout({ children }: LayoutProps) {
                         </Button>
                         <Button
                           variant="ghost"
-                          className="justify-start gap-3 h-11"
+                          className="justify-start gap-3 h-11 text-foreground font-medium hover:text-primary hover:bg-primary/10"
                           asChild
                           onClick={closeMobile}
                         >
@@ -300,7 +303,7 @@ export default function Layout({ children }: LayoutProps) {
                         {isAdmin && (
                           <Button
                             variant="ghost"
-                            className="justify-start gap-3 h-11"
+                            className="justify-start gap-3 h-11 text-foreground font-medium hover:text-primary hover:bg-primary/10"
                             asChild
                             onClick={closeMobile}
                           >

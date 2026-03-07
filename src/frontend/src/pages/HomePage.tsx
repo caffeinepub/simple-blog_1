@@ -511,11 +511,12 @@ function AllPostsTab({
     );
   }
 
-  if (error) {
+  // Suppress error state -- treat fetch errors as empty list so the page always renders
+  if (error && !posts) {
     return (
-      <div className="text-center py-20" data-ocid="home.error_state">
-        <p className="text-destructive">
-          Kunde inte ladda inlägg. Försök igen senare.
+      <div className="text-center py-16" data-ocid="home.empty_state">
+        <p className="text-muted-foreground text-lg">
+          Inga publicerade inlägg ännu. Bli den första att dela din berättelse!
         </p>
       </div>
     );

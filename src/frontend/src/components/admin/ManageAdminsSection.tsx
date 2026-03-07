@@ -21,9 +21,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, ShieldCheck, Trash2, UserPlus } from "lucide-react";
+import { Crown, Loader2, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ADMIN_PRINCIPAL_ID } from "../../config/constants";
 import { useInternetIdentity } from "../../hooks/useInternetIdentity";
 import { useAddAdmin, useAdmins, useRemoveAdmin } from "../../hooks/useQueries";
 
@@ -38,6 +39,13 @@ export default function ManageAdminsSection() {
   );
 
   const callerPrincipal = identity?.getPrincipal().toString();
+
+  // Always include the owner in the displayed list
+  const ownerPrincipal = ADMIN_PRINCIPAL_ID;
+  const adminPrincipals = admins.map((p) => p.toString());
+  const displayAdmins = adminPrincipals.includes(ownerPrincipal)
+    ? adminPrincipals
+    : [ownerPrincipal, ...adminPrincipals];
 
   const handleAddAdmin = async () => {
     const trimmed = newPrincipal.trim();
@@ -134,45 +142,53 @@ export default function ManageAdminsSection() {
         <div className="flex items-center gap-2 mb-3">
           <ShieldCheck className="h-4 w-4 text-primary" />
           <h3 className="font-medium text-sm">
-            Nuvarande admins ({admins.length})
+            Nuvarande admins ({displayAdmins.length})
           </h3>
         </div>
 
-        {admins.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground text-sm">
-            Inga admins hittades.
-          </div>
-        ) : (
-          <div className="rounded-lg border border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Principal ID</TableHead>
-                  <TableHead>Roll</TableHead>
-                  <TableHead className="text-right">Åtgärder</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {admins.map((principal) => {
-                  const principalText = principal.toString();
-                  const isCurrentUser = principalText === callerPrincipal;
+        <div className="rounded-lg border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Principal ID</TableHead>
+                <TableHead>Roll</TableHead>
+                <TableHead className="text-right">Åtgärder</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {displayAdmins.map((principalText, idx) => {
+                const isCurrentUser = principalText === callerPrincipal;
+                const isOwner = principalText === ownerPrincipal;
 
-                  return (
-                    <TableRow key={principalText}>
-                      <TableCell className="font-mono text-xs break-all max-w-[300px]">
-                        {principalText}
-                        {isCurrentUser && (
-                          <span className="ml-2 text-muted-foreground">
-                            (du)
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
+                return (
+                  <TableRow
+                    key={principalText}
+                    data-ocid={`admin.admins.item.${idx + 1}`}
+                  >
+                    <TableCell className="font-mono text-xs break-all max-w-[300px]">
+                      {principalText}
+                      {isCurrentUser && (
+                        <span className="ml-2 text-muted-foreground">(du)</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {isOwner ? (
+                        <Badge className="text-xs gap-1 bg-amber-500/20 text-amber-700 border-amber-500/30 hover:bg-amber-500/30">
+                          <Crown className="h-3 w-3" />
+                          Ägare
+                        </Badge>
+                      ) : (
                         <Badge variant="secondary" className="text-xs">
                           Admin
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {isOwner ? (
+                        <span className="text-xs text-muted-foreground italic">
+                          Kan ej tas bort
+                        </span>
+                      ) : (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -180,6 +196,7 @@ export default function ManageAdminsSection() {
                               size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                               disabled={removingPrincipal === principalText}
+                              data-ocid={`admin.admins.delete_button.${idx + 1}`}
                             >
                               {removingPrincipal === principalText ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -211,14 +228,14 @@ export default function ManageAdminsSection() {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );
