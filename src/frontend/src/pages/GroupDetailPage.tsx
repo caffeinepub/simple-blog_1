@@ -39,6 +39,7 @@ import {
   Globe,
   Loader2,
   Lock,
+  PenLine,
   RefreshCw,
   Search,
   Shield,
@@ -845,14 +846,34 @@ export default function GroupDetailPage() {
         <TabsContent value="posts">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold">Gruppens inlägg</h3>
-            {isMember && myPublishedPosts.length > 0 && (
-              <AddPostDialog
-                group={group}
-                myPosts={myPublishedPosts}
-                currentPrincipal={currentPrincipal}
-                actor={actor}
-                onRefresh={refresh}
-              />
+            {isMember && (
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="gap-2"
+                  onClick={() => {
+                    sessionStorage.setItem(
+                      "createPost_preselectedGroupId",
+                      group.id,
+                    );
+                    navigate({ to: "/create" });
+                  }}
+                  data-ocid="group_detail.create_post.button"
+                >
+                  <PenLine className="h-3.5 w-3.5" />
+                  Skapa inlägg i gruppen
+                </Button>
+                {myPublishedPosts.length > 0 && (
+                  <AddPostDialog
+                    group={group}
+                    myPosts={myPublishedPosts}
+                    currentPrincipal={currentPrincipal}
+                    actor={actor}
+                    onRefresh={refresh}
+                  />
+                )}
+              </div>
             )}
           </div>
 

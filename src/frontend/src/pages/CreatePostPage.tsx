@@ -100,6 +100,19 @@ export default function CreatePostPage() {
     }
   }, [profileFetched, hasProfileAlias, profileAlias]);
 
+  // Pre-select group from sessionStorage when navigating from GroupDetailPage
+  useEffect(() => {
+    const preselectedGroupId = sessionStorage.getItem(
+      "createPost_preselectedGroupId",
+    );
+    if (preselectedGroupId) {
+      sessionStorage.removeItem("createPost_preselectedGroupId");
+      setSelectedGroupIds([preselectedGroupId]);
+      // Auto-disable public publish since we're targeting a specific group
+      setPublished(false);
+    }
+  }, []);
+
   const {
     images,
     error: imageError,

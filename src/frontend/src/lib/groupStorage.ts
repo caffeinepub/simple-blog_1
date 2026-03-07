@@ -312,21 +312,34 @@ export async function fetchAndSyncGroupsFromBackend(
       }),
     );
 
-    // Merge with existing localStorage groups (backend is authoritative for
-    // groups that exist in backend; local-only groups are preserved)
+    // Merge backend data with existing localStorage data.
+    // Backend is authoritative for group metadata and members, but we MERGE
+    // post IDs to preserve any locally-optimistic addPostToGroup links that
+    // haven't yet propagated to the backend (e.g. because the backend
+    // addPostToGroup call failed or is still in-flight).
     const existing = readAll();
-    const backendIds = new Set(enriched.map((g) => g.id));
-
-    // Keep local groups that are not yet in backend (optimistic creates)
-    const localOnly = existing.filter(
-      (g) =>
-        !backendIds.has(g.id) &&
-        // Filter out groups with generated local IDs that look like "timestamp-random"
-        // but keep any that were created with backend IDs
-        !g.id.includes("-"),
-    );
-
-    writeAll([...enriched, ...localOnly]);
+    const mergedGroups = enriched.map((backendGroup) => {
+      const localGroup = existing.find((lg) => lg.id === backendGroup.id);
+      if (localGroup) {
+        // Union of backend post IDs and local post IDs
+        const allPostIds = Array.from(
+          new Set([...backendGroup.postIds, ...localGroup.postIds]),
+        );
+        const allMainFeedIds = Array.from(
+          new Set([
+            ...backendGroup.inMainFeedPostIds,
+            ...localGroup.inMainFeedPostIds,
+          ]),
+        );
+        return {
+          ...backendGroup,
+          postIds: allPostIds,
+          inMainFeedPostIds: allMainFeedIds,
+        };
+      }
+      return backendGroup;
+    });
+    writeAll(mergedGroups);
   } catch {
     // Silently fall back to localStorage — network or auth error
   }
@@ -531,6 +544,11 @@ export async function removeGroupMemberAsync(
 
 /**
  * Add a post to a group in the backend and update localStorage cache.
+ *
+ * Always writes to localStorage first (optimistic update) so the post-to-group
+ * link is visible in GroupDetailPage even before the backend call completes.
+ * If the backend call fails, localStorage is left intact and the error is
+ * re-thrown so the caller can show a warning.
  */
 export async function addPostToGroupAsync(
   actor: backendInterface | null,
@@ -538,15 +556,18 @@ export async function addPostToGroupAsync(
   postId: string,
   inMainFeed: boolean,
 ): Promise<boolean> {
+  // Always update localStorage immediately (optimistic write).
+  // This ensures the post appears in GroupDetailPage even if the backend call
+  // is slow or fails — and survives the next sync if the group already has
+  // the post link merged in (see fetchAndSyncGroupsFromBackend merge logic).
+  addPostToGroup(id, postId, inMainFeed);
+
   if (!actor) {
-    addPostToGroup(id, postId, inMainFeed);
     return true;
   }
 
+  // Best-effort backend call — re-throw so callers can show a warning toast.
   const success = await actor.addPostToGroup(id, postId, inMainFeed);
-  if (success) {
-    addPostToGroup(id, postId, inMainFeed);
-  }
   return success;
 }
 

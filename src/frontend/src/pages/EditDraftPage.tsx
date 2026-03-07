@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import {
   AlertCircle,
@@ -54,6 +55,7 @@ import { addPostToGroupAsync } from "../lib/groupStorage";
 export default function EditDraftPage() {
   const { id } = useParams({ from: "/draft/$id/edit" });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { identity } = useInternetIdentity();
   const { actor } = useActor();
   const principalStr = identity?.getPrincipal().toString() ?? "";
@@ -203,7 +205,7 @@ export default function EditDraftPage() {
     if (hasSizeError) return;
 
     try {
-      // First save any changes
+      // Step 1: Save latest changes to the draft
       const newImageBlobs = await convertToBlobs();
       const allImages = [...existingImages, ...newImageBlobs];
 
@@ -215,34 +217,59 @@ export default function EditDraftPage() {
         images: allImages,
       });
 
-      // Then publish
-      const publishedId = await publishDraftMutation.mutateAsync(draft.id);
+      // Step 2: Publish the draft.
+      // publishDraft returns #ok (unit). The published post keeps the SAME id
+      // as the draft (backend re-uses the key).
+      await publishDraftMutation.mutateAsync(draft.id);
 
-      // Copy comment settings from draft to published post
-      if (publishedId !== undefined) {
-        const publishedIdStr =
-          typeof publishedId === "bigint"
-            ? publishedId.toString()
-            : String(publishedId);
-        const draftSettings = getCommentSettings(draft.id.toString());
-        saveCommentSettings(publishedIdStr, draftSettings);
-      }
+      // Invalidate the posts query cache immediately so GroupDetailPage and
+      // HomePage see the new post without waiting for the next poll cycle.
+      queryClient.invalidateQueries({ queryKey: ["posts", "published"] });
 
-      // Add post to selected groups after publishing
-      if (selectedGroupIds.length > 0 && publishedId !== undefined) {
-        const postIdStr =
-          typeof publishedId === "bigint"
-            ? publishedId.toString()
-            : String(publishedId);
-        await Promise.all(
+      // The post ID equals the draft ID (same key is used in backend posts map)
+      const postIdStr = draft.id.toString();
+
+      // Step 3: Copy comment settings from draft to published post
+      const draftSettings = getCommentSettings(draft.id.toString());
+      saveCommentSettings(postIdStr, draftSettings);
+
+      // Step 4: Add post to selected groups — handle each group independently.
+      // Use Promise.allSettled so a failure on one group doesn't block others.
+      // addPostToGroupAsync always writes localStorage first (optimistic), so
+      // GroupDetailPage will show the post even if the backend call fails.
+      if (selectedGroupIds.length > 0) {
+        const groupResults = await Promise.allSettled(
           selectedGroupIds.map((groupId) =>
             addPostToGroupAsync(actor, groupId, postIdStr, groupInMainFeed),
           ),
         );
+
+        const failures = groupResults.filter(
+          (r): r is PromiseRejectedResult => r.status === "rejected",
+        );
+
+        if (failures.length > 0) {
+          // Post IS published and localStorage IS updated — just backend
+          // group-linking failed. Show a warning but still navigate.
+          const failureDetails = failures
+            .map((f) =>
+              f.reason instanceof Error ? f.reason.message : "okänt fel",
+            )
+            .join("; ");
+          toast.warning(
+            `"${title.trim()}" publicerades, men grupp-kopplingen kunde inte bekräftas i backend: ${failureDetails}. Inlägget syns ändå i gruppen.`,
+            { duration: 10000 },
+          );
+        } else {
+          toast.success(`"${title.trim()}" har publicerats!`);
+        }
+      } else {
+        toast.success(`"${title.trim()}" har publicerats!`);
       }
 
-      toast.success(`"${title.trim()}" har publicerats!`);
       clearImages();
+      // Always navigate after a successful publish — even if group-link had
+      // warnings, the post is published and localStorage reflects the link.
       navigate({ to: "/" });
     } catch (err) {
       console.error("Failed to publish draft:", err);

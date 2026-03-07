@@ -1,8 +1,13 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Lock, Users } from "lucide-react";
+import { Loader2, Lock, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { type Group, getAllGroups } from "../lib/groupStorage";
+import { useActor } from "../hooks/useActor";
+import {
+  type Group,
+  fetchAndSyncGroupsFromBackend,
+  getAllGroups,
+} from "../lib/groupStorage";
 
 interface GroupSelectorProps {
   principalStr: string;
@@ -17,11 +22,37 @@ export default function GroupSelector({
 }: GroupSelectorProps) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [inMainFeed, setInMainFeed] = useState(false);
+  // Start in syncing state so we show a loader before actor is ready,
+  // preventing premature "no groups" renders while actor initializes.
+  const [isSyncing, setIsSyncing] = useState(true);
+  const { actor, isFetching: actorFetching } = useActor();
 
-  // Load groups from localStorage on mount
+  // Sync groups from backend once actor is ready; fall back to localStorage.
+  // We wait for actor to be non-null AND not still fetching before rendering
+  // with stale/empty data — this prevents groups from appearing "gone" during
+  // page reload.
   useEffect(() => {
-    setGroups(getAllGroups());
-  }, []);
+    // If actor is still initializing, keep showing the loader
+    if (actorFetching) {
+      setIsSyncing(true);
+      return;
+    }
+
+    if (!actor) {
+      // Actor finished initializing but is null (not authenticated).
+      // Fall back to whatever is in localStorage.
+      setGroups(getAllGroups());
+      setIsSyncing(false);
+      return;
+    }
+
+    // Actor is ready — sync from backend before displaying groups.
+    setIsSyncing(true);
+    fetchAndSyncGroupsFromBackend(actor)
+      .then(() => setGroups(getAllGroups()))
+      .catch(() => setGroups(getAllGroups()))
+      .finally(() => setIsSyncing(false));
+  }, [actor, actorFetching]);
 
   // Split into owned-private and all-public
   const privateGroups = useMemo(
@@ -37,7 +68,17 @@ export default function GroupSelector({
     [groups],
   );
 
-  // If no groups available, render nothing
+  // While syncing, show a subtle loader
+  if (isSyncing) {
+    return (
+      <div className="p-4 bg-muted/30 rounded-lg border border-border/40 flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Laddar grupper...
+      </div>
+    );
+  }
+
+  // If no groups available after sync, render nothing
   if (privateGroups.length === 0 && publicGroups.length === 0) {
     return null;
   }
