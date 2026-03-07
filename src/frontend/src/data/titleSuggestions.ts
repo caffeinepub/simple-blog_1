@@ -3,7 +3,8 @@ export type Category =
   | "Livsberättelser"
   | "Mat"
   | "Hobby"
-  | "Djupa tankar";
+  | "Djupa tankar"
+  | "Teknik";
 
 export const titleSuggestions: Record<Category, string[]> = {
   Livsstil: [
@@ -41,6 +42,16 @@ export const titleSuggestions: Record<Category, string[]> = {
     "Vad lycka egentligen betyder – och hur jag hittade min",
     "Att leva i nuet: Lektioner från mindfulness och meditation",
   ],
+  Teknik: [
+    "Nyheter",
+    "AI",
+    "Säkerhet",
+    "Öppen källkod",
+    "Framtidsteknik",
+    "Hårvara",
+    "Blockkedja",
+    "Operativ",
+  ],
 };
 
 export const categories: Category[] = [
@@ -49,4 +60,5 @@ export const categories: Category[] = [
   "Mat",
   "Hobby",
   "Djupa tankar",
+  "Teknik",
 ];
