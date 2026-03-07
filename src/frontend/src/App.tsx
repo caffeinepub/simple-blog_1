@@ -38,16 +38,14 @@ const loginRoute = createRoute({
   component: LoginPage,
 });
 
-// Protected routes wrapped in ProtectedRoute and Layout
+// Homepage is now public — unauthenticated users can view posts
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: () => (
-    <ProtectedRoute>
-      <Layout>
-        <HomePage />
-      </Layout>
-    </ProtectedRoute>
+    <Layout>
+      <HomePage />
+    </Layout>
   ),
 });
 
