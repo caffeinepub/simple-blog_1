@@ -27,7 +27,7 @@ export type EditCommentResult = "ok" | "notFound" | "notOwner";
 export function useGetAllPublishedPosts() {
   const { actor, isFetching } = useActor();
 
-  return useQuery<Post[]>({
+  const query = useQuery<Post[]>({
     queryKey: ["posts", "published"],
     queryFn: async () => {
       if (!actor) return [];
@@ -45,6 +45,12 @@ export function useGetAllPublishedPosts() {
     retry: 1,
     retryDelay: 1000,
   });
+
+  // Include actor loading state so callers show a spinner while actor initialises
+  return {
+    ...query,
+    isLoading: isFetching || query.isLoading,
+  };
 }
 
 export function useGetPost(id: bigint) {
@@ -256,7 +262,7 @@ export function useGetMyDrafts() {
   const { identity } = useInternetIdentity();
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
 
-  return useQuery<Post[]>({
+  const query = useQuery<Post[]>({
     queryKey: ["myDrafts"],
     queryFn: async () => {
       if (!actor) return [];
@@ -264,6 +270,12 @@ export function useGetMyDrafts() {
     },
     enabled: !!actor && !isFetching && isAuthenticated,
   });
+
+  // Include actor loading state so callers show a spinner while actor initialises
+  return {
+    ...query,
+    isLoading: (isFetching && isAuthenticated) || query.isLoading,
+  };
 }
 
 export function useSaveDraft() {

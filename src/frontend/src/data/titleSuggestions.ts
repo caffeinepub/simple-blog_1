@@ -48,7 +48,7 @@ export const titleSuggestions: Record<Category, string[]> = {
     "Säkerhet",
     "Öppen källkod",
     "Framtidsteknik",
-    "Hårvara",
+    "Hårdvara",
     "Blockkedja",
     "Operativ",
   ],
