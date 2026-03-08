@@ -206,14 +206,22 @@ export default function CreatePostPage() {
         });
       }
 
-      // Add post to selected groups after creation
-      if (selectedGroupIds.length > 0 && postId !== undefined) {
+      // Add post to selected groups — only when actually publishing.
+      // When published=false, createPost returns a draft ID. Draft IDs do not
+      // appear in the published posts feed, so group-linking would be silently
+      // broken. Instead we inform the user to pick a group when publishing.
+      if (selectedGroupIds.length > 0 && postId !== undefined && published) {
         const postIdStr =
           typeof postId === "bigint" ? postId.toString() : String(postId);
         await Promise.all(
           selectedGroupIds.map((groupId) =>
             addPostToGroupAsync(actor, groupId, postIdStr, groupInMainFeed),
           ),
+        );
+      } else if (selectedGroupIds.length > 0 && !published) {
+        toast.info(
+          "Utkastet sparades. Välj grupp när du publicerar det från 'Mina inlägg och utkast'.",
+          { duration: 6000 },
         );
       }
 

@@ -459,7 +459,8 @@ export default function GroupDetailPage() {
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
   useGetCallerUserProfile();
-  const { data: allPosts = [] } = useGetAllPublishedPosts();
+  const { data: allPosts = [], isLoading: postsLoading } =
+    useGetAllPublishedPosts();
   const { data: publicProfiles = [] } = useGetPublicProfiles();
   const { actor, isFetching: actorFetching } = useActor();
 
@@ -877,7 +878,15 @@ export default function GroupDetailPage() {
             )}
           </div>
 
-          {groupPosts.length === 0 ? (
+          {postsLoading ? (
+            <div
+              className="flex items-center justify-center py-12 text-muted-foreground"
+              data-ocid="group_detail.posts.loading_state"
+            >
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              Laddar inlägg...
+            </div>
+          ) : groupPosts.length === 0 ? (
             <div
               className="text-center py-12 text-muted-foreground border-2 border-dashed border-border/40 rounded-xl"
               data-ocid="group_detail.posts.empty_state"

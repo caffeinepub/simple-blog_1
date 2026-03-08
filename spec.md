@@ -1,53 +1,76 @@
-# HKLO
+# HKLO Blog – Reverse Engineering & Bug Fix Spec
 
 ## Current State
 
-HKLO is a multi-author blog platform built on ICP with a Motoko backend and React + TypeScript frontend. The current design uses a sticky header with a flat horizontal nav, a centered homepage with a hero text section, and a tab-based layout (Alla inlägg / Mitt flöde) for browsing posts. There is a separate LoginPage at `/login` that handles Internet Identity authentication. All existing features are functional: posting, drafts, groups, search, admin panel, profile, notifications, moderation, comments, reactions, follow/unfollow.
-
-Design uses the Golden Hour palette (amber/teal/parchment) with Playfair Display serif headings and Figtree body text. CSS is in `index.css` with OKLCH tokens.
+HKLO is a full-stack multi-author blog on ICP (Motoko + React). Current version (91) has these active features:
+- Blog core: create/edit/delete posts and drafts, rich text, image uploads
+- Groups: create, join, invite, moderator roles, public/private, visibility toggle
+- Publish to group: GroupSelector in CreatePostPage and EditDraftPage
+- Content moderation: frontend + backend rule-based filter
+- Comments: add/edit/delete with emoji picker and images
+- Notifications: in-app bell for comments and moderation events
+- Admin panel: manage posts, authors, admins, moderation log
+- User profiles: alias, follow/unfollow, follower counts
+- Search: free-text + category + date range filter on home page
+- Timeline magazine layout: hero, 2-column grid, sidebar, mobile collapsible sidebar
+- Principal ID display on profile page
 
 ## Requested Changes (Diff)
 
 ### Add
-
-- **Magazine-style homepage layout**: full-width hero section (latest post featured with title/summary overlay), followed by a 2-column article grid, with a right sidebar (Senaste inlägg, Kategorier, Taggar).
-- **Collapsible sidebar on mobile**: the sidebar (Senaste inlägg, Kategorier, Taggar) collapses into a toggle/drawer on mobile instead of stacking below the articles.
-- **Welcome hero fallback**: when no posts exist, show a warm welcome text section (no image) instead of the hero post.
-- **Login button in sticky navbar**: the Login button must always be visible in the sticky header for unauthenticated visitors. Authenticated users continue to see all nav links + logout.
-- **Mobile hamburger menu**: the horizontal nav links (Skapa inlägg, Mina inlägg, Användare, Grupper, Profil, Admin) collapse into a hamburger/dropdown menu on mobile/tablet.
-- **Article cards with image, title, preview text**: redesigned PostCard with a compact magazine card style (thumbnail top, category badge, title, short preview, author, date).
-- **Category and tag display in sidebar**: extract unique categories/tags from published posts and display them as clickable filter pills in the sidebar.
-- **"Senaste inlägg" in sidebar**: list 5 most recent post titles with dates as links.
+- Nothing new – this is a bug fix pass only
 
 ### Modify
 
-- **Layout.tsx**: sticky header now always shows Login button for unauthenticated users (not just on the homepage). Authenticated nav collapses to hamburger on small screens. The Login button triggers Internet Identity login directly from the header (no redirect to `/login` page needed — login function from `useInternetIdentity` hook).
-- **HomePage.tsx**: restructure to magazine layout with hero + 2-col grid + sidebar. Keep the existing `AllPostsTab` search functionality but integrate it into the new layout (search bar above the grid, not inside a tab). Keep "Mitt flöde" as a tab option within the main content area. Keep all existing filtering/search logic.
-- **App.tsx**: the home route (`/`) should be accessible without authentication (remove ProtectedRoute wrapper on index route) so unauthenticated visitors can read posts. LoginPage at `/login` remains but is now secondary — login happens via navbar button.
-- **PostCard.tsx**: update to compact magazine card style matching the reference image (image thumbnail at top, category badge, title, short preview text 2-3 lines, author + date meta, reaction counts).
+**Bug 1 (Critical) – Publicera utkast mot privat grupp fungerar inte**
+
+Root cause: `GroupSelector` filters `privateGroups` as:
+```
+g.visibility === "private" && g.ownerId === principalStr
+```
+This only shows groups the user OWNS. But if the user is a MEMBER (not owner) of a private group, the group is never shown in the selector and cannot be chosen. A user who was invited to someone else's private group cannot publish to it.
+
+Fix: Show private groups where `isMember(principalStr)` is true (includes owner + members). Keep public groups as-is.
+
+**Bug 2 (Critical) – Publicera utkast navigerar aldrig om GroupSelector-synk väntar**
+
+Root cause: In `EditDraftPage.handlePublish`, after `publishDraftMutation.mutateAsync(draft.id)`, `queryClient.invalidateQueries` is called immediately. Then `addPostToGroupAsync` is called. However `GroupDetailPage` reads groups from localStorage. The sync from backend happens on mount of GroupDetailPage – but the *post* is only in `allPosts` (React Query cache) after the invalidation refetch completes. If React Query hasn't refetched yet when GroupDetailPage mounts, `groupPosts` will be empty even though localStorage has the post ID.
+
+Fix: In `GroupDetailPage`, when computing `groupPosts`, also check if the posts query is still loading. Show a spinner on the posts tab while loading rather than "Inga inlägg".
+
+**Bug 3 (Medium) – GroupSelector i CreatePostPage skickar group-koppling när `published=false`**
+
+Root cause: In `CreatePostPage.handleSubmit`, when `published=false`, `useCreatePost` calls `actor.saveDraft()` which returns a draft ID. The code then calls `addPostToGroupAsync(actor, groupId, postIdStr, ...)`. But `addPostToGroup` in backend expects a *published post* ID, not a draft ID. Adding a draft ID to a group's post list means the post will never appear in `groupPosts` (which filters against `allPosts` – published posts only).
+
+Fix: When `published=false` and groups are selected, skip the `addPostToGroup` call. Instead show a toast: "Utkastet sparades. Välj grupp när du publicerar det." Groups should only be linked at publish time.
+
+**Bug 4 (Medium) – EditDraftPage validateForm: tom author blockerar publicering för profil-alias-användare**
+
+Root cause: `validateForm()` checks `!author.trim()`. But when `hasProfileAlias=true`, the `author` state stays at its initial empty string (it is never set from profile alias – `setAuthor` is only called in the `useEffect` that runs when draft loads). If the effect runs before `profileFetched`, `author` gets the profileAlias. But if `profileFetched` is late, `author` is still whatever `draft.author` is. The form should always use the effective alias.
+
+Fix: In `validateForm`, use `effectiveAuthor = hasProfileAlias ? profileAlias : author.trim()` (same pattern as `CreatePostPage`). The condition `!author.trim()` should only apply when `!hasProfileAlias`.
+
+**Bug 5 (Low) – Innehållsmoderering: backend är skiftlägeskänslig, HTML strippas inte i backend**
+
+Root cause: `containsBlockedContent` in `main.mo` calls `text.contains(#text word)` which is case-sensitive. "Skit" passes where "skit" blocks. Also, the combined text sent includes raw Quill HTML (`<p>skit</p>`), but Motoko checks for plain "skit" in the HTML-wrapped string. Frontend moderation in `contentModeration.ts` does strip HTML and lowercases – so frontend catches it. But if someone bypasses the frontend, backend doesn't.
+
+Note: This is a backend issue and cannot be fixed in frontend. The frontend `checkPostContent` already strips HTML and lowercases. No change needed unless we regenerate backend.
+
+**Bug 6 (Low) – GroupSelector private groups filter är för strikt**
+
+See Bug 1 above – same issue. Fix in GroupSelector component.
 
 ### Remove
-
-- Separate full-page hero section on HomePage (replaced by the latest-post hero or welcome text).
-- Tab switcher as the primary UI pattern on the homepage (tabs become secondary, below the main grid).
+- Nothing removed
 
 ## Implementation Plan
 
-1. **Update `App.tsx`**: remove `ProtectedRoute` wrapper from the index route so the home page is publicly viewable. Keep all other protected routes as-is.
+1. **GroupSelector.tsx**: Change `privateGroups` filter from `g.ownerId === principalStr` to `g.members.some(m => m.principal === principalStr)`. This ensures both owners AND members of private groups see the group in the selector.
 
-2. **Update `Layout.tsx`**:
-   - Add login button in header for unauthenticated visitors that calls `login()` from `useInternetIdentity` directly (no redirect to `/login`)
-   - Add hamburger menu (Sheet/Drawer) for mobile nav when authenticated
-   - Keep sticky behavior, Golden Hour colors, logo, footer
+2. **GroupDetailPage.tsx**: In the posts tab, show a loading state while `isLoading` is true (from `useGetAllPublishedPosts`). This prevents the "no posts" flash after publishing when React Query hasn't refetched yet.
 
-3. **Update `HomePage.tsx`** — full magazine layout:
-   - Hero section: latest published post shown as a wide card with title, author, date, short excerpt and "Läs mer" CTA. If no posts, show welcome text (HKLO tagline, community description).
-   - Main content area: 2-column responsive article grid using updated PostCard components
-   - Right sidebar (desktop): "Senaste inlägg" list (5 items), "Kategorier" pills, "Taggar" pills — all derived from published posts
-   - Sidebar on mobile: collapsible panel with a toggle button ("Visa/Dölj sidopanel") using Collapsible or a Sheet
-   - Keep search bar above the grid
-   - Keep "Mitt flöde" tab accessible (can be a tab below the hero)
+3. **CreatePostPage.tsx**: In `handleSubmit`, skip `addPostToGroupAsync` when `published=false`. Add toast informing user that group linking happens at publish time. 
 
-4. **Update `PostCard.tsx`**: compact magazine card — image at top (aspect-[4/3]), category badge overlay, serif title, 2-line preview, author + date, reaction pill counts. Ensure `data-ocid` markers remain.
+4. **EditDraftPage.tsx**: Fix `validateForm` to use `effectiveAuthor = hasProfileAlias ? profileAlias : author.trim()` instead of `!author.trim()`.
 
-5. **Ensure all existing routes and features remain intact**: groups, admin, drafts, profile, users, comments, moderation — no functional changes.
+5. All fixes are frontend-only. No backend changes needed.

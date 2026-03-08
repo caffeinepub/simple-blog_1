@@ -160,7 +160,13 @@ export default function EditDraftPage() {
     const newErrors: { title?: string; content?: string; author?: string } = {};
     if (!title.trim()) newErrors.title = "Titel krävs";
     if (isContentEmpty(content)) newErrors.content = "Innehåll krävs";
-    if (!author.trim()) newErrors.author = "Alias krävs";
+    // Use profile alias when available — matches the same pattern as CreatePostPage
+    const effectiveAuthorForValidation = hasProfileAlias
+      ? profileAlias
+      : author.trim();
+    if (!effectiveAuthorForValidation)
+      newErrors.author =
+        "Alias krävs — fyll i ett alias eller spara ett i din profil";
     setFieldErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -174,12 +180,14 @@ export default function EditDraftPage() {
     try {
       const newImageBlobs = await convertToBlobs();
       const allImages = [...existingImages, ...newImageBlobs];
+      // Use profile alias when available — consistent with handlePublish
+      const effectiveAuthor = hasProfileAlias ? profileAlias : author.trim();
 
       await updateDraftMutation.mutateAsync({
         id: draft.id,
         title: title.trim(),
         content: content,
-        author: author.trim(),
+        author: effectiveAuthor,
         images: allImages,
       });
 
@@ -209,11 +217,14 @@ export default function EditDraftPage() {
       const newImageBlobs = await convertToBlobs();
       const allImages = [...existingImages, ...newImageBlobs];
 
+      // Use profile alias when available — same pattern as CreatePostPage
+      const effectiveAuthor = hasProfileAlias ? profileAlias : author.trim();
+
       await updateDraftMutation.mutateAsync({
         id: draft.id,
         title: title.trim(),
         content: content,
-        author: author.trim(),
+        author: effectiveAuthor,
         images: allImages,
       });
 

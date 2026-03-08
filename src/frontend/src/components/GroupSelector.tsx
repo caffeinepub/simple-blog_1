@@ -54,11 +54,15 @@ export default function GroupSelector({
       .finally(() => setIsSyncing(false));
   }, [actor, actorFetching]);
 
-  // Split into owned-private and all-public
+  // Split into member-accessible-private and all-public.
+  // Show private groups where the user is a member (includes owner) — not just
+  // groups they own. This ensures invited members can also publish to a group.
   const privateGroups = useMemo(
     () =>
       groups.filter(
-        (g) => g.visibility === "private" && g.ownerId === principalStr,
+        (g) =>
+          g.visibility === "private" &&
+          g.members.some((m) => m.principal === principalStr),
       ),
     [groups, principalStr],
   );
