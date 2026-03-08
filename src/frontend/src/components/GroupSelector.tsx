@@ -196,7 +196,8 @@ export default function GroupSelector({
             </Label>
           </div>
           <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-            Inlägget publiceras enbart mot valda grupper
+            Tips: Slå på "Publicera omedelbart" ovan för att inlägget ska synas
+            i gruppen direkt.
           </p>
         </>
       )}

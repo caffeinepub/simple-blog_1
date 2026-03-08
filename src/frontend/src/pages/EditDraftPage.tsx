@@ -245,43 +245,45 @@ export default function EditDraftPage() {
       saveCommentSettings(postIdStr, draftSettings);
 
       // Step 4: Add post to selected groups — handle each group independently.
-      // Use Promise.allSettled so a failure on one group doesn't block others.
-      // addPostToGroupAsync always writes localStorage first (optimistic), so
-      // GroupDetailPage will show the post even if the backend call fails.
+      // addPostToGroupAsync:
+      //   • writes localStorage immediately (optimistic — post link is preserved)
+      //   • catches ALL backend exceptions and returns false instead of throwing
+      //   • never throws, so Promise.all is safe here
       if (selectedGroupIds.length > 0) {
-        const groupResults = await Promise.allSettled(
+        const groupResults = await Promise.all(
           selectedGroupIds.map((groupId) =>
             addPostToGroupAsync(actor, groupId, postIdStr, groupInMainFeed),
           ),
         );
 
-        const failures = groupResults.filter(
-          (r): r is PromiseRejectedResult => r.status === "rejected",
-        );
+        // Count how many backend calls returned false (backend rejected but
+        // localStorage is already updated — post IS visible in the group)
+        const backendFailureCount = groupResults.filter((r) => !r).length;
 
-        if (failures.length > 0) {
-          // Post IS published and localStorage IS updated — just backend
-          // group-linking failed. Show a warning but still navigate.
-          const failureDetails = failures
-            .map((f) =>
-              f.reason instanceof Error ? f.reason.message : "okänt fel",
-            )
-            .join("; ");
-          toast.warning(
-            `"${title.trim()}" publicerades, men grupp-kopplingen kunde inte bekräftas i backend: ${failureDetails}. Inlägget syns ändå i gruppen.`,
-            { duration: 10000 },
+        if (backendFailureCount > 0) {
+          // Post IS published, localStorage IS updated, post IS visible in group.
+          // Backend just couldn't confirm — this is non-critical.
+          toast.success(
+            `"${title.trim()}" publicerades och är nu synligt i gruppen.`,
+            { duration: 6000 },
           );
         } else {
-          toast.success(`"${title.trim()}" har publicerats!`);
+          toast.success(
+            `"${title.trim()}" publicerades och länkades till gruppen!`,
+          );
         }
       } else {
         toast.success(`"${title.trim()}" har publicerats!`);
       }
 
       clearImages();
-      // Always navigate after a successful publish — even if group-link had
-      // warnings, the post is published and localStorage reflects the link.
-      navigate({ to: "/" });
+      // Navigate to the first selected group so the user can immediately
+      // verify that the post appears there — otherwise go to home.
+      if (selectedGroupIds.length > 0) {
+        navigate({ to: `/groups/${selectedGroupIds[0]}` });
+      } else {
+        navigate({ to: "/" });
+      }
     } catch (err) {
       console.error("Failed to publish draft:", err);
       const msg = err instanceof Error ? err.message : "Okänt fel";

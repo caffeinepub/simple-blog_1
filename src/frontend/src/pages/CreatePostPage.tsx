@@ -77,6 +77,15 @@ export default function CreatePostPage() {
   // Track current draft ID for manual saves
   const currentDraftIdRef = useRef<bigint | null>(null);
 
+  // Profile loading timeout — if profile hasn't loaded after 8s, show input field anyway
+  const [profileLoadTimedOut, setProfileLoadTimedOut] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setProfileLoadTimedOut(true);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const createPostMutation = useCreatePost();
   const saveDraftMutation = useSaveDraft();
   const updateDraftMutation = useUpdateDraft();
@@ -90,8 +99,11 @@ export default function CreatePostPage() {
   } = useGetCallerUserProfile();
   const profileAlias = userProfile?.name?.trim() ?? "";
   // Only treat alias as "found" if profile has actually loaded AND alias is non-empty
-  // If actor is null / profile is still loading, fall back to manual input
-  const hasProfileAlias = profileFetched && profileAlias.length > 0;
+  // AND is not the default placeholder "unnamed" (backend default for new users)
+  const hasProfileAlias =
+    profileFetched &&
+    profileAlias.length > 0 &&
+    profileAlias.toLowerCase() !== "unnamed";
 
   // Pre-fill author from profile alias once profile loads
   useEffect(() => {
@@ -133,11 +145,17 @@ export default function CreatePostPage() {
     const newErrors: { title?: string; content?: string; author?: string } = {};
     if (!title.trim()) newErrors.title = "Titel krävs";
     if (isContentEmpty(content)) newErrors.content = "Innehåll krävs";
-    // Author is valid if: profile alias exists OR user has typed something
+    // Author is valid if:
+    //   • profile has loaded and alias is set (hasProfileAlias), OR
+    //   • user has typed something in the alias field, OR
+    //   • profile is still loading (actor not ready yet) — we let the
+    //     action handler surface the "actor not ready" error instead of
+    //     blocking the user with a misleading alias error
     const effectiveAuthorForValidation = hasProfileAlias
       ? profileAlias
       : author.trim();
-    if (!effectiveAuthorForValidation)
+    const profileStillLoading = !profileFetched && !profileLoadTimedOut;
+    if (!effectiveAuthorForValidation && !profileStillLoading)
       newErrors.author =
         "Alias krävs — fyll i ett alias eller spara ett i din profil";
     setFieldErrors(newErrors);
@@ -147,10 +165,9 @@ export default function CreatePostPage() {
   const handleGroupSelectionChange = (ids: string[], inMainFeed: boolean) => {
     setSelectedGroupIds(ids);
     setGroupInMainFeed(inMainFeed);
-    // Auto-disable public publish when groups are selected
-    if (ids.length > 0) {
-      setPublished(false);
-    }
+    // NOTE: Do NOT auto-disable published here.
+    // When publishing to groups, the post must still be published (status #published)
+    // so it appears in group feeds. The toggle is independent of group selection.
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -206,39 +223,64 @@ export default function CreatePostPage() {
         });
       }
 
-      // Add post to selected groups — only when actually publishing.
-      // When published=false, createPost returns a draft ID. Draft IDs do not
-      // appear in the published posts feed, so group-linking would be silently
-      // broken. Instead we inform the user to pick a group when publishing.
-      if (selectedGroupIds.length > 0 && postId !== undefined && published) {
-        const postIdStr =
-          typeof postId === "bigint" ? postId.toString() : String(postId);
-        await Promise.all(
-          selectedGroupIds.map((groupId) =>
-            addPostToGroupAsync(actor, groupId, postIdStr, groupInMainFeed),
-          ),
-        );
-      } else if (selectedGroupIds.length > 0 && !published) {
-        toast.info(
-          "Utkastet sparades. Välj grupp när du publicerar det från 'Mina inlägg och utkast'.",
-          { duration: 6000 },
-        );
+      // Add post to selected groups when published.
+      // When published=false (draft), group-linking is skipped with a helpful message.
+      if (selectedGroupIds.length > 0 && postId !== undefined) {
+        if (published) {
+          const postIdStr =
+            typeof postId === "bigint" ? postId.toString() : String(postId);
+          const groupResults = await Promise.all(
+            selectedGroupIds.map((groupId) =>
+              addPostToGroupAsync(actor, groupId, postIdStr, groupInMainFeed),
+            ),
+          );
+          const backendFailureCount = groupResults.filter((r) => !r).length;
+          if (backendFailureCount === 0) {
+            toast.success("Inlägget publicerades och länkades till gruppen!");
+          } else {
+            toast.success(
+              "Inlägget publicerades och är nu synligt i gruppen.",
+              { duration: 6000 },
+            );
+          }
+        } else {
+          toast.info(
+            "Utkastet sparades. Välj grupp när du publicerar det från 'Mina inlägg och utkast'.",
+            { duration: 6000 },
+          );
+        }
       }
 
       clearImages();
-      navigate({ to: "/" });
+      // Navigate to the first selected group (if any) so the user can
+      // immediately verify the post appears there — otherwise go home.
+      if (selectedGroupIds.length > 0 && published) {
+        navigate({ to: `/groups/${selectedGroupIds[0]}` });
+      } else {
+        navigate({ to: "/" });
+      }
     } catch (err) {
       console.error("Failed to create post:", err);
-      const errMsg = err instanceof Error ? err.message : "";
+      const errMsg = err instanceof Error ? err.message : String(err);
       if (errMsg.startsWith("__contentBlocked__:")) {
         const reason = errMsg.replace("__contentBlocked__:", "");
         toast.error(
           `Inlägget blockerades av innehållsmodereringen: ${reason}. Vänligen ändra ditt innehåll.`,
           { duration: 8000 },
         );
+      } else if (
+        errMsg.includes("not registered") ||
+        errMsg.includes("Unauthorized") ||
+        errMsg.includes("access control")
+      ) {
+        setSubmitError(
+          "Behörigheten kunde inte verifieras. Ladda om sidan och försök igen.",
+        );
       } else {
         setSubmitError(
-          "Kunde inte skapa inlägget. Försök med en mindre bild eller försök igen.",
+          errMsg.includes("Anslutningen")
+            ? errMsg
+            : "Kunde inte skapa inlägget. Kontrollera din anslutning och försök igen.",
         );
       }
     }
@@ -301,13 +343,26 @@ export default function CreatePostPage() {
     } catch (err) {
       console.error("Failed to save draft:", err);
       const errMsg = err instanceof Error ? err.message : String(err);
-      // Show the full backend error message — never hide what went wrong
-      const cleanMsg = errMsg.includes("Reject")
-        ? errMsg.split("Reject").slice(-1)[0].trim()
-        : errMsg.includes(":")
-          ? errMsg.split(":").slice(-1)[0].trim()
-          : errMsg;
-      toast.error(`Kunde inte spara utkastet: ${cleanMsg}`, { duration: 8000 });
+      if (
+        errMsg.includes("not registered") ||
+        errMsg.includes("Unauthorized") ||
+        errMsg.includes("access control")
+      ) {
+        toast.error(
+          "Behörigheten kunde inte verifieras. Ladda om sidan och försök igen.",
+          { duration: 8000 },
+        );
+      } else {
+        // Show the full backend error message — never hide what went wrong
+        const cleanMsg = errMsg.includes("Reject")
+          ? errMsg.split("Reject").slice(-1)[0].trim()
+          : errMsg.includes(":")
+            ? errMsg.split(":").slice(-1)[0].trim()
+            : errMsg;
+        toast.error(`Kunde inte spara utkastet: ${cleanMsg}`, {
+          duration: 8000,
+        });
+      }
     }
   };
 
@@ -351,10 +406,21 @@ export default function CreatePostPage() {
       navigate({ to: `/draft/${draftId.toString()}/preview` });
     } catch (err) {
       console.error("Failed to save draft for preview:", err);
-      const errMsg = err instanceof Error ? err.message : "Okänt fel";
-      toast.error(
-        `Kunde inte spara utkastet för förhandsgranskning: ${errMsg}`,
-      );
+      const errMsg = err instanceof Error ? err.message : String(err);
+      if (
+        errMsg.includes("not registered") ||
+        errMsg.includes("Unauthorized") ||
+        errMsg.includes("access control")
+      ) {
+        toast.error(
+          "Behörigheten kunde inte verifieras. Ladda om sidan och försök igen.",
+          { duration: 8000 },
+        );
+      } else {
+        toast.error(
+          `Kunde inte spara utkastet för förhandsgranskning: ${errMsg}`,
+        );
+      }
     }
   };
 
@@ -376,10 +442,10 @@ export default function CreatePostPage() {
   const isSavingDraft =
     saveDraftMutation.isPending || updateDraftMutation.isPending;
 
-  // Actor loading state — true only while actively fetching
-  const isActorLoading = actorFetching;
-  // Never show a "failed" banner — if actor is null after loading, we let the
-  // individual action handlers surface the error when the user actually clicks.
+  // Actor loading state — true only while actively fetching the very first time.
+  // Once isFetching settles (regardless of whether actor is null or set) we
+  // stop blocking the UI. Individual handlers already guard against !actor.
+  const isActorLoading = actorFetching && !actor;
 
   return (
     <div className="container max-w-3xl mx-auto px-6 py-16">
@@ -543,7 +609,7 @@ export default function CreatePostPage() {
                 >
                   {profileAlias}
                 </p>
-              ) : profileLoading ? (
+              ) : profileLoading && !profileLoadTimedOut ? (
                 <p className="text-sm py-2 px-3 rounded-md bg-muted/40 min-h-[2.5rem] flex items-center text-muted-foreground">
                   Hämtar alias...
                 </p>

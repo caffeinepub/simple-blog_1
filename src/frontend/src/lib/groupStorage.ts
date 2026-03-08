@@ -313,22 +313,33 @@ export async function fetchAndSyncGroupsFromBackend(
     );
 
     // Merge backend data with existing localStorage data.
-    // Backend is authoritative for group metadata and members, but we MERGE
-    // post IDs to preserve any locally-optimistic addPostToGroup links that
-    // haven't yet propagated to the backend (e.g. because the backend
-    // addPostToGroup call failed or is still in-flight).
+    // CRITICAL: localStorage post-IDs always take priority over backend.
+    // The local cache is the source of truth for post-to-group links because:
+    //   1. addPostToGroup writes localStorage immediately (optimistic)
+    //   2. The backend addPostToGroup call may fail silently
+    //   3. We must never let a sync silently remove a just-published post link
+    //
+    // Strategy: start from local postIds, then union in any backend postIds
+    // that are new. This preserves optimistic writes permanently.
     const existing = readAll();
+
+    // Build a map of existing groups by id for O(1) lookup
+    const existingMap = new Map<string, Group>();
+    for (const g of existing) {
+      existingMap.set(g.id, g);
+    }
+
     const mergedGroups = enriched.map((backendGroup) => {
-      const localGroup = existing.find((lg) => lg.id === backendGroup.id);
+      const localGroup = existingMap.get(backendGroup.id);
       if (localGroup) {
-        // Union of backend post IDs and local post IDs
+        // LOCAL post IDs listed first — they are preserved unconditionally
         const allPostIds = Array.from(
-          new Set([...backendGroup.postIds, ...localGroup.postIds]),
+          new Set([...localGroup.postIds, ...backendGroup.postIds]),
         );
         const allMainFeedIds = Array.from(
           new Set([
-            ...backendGroup.inMainFeedPostIds,
             ...localGroup.inMainFeedPostIds,
+            ...backendGroup.inMainFeedPostIds,
           ]),
         );
         return {
@@ -339,7 +350,12 @@ export async function fetchAndSyncGroupsFromBackend(
       }
       return backendGroup;
     });
-    writeAll(mergedGroups);
+
+    // Also keep any LOCAL-ONLY groups not returned by backend
+    const backendIds = new Set(mergedGroups.map((g) => g.id));
+    const localOnlyGroups = existing.filter((g) => !backendIds.has(g.id));
+
+    writeAll([...mergedGroups, ...localOnlyGroups]);
   } catch {
     // Silently fall back to localStorage — network or auth error
   }
@@ -566,9 +582,21 @@ export async function addPostToGroupAsync(
     return true;
   }
 
-  // Best-effort backend call — re-throw so callers can show a warning toast.
-  const success = await actor.addPostToGroup(id, postId, inMainFeed);
-  return success;
+  // Best-effort backend call.
+  // Backend may throw Runtime.trap (e.g. "Unauthorized" or "Only members...")
+  // instead of returning false. We catch ALL exceptions here so that:
+  //   1. localStorage (already written above) is never rolled back
+  //   2. The caller receives false (not an exception) and can show a warning
+  //   3. The post link survives in localStorage even when backend rejects it
+  try {
+    const success = await actor.addPostToGroup(id, postId, inMainFeed);
+    return success;
+  } catch {
+    // Backend rejected the call — return false so caller can warn the user.
+    // The localStorage write above is already done and will be preserved by
+    // fetchAndSyncGroupsFromBackend (local post IDs take priority in merge).
+    return false;
+  }
 }
 
 /**

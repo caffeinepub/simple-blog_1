@@ -28,12 +28,10 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Post } from "../backend";
-import { PostStatus } from "../backend";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useDeleteDraft,
-  useGetAllPublishedPosts,
   useGetMyDrafts,
+  useGetMyPublishedPosts,
   useGetNotifications,
   usePublishDraft,
 } from "../hooks/useQueries";
@@ -309,16 +307,16 @@ function LoadingSkeletons() {
 
 export default function MyDraftsPage() {
   const navigate = useNavigate();
-  const { identity } = useInternetIdentity();
-  const callerPrincipal = identity?.getPrincipal().toString() ?? "";
 
   const {
     data: drafts,
     isLoading: draftsLoading,
     isError: draftsError,
   } = useGetMyDrafts();
-  const { data: allPublished, isLoading: publishedLoading } =
-    useGetAllPublishedPosts();
+  // useGetMyPublishedPosts returns only the caller's own published posts,
+  // WITHOUT the private-group filter — so group-published posts are always visible here.
+  const { data: myPublished = [], isLoading: publishedLoading } =
+    useGetMyPublishedPosts();
   const { data: notifications = [] } = useGetNotifications();
 
   const deleteDraftMutation = useDeleteDraft();
@@ -326,16 +324,6 @@ export default function MyDraftsPage() {
 
   const [publishingId, setPublishingId] = useState<bigint | null>(null);
   const [deletingId, setDeletingId] = useState<bigint | null>(null);
-
-  // Filter published posts owned by the caller
-  const myPublished = useMemo(() => {
-    if (!allPublished || !callerPrincipal) return [];
-    return allPublished.filter(
-      (p) =>
-        p.status === PostStatus.published &&
-        p.ownerId.toString() === callerPrincipal,
-    );
-  }, [allPublished, callerPrincipal]);
 
   // Set of post IDs with unread notifications
   const unreadPostIds = useMemo(() => {

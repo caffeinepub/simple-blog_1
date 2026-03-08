@@ -16,13 +16,64 @@ import { DeleteCommentResult, PostStatus, UpdatePostResult } from "../backend";
 import { ADMIN_PRINCIPAL_ID } from "../config/constants";
 import { getBlockedAuthors } from "../lib/blockedAuthors";
 import { checkPostContent, findBlockedWord } from "../lib/contentModeration";
+import { getAllGroups } from "../lib/groupStorage";
+import { getSecretParameter } from "../utils/urlParams";
 import { useActor } from "./useActor";
 import { useInternetIdentity } from "./useInternetIdentity";
+
+// Helper: detect "User is not registered" backend trap
+function isNotRegisteredError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes("not registered") ||
+    msg.includes("User is not registered") ||
+    msg.includes("is not registered")
+  );
+}
+
+// Helper: re-register caller in access control using the existing actor
+async function tryReinitAccessControl(actor: {
+  _initializeAccessControlWithSecret: (token: string) => Promise<void>;
+}): Promise<void> {
+  try {
+    const adminToken = getSecretParameter("caffeineAdminToken") || "";
+    await actor._initializeAccessControlWithSecret(adminToken);
+  } catch {
+    // Best-effort — silent fail, let caller handle
+  }
+}
 
 // ─── EditCommentResult (defined here since it mirrors DeleteCommentResult) ────
 export type EditCommentResult = "ok" | "notFound" | "notOwner";
 
 // ─── Public / User Hooks ────────────────────────────────────────────────────
+
+/**
+ * Build a set of post IDs that belong exclusively to PRIVATE groups and must
+ * NOT appear in the main feed.
+ *
+ * A post is hidden from the main feed when:
+ *   • it is linked to at least one private group, AND
+ *   • it does NOT appear in inMainFeedPostIds for any of those private groups
+ *
+ * Posts that are only in public groups, or that the author explicitly marked
+ * "Synlig i huvudflöde", remain visible.
+ */
+function buildPrivateGroupPostIds(): Set<string> {
+  const groups = getAllGroups();
+  const hiddenIds = new Set<string>();
+
+  for (const group of groups) {
+    if (group.visibility !== "private") continue;
+    for (const postId of group.postIds) {
+      if (!group.inMainFeedPostIds.includes(postId)) {
+        hiddenIds.add(postId);
+      }
+    }
+  }
+
+  return hiddenIds;
+}
 
 export function useGetAllPublishedPosts() {
   const { actor, isFetching } = useActor();
@@ -33,10 +84,25 @@ export function useGetAllPublishedPosts() {
       if (!actor) return [];
       try {
         const posts = await actor.getAllPublishedPosts();
+
         // Filter out posts from locally-blocked authors
         const blocked = getBlockedAuthors();
-        if (blocked.length === 0) return posts;
-        return posts.filter((p) => !blocked.includes(p.ownerId.toString()));
+        let filtered =
+          blocked.length > 0
+            ? posts.filter((p) => !blocked.includes(p.ownerId.toString()))
+            : posts;
+
+        // Filter out posts that belong to private groups and are not explicitly
+        // marked as visible in the main feed. This ensures private-group posts
+        // never leak into the public main feed.
+        const privateGroupPostIds = buildPrivateGroupPostIds();
+        if (privateGroupPostIds.size > 0) {
+          filtered = filtered.filter(
+            (p) => !privateGroupPostIds.has(p.id.toString()),
+          );
+        }
+
+        return filtered;
       } catch {
         return [];
       }
@@ -47,6 +113,45 @@ export function useGetAllPublishedPosts() {
   });
 
   // Include actor loading state so callers show a spinner while actor initialises
+  return {
+    ...query,
+    isLoading: isFetching || query.isLoading,
+  };
+}
+
+/**
+ * Fetch ALL published posts owned by the caller — WITHOUT the private-group
+ * filter that useGetAllPublishedPosts applies. This is used in "Mina inlägg"
+ * so that the author can always see their own group-published posts.
+ */
+export function useGetMyPublishedPosts() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const callerPrincipal = identity?.getPrincipal().toString() ?? "";
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+
+  const query = useQuery<Post[]>({
+    queryKey: ["posts", "myPublished", callerPrincipal],
+    queryFn: async () => {
+      if (!actor || !callerPrincipal) return [];
+      try {
+        const posts = await actor.getAllPublishedPosts();
+        // Return ALL published posts owned by the caller — no private-group filter.
+        // The author should always see their own posts regardless of group visibility.
+        return posts.filter(
+          (p) =>
+            p.status === PostStatus.published &&
+            p.ownerId.toString() === callerPrincipal,
+        );
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !isFetching && isAuthenticated,
+    retry: 1,
+    retryDelay: 1000,
+  });
+
   return {
     ...query,
     isLoading: isFetching || query.isLoading,
@@ -98,36 +203,40 @@ export function useCreatePost() {
         throw new Error(`__contentBlocked__:${blockedWordFrontend}`);
       }
 
-      if (!published) {
-        // Save as draft when publish toggle is off
-        const draftId = await actor.saveDraft(
-          title,
-          content,
-          author.trim(),
-          images,
-        );
-        return draftId;
-      }
+      // Inner function to perform the actual call, with one retry after re-init
+      const doCreate = async (retrying = false): Promise<bigint> => {
+        try {
+          if (!published) {
+            return await actor.saveDraft(title, content, author.trim(), images);
+          }
+          const createResult = await actor.createPost(
+            title,
+            content,
+            author.trim(),
+            images,
+          );
+          if (createResult.__kind__ === "imageTooLarge") {
+            throw new Error(
+              "Bilden är för stor efter komprimering. Max 800 KB per bild tillåts. Försök med en annan bild.",
+            );
+          }
+          if (createResult.__kind__ === "contentBlocked") {
+            throw new Error(
+              `__contentBlocked__:${createResult.contentBlocked}`,
+            );
+          }
+          return createResult.ok;
+        } catch (err) {
+          if (!retrying && isNotRegisteredError(err)) {
+            // Re-register caller in access control and retry once
+            await tryReinitAccessControl(actor);
+            return doCreate(true);
+          }
+          throw err;
+        }
+      };
 
-      // Create and publish
-      const createResult = await actor.createPost(
-        title,
-        content,
-        author.trim(),
-        images,
-      );
-
-      if (createResult.__kind__ === "imageTooLarge") {
-        throw new Error(
-          "Bilden är för stor efter komprimering. Max 800 KB per bild tillåts. Försök med en annan bild.",
-        );
-      }
-      if (createResult.__kind__ === "contentBlocked") {
-        const reason = createResult.contentBlocked;
-        throw new Error(`__contentBlocked__:${reason}`);
-      }
-
-      return createResult.ok;
+      return doCreate();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
@@ -302,7 +411,19 @@ export function useSaveDraft() {
         throw new Error(`__contentBlocked__:${blockedWord}`);
       }
       const safeAuthor = author?.trim() ? author.trim() : "(Okänd)";
-      return actor.saveDraft(title, content, safeAuthor, images);
+
+      const doSave = async (retrying = false): Promise<bigint> => {
+        try {
+          return await actor.saveDraft(title, content, safeAuthor, images);
+        } catch (err) {
+          if (!retrying && isNotRegisteredError(err)) {
+            await tryReinitAccessControl(actor);
+            return doSave(true);
+          }
+          throw err;
+        }
+      };
+      return doSave();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myDrafts"] });
@@ -331,8 +452,20 @@ export function useUpdateDraft() {
       if (!actor)
         throw new Error("Anslutningen är inte klar. Försök igen om en stund.");
       const safeAuthor = author?.trim() ? author.trim() : "(Okänd)";
-      await actor.updateDraft(id, title, content, safeAuthor, images);
-      return id;
+
+      const doUpdate = async (retrying = false): Promise<bigint> => {
+        try {
+          await actor.updateDraft(id, title, content, safeAuthor, images);
+          return id;
+        } catch (err) {
+          if (!retrying && isNotRegisteredError(err)) {
+            await tryReinitAccessControl(actor);
+            return doUpdate(true);
+          }
+          throw err;
+        }
+      };
+      return doUpdate();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myDrafts"] });
@@ -433,7 +566,22 @@ export function useGetCallerUserProfile() {
     queryKey: ["currentUserProfile"],
     queryFn: async () => {
       if (!actor) throw new Error("Actor not available");
-      return actor.getCallerUserProfile();
+      try {
+        return await actor.getCallerUserProfile();
+      } catch (err) {
+        if (isNotRegisteredError(err)) {
+          // Re-register and retry once
+          await tryReinitAccessControl(actor);
+          try {
+            return await actor.getCallerUserProfile();
+          } catch {
+            // Return null so the form shows the alias input field
+            return null;
+          }
+        }
+        // For any other error, return null so UI falls back to alias input
+        return null;
+      }
     },
     enabled: !!actor && !actorFetching && isAuthenticated,
     retry: false,
