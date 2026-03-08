@@ -18,14 +18,12 @@ const BLOCKED_WORDS_SV = [
   "skit",
   "idiot",
   "mongo",
-  "cp",
   "neger",
   "bög",
   "rövhål",
   "djävul",
   "satan",
   "bastard",
-  "as",
   "kräk",
   "skitstövel",
   "jävel",
@@ -40,7 +38,8 @@ const BLOCKED_WORDS_SV = [
   "nazist",
   "nazism",
   "pedofil",
-  "terroris",
+  "terrorist",
+  "terrorism",
 ];
 
 const BLOCKED_WORDS_EN = [
@@ -62,6 +61,7 @@ const BLOCKED_WORDS_EN = [
   "nazi",
   "pedophile",
   "terrorist",
+  "terrorism",
   "hate speech",
   "kys",
   "go die",
@@ -87,12 +87,18 @@ function stripHtml(html: string): string {
 
 /**
  * Returns the first blocked word found in the text, or null if clean.
- * Matching is case-insensitive.
+ * Matching is case-insensitive and uses word boundaries (\b) for all words
+ * to prevent false positives (e.g. "kill" should not match "skillful").
+ * Multi-word phrases (containing spaces) are matched with word boundaries
+ * at the phrase edges only.
  */
 export function findBlockedWord(rawText: string): string | null {
-  const plainText = stripHtml(rawText).toLowerCase();
+  const plainText = stripHtml(rawText);
   for (const word of ALL_BLOCKED_WORDS) {
-    if (plainText.includes(word.toLowerCase())) {
+    // Escape any regex special chars in the word/phrase, then wrap in \b
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(`\\b${escaped}\\b`, "i");
+    if (pattern.test(plainText)) {
       return word;
     }
   }

@@ -309,9 +309,7 @@ function Sidebar({
       "du",
       "han",
       "hon",
-      "vi",
       "ni",
-      "de",
       "the",
       "a",
       "an",
@@ -701,8 +699,9 @@ export default function HomePage() {
   const latestPost = sortedPosts[0] ?? null;
   const hasPosts = sortedPosts.length > 0;
 
-  // Posts excluding the hero post (shown in the grid)
-  const gridPosts = sortedPosts;
+  // Posts excluding the hero post — the hero already shows the latest post,
+  // so we slice it off to avoid the same post appearing twice in the grid.
+  const gridPosts = hasPosts ? sortedPosts.slice(1) : [];
 
   return (
     <div className="min-h-screen">

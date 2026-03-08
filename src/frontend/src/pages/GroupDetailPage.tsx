@@ -57,8 +57,9 @@ import type { Post, PublicProfile } from "../backend";
 import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
-  useGetAllPublishedPosts,
+  useGetAllPublishedPostsUnfiltered,
   useGetCallerUserProfile,
+  useGetMyPublishedPosts,
   useGetPublicProfiles,
 } from "../hooks/useQueries";
 import {
@@ -222,10 +223,10 @@ function AddPostDialog({
   const [inMainFeed, setInMainFeed] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
+  // myPosts is already filtered to only include posts owned by the caller
+  // that are not yet in the group (pre-filtered by parent component).
   const availablePosts = myPosts.filter(
-    (p) =>
-      p.ownerId.toString() === currentPrincipal &&
-      !group.postIds.includes(p.id.toString()),
+    (p) => p.ownerId.toString() === currentPrincipal,
   );
 
   const handleAdd = async () => {
@@ -459,14 +460,17 @@ export default function GroupDetailPage() {
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
   useGetCallerUserProfile();
+  // Use the unfiltered hook so group members can see private-group posts
   const { data: allPosts = [], isLoading: postsLoading } =
-    useGetAllPublishedPosts();
+    useGetAllPublishedPostsUnfiltered();
+  // Use my-published hook for the "add post" dialog — no private-group filter needed
+  const { data: myPublishedPostsData = [] } = useGetMyPublishedPosts();
   const { data: publicProfiles = [] } = useGetPublicProfiles();
   const { actor, isFetching: actorFetching } = useActor();
 
   const currentPrincipal = identity?.getPrincipal().toString() ?? "";
 
-  const [refreshTick, setRefreshTick] = useState(0);
+  const [, setRefreshTick] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [isDeletingGroup, setIsDeletingGroup] = useState(false);
@@ -476,7 +480,6 @@ export default function GroupDetailPage() {
   const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
 
   const refresh = () => setRefreshTick((t) => t + 1);
-  void refreshTick;
 
   // Sync from backend on mount when actor becomes available
   useEffect(() => {
@@ -551,14 +554,14 @@ export default function GroupDetailPage() {
     );
   }
 
-  // Posts in this group
+  // Posts in this group — uses unfiltered data so private-group posts are visible to members
   const groupPosts = allPosts.filter((p) =>
     group.postIds.includes(p.id.toString()),
   );
 
-  // My own published posts (for adding to group)
-  const myPublishedPosts = allPosts.filter(
-    (p) => p.ownerId.toString() === currentPrincipal,
+  // My own published posts for the "add post" dialog — from the dedicated hook
+  const myPublishedPosts = myPublishedPostsData.filter(
+    (p) => !group.postIds.includes(p.id.toString()),
   );
 
   const handleLeave = async () => {

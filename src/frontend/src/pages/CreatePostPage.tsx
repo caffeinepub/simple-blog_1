@@ -189,15 +189,19 @@ export default function CreatePostPage() {
       // Use profile alias if available — author state is empty when profile alias is shown
       const trimmedAuthor = hasProfileAlias ? profileAlias : author.trim();
 
-      // If the user has no saved alias yet, save it to their profile now
+      // If the user has no saved alias yet, save it to their profile now.
+      // Spread existing profile fields to avoid overwriting data already saved.
       if (!hasProfileAlias && trimmedAuthor) {
         try {
           const updatedProfile: UserProfile = {
+            ...(userProfile ?? {
+              name: "",
+              email: "",
+              phone: "",
+              country: "",
+              preferredLanguage: "sv",
+            }),
             name: trimmedAuthor,
-            email: userProfile?.email ?? "",
-            phone: userProfile?.phone ?? "",
-            country: userProfile?.country ?? "",
-            preferredLanguage: userProfile?.preferredLanguage ?? "sv",
           };
           await saveProfileMutation.mutateAsync(updatedProfile);
         } catch {

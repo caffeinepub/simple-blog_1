@@ -21,6 +21,13 @@ import { getSecretParameter } from "../utils/urlParams";
 import { useActor } from "./useActor";
 import { useInternetIdentity } from "./useInternetIdentity";
 
+// Helper: convert unknown error to a human-readable message string
+function toErrorMessage(err: unknown): string {
+  return err instanceof Error
+    ? err.message
+    : JSON.stringify(err) || "Okänt fel";
+}
+
 // Helper: detect "User is not registered" backend trap
 function isNotRegisteredError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
@@ -85,12 +92,13 @@ export function useGetAllPublishedPosts() {
       try {
         const posts = await actor.getAllPublishedPosts();
 
-        // Filter out posts from locally-blocked authors
+        // Filter out the ICP anonymous principal (2vxsx-fae) and locally-blocked authors
         const blocked = getBlockedAuthors();
-        let filtered =
-          blocked.length > 0
-            ? posts.filter((p) => !blocked.includes(p.ownerId.toString()))
-            : posts;
+        let filtered = posts.filter(
+          (p) =>
+            p.ownerId.toString() !== "2vxsx-fae" &&
+            (blocked.length === 0 || !blocked.includes(p.ownerId.toString())),
+        );
 
         // Filter out posts that belong to private groups and are not explicitly
         // marked as visible in the main feed. This ensures private-group posts
@@ -148,6 +156,42 @@ export function useGetMyPublishedPosts() {
       }
     },
     enabled: !!actor && !isFetching && isAuthenticated,
+    retry: 1,
+    retryDelay: 1000,
+  });
+
+  return {
+    ...query,
+    isLoading: isFetching || query.isLoading,
+  };
+}
+
+/**
+ * Fetch ALL published posts WITHOUT the private-group filter.
+ * Used in GroupDetailPage so that group members can see private-group posts.
+ * Anonymous principal (2vxsx-fae) and blocked authors are still filtered out.
+ */
+export function useGetAllPublishedPostsUnfiltered() {
+  const { actor, isFetching } = useActor();
+
+  const query = useQuery<Post[]>({
+    queryKey: ["posts", "published", "unfiltered"],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        const posts = await actor.getAllPublishedPosts();
+        const blocked = getBlockedAuthors();
+        // Only filter anonymous principal and blocked authors — NO private-group filter
+        return posts.filter(
+          (p) =>
+            p.ownerId.toString() !== "2vxsx-fae" &&
+            (blocked.length === 0 || !blocked.includes(p.ownerId.toString())),
+        );
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !isFetching,
     retry: 1,
     retryDelay: 1000,
   });
@@ -500,14 +544,8 @@ export function useDeleteDraft() {
         await actor.deleteDraft(id);
       } catch (err: unknown) {
         // Surface the exact backend error message (e.g. Runtime.trap messages)
-        if (err instanceof Error) {
-          throw err;
-        }
-        const msg =
-          typeof err === "string"
-            ? err
-            : JSON.stringify(err) || "Okänt fel från servern";
-        throw new Error(msg);
+        if (err instanceof Error) throw err;
+        throw new Error(toErrorMessage(err));
       }
     },
     onSuccess: () => {
@@ -777,10 +815,7 @@ export function useAddAdmin() {
         const principal = Principal.fromText(principalText);
         await actor.addAdmin(principal);
       } catch (err: unknown) {
-        const msg =
-          err instanceof Error
-            ? err.message
-            : JSON.stringify(err) || "Okänt fel";
+        const msg = toErrorMessage(err);
         if (msg.includes("Unauthorized") || msg.includes("unauthorized")) {
           throw new Error(
             "Unauthorized: Bakänden är inte konfigurerad för detta principal ID. Kontakta systemadministratören.",
@@ -806,18 +841,7 @@ export function useRemoveAdmin() {
         const principal = Principal.fromText(principalText);
         await actor.removeAdmin(principal);
       } catch (err: unknown) {
-        const msg =
-          err instanceof Error
-            ? err.message
-            : JSON.stringify(err) || "Okänt fel";
-        if (
-          msg.includes("owner") ||
-          msg.includes("Unauthorized") ||
-          msg.includes("unauthorized")
-        ) {
-          throw new Error(msg);
-        }
-        throw new Error(msg);
+        throw new Error(toErrorMessage(err));
       }
     },
     onSuccess: () => {
@@ -857,7 +881,7 @@ export function useAdminUpdatePost() {
           images,
         );
         if (result.__kind__ === "imageTooLarge") {
-          throw new Error("Bilden är voor stor. Max 800 KB per bild tillåts.");
+          throw new Error("Bilden är för stor. Max 800 KB per bild tillåts.");
         }
         if (result.__kind__ === "contentBlocked") {
           throw new Error(`__contentBlocked__:${result.contentBlocked}`);
@@ -865,8 +889,7 @@ export function useAdminUpdatePost() {
         return id;
       } catch (err: unknown) {
         if (err instanceof Error) throw err;
-        const msg = JSON.stringify(err) || "Okänt fel från servern";
-        throw new Error(msg);
+        throw new Error(toErrorMessage(err));
       }
     },
     onSuccess: (id) => {
@@ -904,8 +927,7 @@ export function useAdminChangePostStatus() {
         return id;
       } catch (err: unknown) {
         if (err instanceof Error) throw err;
-        const msg = JSON.stringify(err) || "Okänt fel från servern";
-        throw new Error(msg);
+        throw new Error(toErrorMessage(err));
       }
     },
     onSuccess: (id) => {
@@ -927,8 +949,7 @@ export function useAdminDeletePost() {
         await actor.deletePost(id);
       } catch (err: unknown) {
         if (err instanceof Error) throw err;
-        const msg = JSON.stringify(err) || "Okänt fel från servern";
-        throw new Error(msg);
+        throw new Error(toErrorMessage(err));
       }
     },
     onSuccess: () => {
@@ -970,10 +991,7 @@ export function useRemoveAuthor() {
         const principal = Principal.fromText(principalText);
         await actor.removeAuthor(principal);
       } catch (err: unknown) {
-        const msg =
-          err instanceof Error
-            ? err.message
-            : JSON.stringify(err) || "Okänt fel från servern";
+        const msg = toErrorMessage(err);
         if (
           msg.includes("Unauthorized") ||
           msg.includes("unauthorized") ||
@@ -1248,8 +1266,11 @@ export function useGetUnreadNotificationCount() {
       return actor.getUnreadNotificationCount();
     },
     enabled: !!actor && !isFetching && isAuthenticated,
-    staleTime: 15_000,
-    refetchInterval: 30_000,
+    staleTime: 30_000,
+    // Poll less frequently than useGetNotifications (30s) to reduce backend load.
+    // The full notification list is already fetched every 30s; this count query
+    // is supplementary and doesn't need to stay perfectly in sync.
+    refetchInterval: 60_000,
   });
 }
 
